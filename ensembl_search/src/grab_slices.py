@@ -7,7 +7,7 @@ Created on Mar 6, 2012
 ###############################
 ###############################
 # imports
-from os import remove, system, path;
+from os import remove, system, path, makedirs, listdir;
 import re;
 import ConfigParser;
 from subprocess import *;
@@ -23,8 +23,14 @@ session_resource_path = config.get('Session resource', 'session_resource_path')
 #the input file
 descr_file_path = config.get('Ensembl cfg', 'descr_file')
 descr_file_path = "%s/%s" % (session_resource_path, descr_file_path);
+ensembldb = config.get('Ensembl cfg', 'ensembldb')
+masked = config.get('Ensembl cfg', 'masked')
+if (masked == 1): 
+    masked = True
+else:
+    masked = False
 # how much to expand
-ens_expansion = config.get('Ensembl cfg', 'expansion')
+ens_expansion = int(config.get('Ensembl cfg', 'expansion'))
 
 #the gene regions folder
 gene_regions_path = config.get('Gene regions path', 'regions')
@@ -37,6 +43,21 @@ expanded_regions_f = config.get('Gene regions path', 'expanded_regions')
 expanded_regions_f = "%s%s" % (session_resource_path, expanded_regions_f)
 # cached data status file
 status_file = "%s.status" % tmp_folder
+
+###############################
+# create session dir, if not existing
+if (not path.exists(session_resource_path)):
+    makedirs(session_resource_path)
+    
+if (not path.exists(gene_regions_path)):
+    makedirs(gene_regions_path)
+    
+if (not path.exists(expanded_regions_f)):
+    makedirs(expanded_regions_f)
+    
+if (not path.exists(tmp_folder)):
+    makedirs(tmp_folder)
+    
 
 ###############################
 ###############################
@@ -65,48 +86,24 @@ strand = 1
 
 ###############################
 ###############################
-# Function for data caching
-def cache_data ():
-    i = 0
-    
-    # remove the cached status
-    if (is_data_cached()) :
-        remove(status_file)
-    
-    # start caching
-    for line in descr_file_lines:
-        if (i%4 == 0):
-            species_name = line.strip('\n')
-            output_file_name = "%s/%s.fa" % (gene_regions_path, species_name)
-        elif (i%4 == 2):
-            parameters = line.strip('\n').split(' ')[1].split(':')
-            if (parameters[0] != 'chromosome'):
-                # otherwise, cache the data
-                # after caching, write success to .status file
-                cache_f = "%s/%s.%s.fa" % (tmp_folder, species_name, parameters[0])
-                cmd = "./ensembl_api.sh -s %s -t %s -i %s -a %s -o %s" %(species_name,       # species name 
-                                                                                parameters[0],      # id type 
-                                                                                parameters[2],      # id 
-                                                                                parameters[1],      # assembly 
-                                                                                cache_f)
-                system(cmd)
-        i = i+1  
-    
-    # cached status
-    stat_f = open(status_file, 'w')
-    stat_f.close()
-     
-
-###############################
-###############################
-# Function for checking if the data has been cached
-def is_data_cached ():
-    if path.isfile(status_file):
-        return True
+def generate_file_name (masked, species, id_type, id):
+    file_name = "%s/%s/dna/" % (ensembldb, species.lower())
+    tmp_file=""
+    for file in listdir(file_name):
+        if (file != "README"):
+            tmp_file = file 
+            break
+    m = re.findall ('(.*).dna', tmp_file)   
+    if (masked == True):
+        file_name = "%s/%s.dna_rm." % (file_name, m[0])
     else :
-        return False
-
-
+        file_name = "%s/%s.dna." % (file_name, m[0])
+    if (id_type == 'chromosome'):
+        file_name = "%schromosome.%s.fa" % (file_name, id)
+    else :
+        file_name = "%stoplevel.fa" % (file_name)
+    return file_name
+   
 
 ###############################
 ###############################
@@ -114,102 +111,73 @@ def is_data_cached ():
 def get_gene_regions ():
 
     i = 0
-    
-    # if data cached, search the cached files
-    # if not, search the database
-    print "Get gene regions started"
-    cached_stat = is_data_cached()
-    if (cached_stat) :
-        cmd_cached = "-c %s" % (tmp_folder)
-    else :
-        cmd_cached = ""
-    
+    print "Get gene regions started"    
     for line in descr_file_lines:
         print line
         if (i%4 == 0):
             species_name = line.strip('\n')
             output_file_name = "%s/%s.fa" % (gene_regions_path, species_name)
+            
         elif (i%4 == 2):
             
             parameters = line.strip('\n').split(' ')[1].split(':')
-            # chromosome is never cached
-            if (parameters[0] == 'chromosome'):
-                cmd = "./ensembl_api.sh -s %s -t %s -i %s -a %s -b %s -e %s -r %s -o %s" %(species_name,       # species name 
-                                                                                parameters[0],      # id type 
-                                                                                parameters[2],      # id 
-                                                                                parameters[1],      # assembly 
-                                                                                parameters[3],      # sequence beginning
-                                                                                parameters[4],      # sequence ending
-                                                                                parameters[5],      # strand
-                                                                                output_file_name)   
-                system(cmd)
-                print "got chromosome"
+            database = generate_file_name(masked, species_name, parameters[0], parameters[2])
+            print database
+            if (int(parameters[5]) == -1) : # convert into fastacmd friendly format
+                parameters[5] = str(2)
+            sid = ""
+            if (parameters[0] == "chromosome"):
+                sid = "chrom%s" % parameters[2]
+            else :
+                sid = parameters[2]
                 
-            # other sequences might be
-            else:
-                cmd = "./ensembl_api.sh -s %s -t %s -i %s -a %s -b %s -e %s -r %s -o %s %s" %(species_name,       # species name 
-                                                                                parameters[0],      # id type 
-                                                                                parameters[2],      # id 
-                                                                                parameters[1],      # assembly 
-                                                                                parameters[3],      # sequence beginning
-                                                                                parameters[4],      # sequence ending
-                                                                                parameters[5],      # strand
-                                                                                output_file_name,
-                                                                                cmd_cached)
-                system(cmd)
-                print "got other"
-                
+            cmd = "fastacmd -d %s -s %s -S %s -L %s,%s -p F -o %s"  %       (database,          # database name
+                                                                             sid,                # id
+                                                                             parameters[5],     # strand
+                                                                             parameters[3],     # seq beginning
+                                                                             parameters[4],     # seq ending
+                                                                             output_file_name)
+            print (cmd)   
+            system(cmd)
+            print "Wrote data to %s" % output_file_name
         i = i+1
                 
                 
 ###############################
 ###############################
 # function for getting the expanded gene regions
-def get_expanded_gene_regions (exp = int(ens_expansion)):
-    
+def get_expanded_gene_regions ():
+
     i = 0
-    
-    # if data cached, search the cached files
-    # if not, search the database
-    cached_stat = is_data_cached()
-    if (cached_stat) :
-        cmd_cached = "-c %s" % (tmp_folder)
-    else :
-        cmd_cached = ""
-    
+    print "Get gene regions started"    
     for line in descr_file_lines:
+        print line
         if (i%4 == 0):
             species_name = line.strip('\n')
-            output_file_name = "%s/%s_%d.fa" % (expanded_regions_f, species_name, exp)
+            output_file_name = "%s/%s.fa" % (gene_regions_path, species_name)
+            
         elif (i%4 == 2):
+            
             parameters = line.strip('\n').split(' ')[1].split(':')
-            # chromosome is never cached
-            if (parameters[0] == 'chromosome'):
-                cmd = "./ensembl_api.sh -s %s -t %s -i %s -a %s -b %s -e %s -r %s -o %s" %(species_name,       # species name 
-                                                                                parameters[0],      # id type 
-                                                                                parameters[2],      # id 
-                                                                                parameters[1],      # assembly 
-                                                                                max(1, int(parameters[3])-exp),      # sequence beginning
-                                                                                int(parameters[4])+exp,              # sequence ending
-                                                                                parameters[5],      # strand
-                                                                                output_file_name)   
-                system(cmd)
+            database = generate_file_name(masked, species_name, parameters[0], parameters[2])
+            print database
+            if (int(parameters[5]) == -1) : # convert into fastacmd friendly format
+                parameters[5] = str(2)
+            sid = ""
+            if (parameters[0] == "chromosome"):
+                sid = "chrom%s" % parameters[2]
+            else :
+                sid = parameters[2]
                 
-            # other sequences might be
-            else:
-                cmd = "./ensembl_api.sh -s %s -t %s -i %s -a %s -b %s -e %s -r %s -o %s %s" %(species_name,       # species name 
-                                                                                parameters[0],      # id type 
-                                                                                parameters[2],      # id 
-                                                                                parameters[1],      # assembly 
-                                                                                max(1, int(parameters[3])-exp),      # sequence beginning
-                                                                                int(parameters[4])+exp,              # sequence endin
-                                                                                parameters[5],      # strand
-                                                                                output_file_name,
-                                                                                cmd_cached)         # if data is cached, add the -c argument
-                system(cmd)
-                
+            cmd = "fastacmd -d %s -s %s -S %s -L %d,%d -p F -o %s"  %       (database,          # database name
+                                                                             sid,                # id
+                                                                             parameters[5],     # strand
+                                                                             max(0, int(parameters[3])-ens_expansion),     # seq beginning
+                                                                             int(parameters[4])+ens_expansion,     # seq ending
+                                                                             output_file_name)
+            print (cmd)   
+            system(cmd)
+            print "Wrote data to %s" % output_file_name
         i = i+1
-                
-#cache_data()
+
 get_gene_regions()
-#get_expanded_gene_regions()
