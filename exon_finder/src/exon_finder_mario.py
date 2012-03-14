@@ -4,7 +4,7 @@ Created on Dec 8, 2011
 @author: Mario
 '''
 
-from os import system, popen
+from os import system
 import re
 from os import path
 
@@ -17,7 +17,7 @@ regions_path = "/Users/Mario/Desktop/project/ExonFinder/ensembl_search/Regions/"
 proteins_path = "./proteins/"
 
 # number of exons
-exon_num = 15;
+number_of_exons = 15;
 
 # path to log file
 log_file = "./exon_finder.log"
@@ -25,7 +25,7 @@ log_file = "./exon_finder.log"
 
 blastn = "/Users/Mario/Desktop/Bioinf/blastn-2.2.16/bin/blastall -p blastn -e 1.e-2"
 tblastn = "/Users/Mario/Desktop/Bioinf/blastn-2.2.16/bin/blastall -p tblastn -e 1.e-2"
-database = "/Users/Mario/Desktop/project/ExonFinder/ExonFinder/src/human_parf_exons.fasta"
+exon_db = "/Users/Mario/Desktop/project/ExonFinder/ExonFinder/src/human_parf_exons.fasta"
 
 #ovako bi trebao izgledati input file
 query_sequence = "MYO_LUC_scaffold.fasta"
@@ -35,9 +35,9 @@ outfile = "tmp.blastout"
 #[T, N, X, NX, U, valid_species]
 statistics = [0 for i in range(6)]
 statistics_w = [0 for i in range(6)]
-exon_statistics = [0 for i in range(exon_num)]
-new_exon_discovery_statistics = [0 for i in range(exon_num)]
-protein_exon_discovery_statistics = [0 for i in range(exon_num)]
+exon_statistics = [0 for i in range(number_of_exons)]
+new_exon_discovery_statistics = [0 for i in range(number_of_exons)]
+protein_exon_discovery_statistics = [0 for i in range(number_of_exons)]
 
 new_exon_discovery_species = {}
 protein_exon_discovery_species = {}
@@ -70,7 +70,7 @@ def find_exons (params, species_name, short_name) :
 	print "Current query being executed on ", query_sequence, "."
 	
 	#blastn exons against found scaffolds in other species
-	cmd = "%s -d %s -i %s -o %s" % (blastn, database, query_sequence, outfile)
+	cmd = "%s -d %s -i %s -o %s" % (blastn, exon_db, query_sequence, outfile)
 	print cmd
 	system(cmd)
 	
@@ -105,7 +105,7 @@ def find_exons_prot (params, species_name, short_name) :
 	print "Current PROTEIN query being executed on ", query_sequence, "."
 	
 	#blastn exons against found proteins in other species
-	cmd = "%s -d %s -i %s -o %s" % (tblastn, database, query_sequence, outfile)
+	cmd = "%s -d %s -i %s -o %s" % (tblastn, exon_db, query_sequence, outfile)
 	print cmd
 	system(cmd)
 	
@@ -166,7 +166,7 @@ def write_species_info (logfile, short_name, (species_name, params)):
 def annotate_exons (exons, short_name):
 	outfile = './blastout/'+short_name+'.blastout';
 	
-	exon_dict = {}
+	exons_found = {}
 	i = 0
 	found_f = False
 	results = open(outfile, "r")
@@ -178,7 +178,7 @@ def annotate_exons (exons, short_name):
 			if(found_f == True):
 				reg = re.match(r'^Query: (\d*)', line)
 				if(reg):
-					exon_dict[exons[i]] = reg.group(1)
+					exons_found[exons[i]] = reg.group(1)
 					found_f = False
 					i += 1
 	### Anotacija i analiza za neprosirene
@@ -189,8 +189,8 @@ def annotate_exons (exons, short_name):
 	seq = "".join(seq.split('\n'))
 
 	out = ""
-	for iter in range(1, exon_num + 1):
-		if exon_dict.has_key('{0}'.format(iter)):
+	for iter in range(1, number_of_exons + 1):
+		if exons_found.has_key('{0}'.format(iter)):
 			out += "  T"
 		else:
 			#pronadji lijevu granicu
@@ -199,14 +199,14 @@ def annotate_exons (exons, short_name):
 			reversed_range.reverse() 
 			for iterL in reversed_range:
 				#print "iterL:" + str(iterL)
-				if exon_dict.has_key('{0}'.format(iterL)):
-					left = int(exon_dict['{0}'.format(iterL)])
+				if exons_found.has_key('{0}'.format(iterL)):
+					left = int(exons_found['{0}'.format(iterL)])
 					break;
 			#pronadji desnu granicu
 			right = 0
-			for iterR in range(iter, exon_num + 2):
-				if exon_dict.has_key('{0}'.format(iterR)):
-					right = int(exon_dict['{0}'.format(iterR)])
+			for iterR in range(iter, number_of_exons + 2):
+				if exons_found.has_key('{0}'.format(iterR)):
+					right = int(exons_found['{0}'.format(iterR)])
 					break;
 			#print "Left:{0}; Right:{1}".format(left, right)
 			if(left != 0 and right != 0):
@@ -234,12 +234,12 @@ def annotate_exons (exons, short_name):
 def write_exon_info (logfile, exons, exons_widened, exons_proteins, short_name) :
 	
 	if (exons == -1) :
-		logfile.write ("No appropriate source file found (was not able to fetch the region from ensembl database).\n")
+		logfile.write ("No appropriate source file found (was not able to fetch the region from ensembl exon_db).\n")
 		return
 	####
 	#MARIO
 	out = ""
-	for iter in range(1, exon_num + 1):
+	for iter in range(1, number_of_exons + 1):
 		out += "{0:3d}".format(iter)
 	logfile.write(out)
 	logfile.write('\n')
@@ -292,7 +292,7 @@ def write_exon_info (logfile, exons, exons_widened, exons_proteins, short_name) 
 	
 	# Biljezenje exona pronadjenih preko proteina
 	new_protein_exons = []
-	for i in range(1, exon_num + 1):
+	for i in range(1, number_of_exons + 1):
 		if str(i) in exons_proteins:
 			logfile.write("  T")
 		else:
@@ -363,21 +363,21 @@ for short_name in all_species :
 log.write("Statistika:\n")	
 log.write("izvorno\n")
 for i in range(0, 5):
-	statistics[i] = float(statistics[i]) / (statistics[5] * exon_num) * 100
+	statistics[i] = float(statistics[i]) / (statistics[5] * number_of_exons) * 100
 log.write("T = {0:.2f}% \nN = {1:.2f}% \nX = {2:.2f}% \nNX = {3:.2f}% \n? = {4:.2f}%\n".format(statistics[0], statistics[1], statistics[2], statistics[3], statistics[4]))
 
 log.write("prosireno\n")
 for i in range(0, 5):
-	statistics_w[i] = float(statistics_w[i]) / (statistics_w[5] * exon_num) * 100
+	statistics_w[i] = float(statistics_w[i]) / (statistics_w[5] * number_of_exons) * 100
 log.write("T = {0:.2f}% \nN = {1:.2f}% \nX = {2:.2f}% \nNX = {3:.2f}% \n? = {4:.2f}%\n".format(statistics_w[0], statistics_w[1], statistics_w[2], statistics_w[3], statistics[4]))
 
 log.write("Prosjecni broj pronadjenih exona (%):\n")
 out = ""
-for iter in range(1, exon_num + 1):
+for iter in range(1, number_of_exons + 1):
 	out += "{0:6d}".format(iter)
 log.write(out)
 log.write('\n')
-for i in range(0, exon_num):
+for i in range(0, number_of_exons):
 	exon_statistics[i] = float(exon_statistics[i]) / statistics[5] * 100
 	log.write(" {0:05.2f}".format(exon_statistics[i]))
 log.write('\n')
@@ -385,7 +385,7 @@ log.write('\n')
 log.write("Prosjecni broj exona otkrivenih prosirenjem:\n")
 log.write(out)
 log.write('\n')
-for i in range(0, exon_num):
+for i in range(0, number_of_exons):
 	new_exon_discovery_statistics[i] = new_exon_discovery_statistics[i]/((100-exon_statistics[i])/100*statistics[5]) * 100
 	log.write(" {0:05.2f}".format(new_exon_discovery_statistics[i]))
 log.write('\n')
@@ -398,7 +398,7 @@ log.write('\n')
 log.write('Sto se preko DNA naslo a nije preko proteina:\n')
 log.write(out)
 log.write('\n')	
-for i in range(0, exon_num):
+for i in range(0, number_of_exons):
 	log.write(" {0:5d}".format(protein_exon_discovery_statistics[i]))
 log.write('\n')
 for s in protein_exon_discovery_species:
