@@ -75,7 +75,7 @@ for protein_id in protein_file.readlines():
     cmd_retrieve_dna = "python ../../ensembl_search/src/grab_slices.py %s" % protein_session_dir
     os.system(cmd_retrieve_dna)
     
-    
+    #
     
     
 
