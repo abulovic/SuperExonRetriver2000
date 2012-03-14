@@ -52,10 +52,13 @@ def create_protein_files(all_species, known_proteome, abinitio_proteome, protein
         OUTFILE = open(path_out, 'w')
         for d in data_split:
             OUTFILE.write(d)
+            
+            
+            
 ###############################
 ###############################
 #  Tools configuration and setting paths
-config_file = "marioot.cfg"
+config_file = "../../config.cfg"
 config = ConfigParser.RawConfigParser()
 config.read(config_file)
 known_proteome_f = config.get('Database path', 'known_proteome_path')
@@ -67,13 +70,13 @@ proteins_path = session_resource_path + config.get('Found proteins path', 'prote
 ###############################
 #  input negotiation
 #
-#descr = "test.descr";
+#output_descr = "test.output_descr";
 if(len(sys.argv) < 1):
-    print "Usage: %s <descr file>\n" % re.split("/", sys.argv[0])[len(re.split("/", sys.argv[0])) - 1];
+    print "Usage: %s <output_descr file>\n" % re.split("/", sys.argv[0])[len(re.split("/", sys.argv[0])) - 1];
     exit;
-descr = sys.argv[1] + ".descr"
-descr = session_resource_path + descr
+output_descr = sys.argv[1] + ".output_descr"
+output_descr = session_resource_path + output_descr
 ###############################
 #  Create protein folder
-all_species = parse_descr_file(descr)
+all_species = parse_descr_file(output_descr)
 create_protein_files(all_species, known_proteome_f, abinit_proteome_f, proteins_path)

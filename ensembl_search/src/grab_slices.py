@@ -9,19 +9,28 @@ Created on Mar 6, 2012
 # imports
 from os import remove, system, path, makedirs, listdir;
 import re;
+import sys;
 import ConfigParser;
 from subprocess import *;
+
+###############################
+# check for the command line
+# arguments
+if (len(sys.argv) < 2 ):
+    print ("Too few arguments. Pass the path to resource folder as an argument and try again.")
+else:
+    session_resource_path = sys.argv[1]
 
 
 ###############################
 ###############################
 #Tools configuration and setting paths
-config_file = "../../anab.cfg"
+config_file = "../../config.cfg"
 config = ConfigParser.RawConfigParser()
 config.read(config_file)
-session_resource_path = config.get('Session resource', 'session_resource_path')
 #the input file
-descr_file_path = config.get('Ensembl cfg', 'descr_file')
+descr_file_path = config.get('Session files', 'descr_output')
+
 descr_file_path = "%s/%s" % (session_resource_path, descr_file_path);
 ensembldb = config.get('Ensembl cfg', 'ensembldb')
 masked = config.get('Ensembl cfg', 'masked')
@@ -35,14 +44,10 @@ ens_expansion = int(config.get('Ensembl cfg', 'expansion'))
 #the gene regions folder
 gene_regions_path = config.get('Gene regions path', 'regions')
 gene_regions_path = "%s/%s" % (session_resource_path, gene_regions_path)
-# the tmp folder
-tmp_folder = config.get('Gene regions path', 'temporary_sequences')
-tmp_folder = "%s%s" % (session_resource_path, tmp_folder)
 # expanded regions folder
 expanded_regions_f = config.get('Gene regions path', 'expanded_regions')
-expanded_regions_f = "%s%s" % (session_resource_path, expanded_regions_f)
-# cached data status file
-status_file = "%s.status" % tmp_folder
+expanded_regions_f = "%s/%s" % (session_resource_path, expanded_regions_f)
+
 
 ###############################
 # create session dir, if not existing
@@ -54,9 +59,7 @@ if (not path.exists(gene_regions_path)):
     
 if (not path.exists(expanded_regions_f)):
     makedirs(expanded_regions_f)
-    
-if (not path.exists(tmp_folder)):
-    makedirs(tmp_folder)
+
     
 
 ###############################
@@ -114,11 +117,11 @@ def get_gene_regions ():
     print "Get gene regions started"    
     for line in descr_file_lines:
         print line
-        if (i%4 == 0):
+        if (i%3 == 0):
             species_name = line.strip('\n')
             output_file_name = "%s/%s.fa" % (gene_regions_path, species_name)
             
-        elif (i%4 == 2):
+        elif (i%3 == 1):
             
             parameters = line.strip('\n').split(' ')[1].split(':')
             database = generate_file_name(masked, species_name, parameters[0], parameters[2])
@@ -143,8 +146,8 @@ def get_gene_regions ():
         i = i+1
                 
                 
-###############################
-###############################
+###############################################
+###############################################
 # function for getting the expanded gene regions
 def get_expanded_gene_regions ():
 
@@ -152,11 +155,11 @@ def get_expanded_gene_regions ():
     print "Get gene regions started"    
     for line in descr_file_lines:
         print line
-        if (i%4 == 0):
+        if (i%3 == 0):
             species_name = line.strip('\n')
-            output_file_name = "%s/%s.fa" % (gene_regions_path, species_name)
+            output_file_name = "%s/%s.fa" % (expanded_regions_f, species_name)
             
-        elif (i%4 == 2):
+        elif (i%3 == 1):
             
             parameters = line.strip('\n').split(' ')[1].split(':')
             database = generate_file_name(masked, species_name, parameters[0], parameters[2])
@@ -181,3 +184,4 @@ def get_expanded_gene_regions ():
         i = i+1
 
 get_gene_regions()
+get_expanded_gene_regions()

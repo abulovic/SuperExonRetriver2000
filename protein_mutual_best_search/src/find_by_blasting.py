@@ -11,7 +11,7 @@ import ConfigParser;
 ###############################
 ###############################
 #Tools configuration
-config_file = "marioot.cfg"
+config_file = "../../config.cfg"
 config = ConfigParser.RawConfigParser()
 config.read(config_file)
 blastp = config.get('Blast cfg', 'blastp')
@@ -36,7 +36,8 @@ def find_by_blasting (proteome_db_f, query_sequence_f, result_seq_f):
         if header_str == "Unrecognized header":
             print "Unrecognized header format:\n %s " % header
             return [];      
-        ids.append(header_str); 
+        if (header_str != "      "):
+            ids.append(header_str); 
     remove('tmp_prot_ids')
     remove('tmp_blastout')
     return ids;
@@ -46,7 +47,7 @@ def find_by_blasting (proteome_db_f, query_sequence_f, result_seq_f):
 def parse_header(header):
     hdr = re.sub('>', '', header)
     hdr = re.sub('\|', ':', hdr)
-    fields = re.split(' ', hdr)
+    fields = hdr.split()
     protein = gene = transcript = location = novelty = ""
     for field in fields:
         aux = re.split(':', field)
@@ -63,9 +64,10 @@ def parse_header(header):
         elif location == "":
             location = field
         else:
-            print field;
-            return "Unrecognized header"
-            break
+            #print field;
+            #return "Unrecognized header"
+            #print "Unrecognized header elements: %s" % field
+            continue
     return "%s %s %s  %s  %s" % (protein, gene, transcript, location, novelty )
 ###############################
 ###############################
