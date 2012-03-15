@@ -26,6 +26,27 @@ def generate_file_name (prot_type, species):
     file_name = "%s/%s.pep.%s.fa" % (file_name, m[0], prot_type)
     return file_name
 
+def generate_directories_tree ():
+    for protein_id in protein_file.readlines():
+        protein_id = protein_id.strip()
+        protein_sessions_dir = "%s/%s" % (session_folder, protein_id);
+        
+        if (not os.path.isdir(protein_sessions_dir)):
+            os.makedirs(protein_sessions_dir)
+        if (not os.path.isdir("%s/%s" % (protein_sessions_dir, gene_regions_folder))):
+            os.makedirs("%s/%s" % (protein_sessions_dir, gene_regions_folder))
+        if (not os.path.isdir("%s/%s" % (protein_sessions_dir, expanded_regions_folder))):
+            os.makedirs("%s/%s" % (protein_sessions_dir, expanded_regions_folder))
+        if (not os.path.isdir("%s/%s" % (protein_sessions_dir, exons_path))):
+            os.mkdir("%s/%s" % (protein_sessions_dir, exons_path))
+        if (not os.path.isdir("%s/%s" % (protein_sessions_dir, mut_best_proteins))):
+            os.makedirs("%s/%s" % (protein_sessions_dir, mut_best_proteins))
+        if (not os.path.isdir("%s/%s" % (protein_sessions_dir, blastout_folder))):
+            os.makedirs("%s/%s" % (protein_sessions_dir, blastout_folder))
+        if (not os.path.isdir("%s/%s/dna" % (protein_sessions_dir, blastout_folder))):
+            os.makedirs("%s/%s/dna" % (protein_sessions_dir, blastout_folder))
+        if (not os.path.isdir("%s/%s/protein" % (protein_sessions_dir, blastout_folder))):
+            os.makedirs("%s/%s/protein" % (protein_sessions_dir, blastout_folder))
 ##################################
 ## Load necessary configuration ##
 
@@ -40,6 +61,12 @@ session_folder          = "%s/%s" % (project_root_folder, session_folder)
 protein_list_file       = config.get('Test files', 'protein_list')
 input_protein_file      = config.get('Session files', 'input_protein_file')
 
+gene_regions_folder     = config.get('Gene regions path', 'regions')
+expanded_regions_folder = config.get('Gene regions path', 'expanded_regions')
+exons_path              = config.get('Exon database path', 'exons')
+mut_best_proteins       = config.get('Found proteins path', 'proteins')
+blastout_folder         = config.get('Blastout path', 'blastout')
+
 fasta_db                = config.get('Ensembl cfg', 'ensembldb')
 
 ###################################
@@ -50,6 +77,8 @@ protein_type    = "all"
 protein_database = generate_file_name(protein_type, species);
 
 protein_file = open(protein_list_file, 'r')
+
+generate_directories_tree()
 
 for protein_id in protein_file.readlines():
     protein_id = protein_id.strip()
@@ -78,9 +107,10 @@ for protein_id in protein_file.readlines():
     cmd_generate_exons = "python ../../exon_finder/src/exon_base_generator.py %s %s %s" % (input_protein, 
                                                                                            "%s/gene_regions/%s.fa" % 
                                                                                            (protein_session_dir, species),
-                                                                                           protein_session_dir)
+                                                                                          protein_session_dir)
     number_of_exons = os.system(cmd_generate_exons)>>8
 
     #run exon_finder
-    cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s %s" % (number_of_exons, protein_session_dir, protein_id)
+    cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s" % (number_of_exons, protein_session_dir, protein_id)
     os.system(cmd_run_exon_finder)
+    protein_file.close()
