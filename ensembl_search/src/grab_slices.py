@@ -7,11 +7,10 @@ Created on Mar 6, 2012
 ###############################
 ###############################
 # imports
-from os import remove, system, path, makedirs, listdir;
+from os import system, path, makedirs, listdir;
 import re;
 import sys;
 import ConfigParser;
-from subprocess import *;
 
 ###############################
 # check for the command line
@@ -47,6 +46,9 @@ gene_regions_path = "%s/%s" % (session_resource_path, gene_regions_path)
 # expanded regions folder
 expanded_regions_f = config.get('Gene regions path', 'expanded_regions')
 expanded_regions_f = "%s/%s" % (session_resource_path, expanded_regions_f)
+# protein path
+protein_folder = config.get('Found proteins path', 'proteins')
+protein_folder = "%s/%s" % (session_resource_path, protein_folder)
 
 
 ###############################
@@ -59,6 +61,9 @@ if (not path.exists(gene_regions_path)):
     
 if (not path.exists(expanded_regions_f)):
     makedirs(expanded_regions_f)
+    
+if (not path.exists(protein_folder)):
+    makedirs(protein_folder)
 
     
 
@@ -66,6 +71,7 @@ if (not path.exists(expanded_regions_f)):
 ###############################
 # Input files
 descr_file = open(descr_file_path, 'r')
+print descr_file
 
 ###############################
 ###############################
@@ -107,6 +113,22 @@ def generate_file_name (masked, species, id_type, id):
         file_name = "%stoplevel.fa" % (file_name)
     return file_name
    
+################################
+# protein_type - all / abinitio
+def generate_protein_file_name (species, protein_type):
+    file_name = "%s/%s/pep" % (ensembldb, species.lower())
+    tmp_file=""
+    for file in listdir(file_name):
+        if (file != "README"):
+            tmp_file = file 
+            break
+    m = re.findall ('(.*).pep', tmp_file)
+    if (protein_type == "all"):
+        file_name = "%s/%s.pep.all.fa" % (file_name, m[0])
+    else:
+        file_name = "%s/%s.pep.abinitio.fa" % (file_name, m[0])
+        
+    return file_name
 
 ###############################
 ###############################
@@ -114,7 +136,7 @@ def generate_file_name (masked, species, id_type, id):
 def get_gene_regions ():
 
     i = 0
-    print "Get gene regions started"    
+    print "Get gene regions started."    
     for line in descr_file_lines:
         print line
         if (i%3 == 0):
@@ -152,7 +174,7 @@ def get_gene_regions ():
 def get_expanded_gene_regions ():
 
     i = 0
-    print "Get gene regions started"    
+    print "Get expanded gene regions started."    
     for line in descr_file_lines:
         print line
         if (i%3 == 0):
@@ -173,7 +195,7 @@ def get_expanded_gene_regions ():
                 sid = parameters[2]
                 
             cmd = "fastacmd -d %s -s %s -S %s -L %d,%d -p F -o %s"  %       (database,          # database name
-                                                                             sid,                # id
+                                                                             sid,               # id
                                                                              parameters[5],     # strand
                                                                              max(0, int(parameters[3])-ens_expansion),     # seq beginning
                                                                              int(parameters[4])+ens_expansion,     # seq ending
@@ -182,6 +204,35 @@ def get_expanded_gene_regions ():
             system(cmd)
             print "Wrote data to %s" % output_file_name
         i = i+1
-
-get_gene_regions()
-get_expanded_gene_regions()
+        
+        
+def get_proteins ():
+    i = 0
+    print "Get proteins started."    
+    for line in descr_file_lines:
+        if (i%3 == 0):
+            species_name = line.strip('\n')
+            output_file_name = "%s/%s.fa" % (protein_folder, species_name)
+        
+        elif (i%3 == 1):
+            prot_id = line.strip().split()[0]
+            protein_type = line.strip().split()[2]
+            if (protein_type == "known" ):
+                database = generate_protein_file_name(species_name, "all")
+            else:
+                database = generate_protein_file_name(species_name, "abinitio")
+                
+            cmd = "fastacmd -d %s -s %s -p T -o %s"  %       (database,          # database name
+                                                             prot_id,               # id
+                                                             output_file_name)
+            print(cmd)
+            system(cmd)
+            
+        i = i + 1
+            
+            
+            
+            
+#get_gene_regions()
+#get_expanded_gene_regions()
+get_proteins()
