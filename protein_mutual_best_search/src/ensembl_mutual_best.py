@@ -45,6 +45,7 @@ def bidirectional_search (protein_type,     # all / abinitio
         
         ###back search###
         back_ids = find_by_blasting(original_proteome_f, "%s.output_fasta" % species_name, working_results_f)
+        remove("{0}.output_fasta".format(species_name))
         if (len(back_ids) == 0):
             logger("\t reciprocal search in %s using %s as a query produced no hits (?)\n\n" % (original_species_name, species))
             logger("*****************************************\n\n\n")
@@ -169,16 +170,16 @@ output_protein = ""
 ###############################
 #  find the  query sequence in the "original" species
 #  (together with the  gene/protein/transcript entry it belongs to)
-original_proteome_f = generate_file_name("all", original_species_name)
-orig_search_ids = find_by_blasting(original_proteome_f, protein_input_file, working_results_f)
+original_proteome_f     = generate_file_name("all", original_species_name)
+orig_search_ids         = find_by_blasting(original_proteome_f, protein_input_file, working_results_f)
 logger("the closest match to %s in  %s is %s\n" % (protein_input_file, original_species_name, orig_search_ids[0]))
 
-split_info = re.split(" ", orig_search_ids[0])
+split_info              = re.split(" ", orig_search_ids[0])
 [orig_protein, orig_gene_name, orig_transcript, orig_gene_location] = [split_info[0], split_info[1], split_info[2], split_info[4]]
 logger("%s id in %s: %s\n" % (protein_input_file, original_species_name, orig_protein))
 
 logger("gene name in %s:   %s\n\n" % (original_species_name, orig_gene_name))
-orig_seq_f = "orig_seq.output_fasta"
+orig_seq_f               = "orig_seq.output_fasta"
 extract_first_seq(working_results_f, orig_protein, orig_seq_f)
 
 #print bidirectional_search("all", "Bos_taurus", protein_input_file)

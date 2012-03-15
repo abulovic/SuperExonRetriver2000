@@ -14,12 +14,11 @@ from Bio.SeqRecord import SeqRecord
 ###############################
 ###############################
 #  Tools configuration and setting paths
-config_file = "../../marioot.cfg"
+config_file = "../../config.cfg"
 config = ConfigParser.RawConfigParser()
 config.read(config_file)
-# session resource
-session_resource_path = config.get('Session resource', 'session_resource_path')
-
+wise_out = ""
+exons_out = ""
 ###############################
 ###############################
 #  Use wise to find exons in <dna_f> for <protein_f>
@@ -27,9 +26,8 @@ def get_exon_list_wise(protein_f, dna_f):
     # wise config
     wise = config.get('Wise cfg', 'wise')
     wise_flags = config.get('Wise cfg', 'flags')
-    wise_out = session_resource_path + config.get('Wise cfg', 'outfile')
 
-    cmd = "%s %s %s %s > %s" % (wise, protein_f, dna_f, wise_flags, wise_out)
+    cmd = "{0} {1} {2} {3} > {4}".format(wise, protein_f, dna_f, wise_flags, wise_out)
     system(cmd)
     return wise_out
 
@@ -39,8 +37,6 @@ def get_exon_list_wise(protein_f, dna_f):
 #  create the exon database.
 def create_exon_db(wise_f, dna_f):
     # database config
-    out_f = session_resource_path + config.get('Exon database path', 'exons') + "exons.fa"
-    out_f_individual_exon = session_resource_path + config.get('Exon database path', 'exons') + "individual_exons/exon"
     formatdb = config.get('Formatdb cfg', 'formatdb')
     formatdb_flgs = config.get('Formatdb cfg', 'dna_flgs')
     # Read DNA file
@@ -53,7 +49,7 @@ def create_exon_db(wise_f, dna_f):
     # Read wise2_out file
     wise_txt = open(wise_f, 'r');
     # Create exon file
-    out = open(out_f, 'w')
+    out = open(exons_out, 'w')
     # Fill the exon file
     exon_cnt = 0
     regex = re.compile(r'  Exon (\d+) (\d+) phase \d+')
@@ -67,27 +63,26 @@ def create_exon_db(wise_f, dna_f):
                        IUPAC.unambiguous_dna),
                        id=str(exon_cnt), description="exon length {0}".format(upper - lower))
             SeqIO.write(record, out, "fasta")
-            
-            individual_exon_f = open(out_f_individual_exon + "_{0}.fa".format(exon_cnt), 'w')
-            SeqIO.write(record, individual_exon_f, "fasta")
-            individual_exon_f.close()
     out.close()
     # Format database
-    cmd = "%s -i %s %s" % (formatdb, out_f, formatdb_flgs)
+    cmd = "%s -i %s %s" % (formatdb, exons_out, formatdb_flgs)
     system(cmd)
     return exon_cnt
 ###############################
 ###############################
-#  Call parameters are protein file and a base species DNA file (usually human)
+#  Call parameters are protein file, a base species DNA file (usually human), session resource path
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-    protein_f = argv[1]
-    dna_f = argv[2]
-    
+    [protein_f, dna_f, session_resource_path] = [argv[1], argv[2], argv[3]]
+    # session resource
+    global wise_out
+    global exons_out 
+    wise_out = "{0}/{1}".format(session_resource_path, config.get('Wise cfg', 'outfile'))
+    exons_out = "{0}/{1}/exons.fa".format(session_resource_path, config.get('Exon database path', 'exons_path'))
+    ###############################
     wise_f = get_exon_list_wise(protein_f, dna_f)
     number_of_exons = create_exon_db(wise_f, dna_f)
-    
     return number_of_exons
     
 if __name__ == '__main__':
