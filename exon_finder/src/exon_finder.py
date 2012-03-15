@@ -3,9 +3,11 @@ Created on Mar 6, 2012
 
 @author: marioot
 '''
+import os
 import re
 import sys
 import ConfigParser
+import csv
 from os import path, system, remove
 ###############################
 ###############################
@@ -130,13 +132,12 @@ def parse_swSharpout(exons, swSharpout):
 ###############################
 #  Align species DNA with exon database using blastn
 def run_blastn (species_name) :
-    blastout        = blastout_path + '/dna/' + species_name + '.blastout'
-    query_sequence  = regions_path + species_name + '.fa'
+    blastout        = "{0}/dna/{1}.blastout".format(blastout_path, species_name)
+    query_sequence  = "{0}/{1}.fa".format(regions_path, species_name)
     
     if (not path.isfile(query_sequence)) :
         print query_sequence, " file does not exist. "
         return -1;
-    print "Current blastn query being executed on ", query_sequence, "."
     #blastn: species dna on exon database
     cmd = "{0} -d {1} -i {2} -o {3}".format(blastn, exon_db, query_sequence, blastout)
     system(cmd)
@@ -145,13 +146,12 @@ def run_blastn (species_name) :
 ###############################
 #  Align species protein with exon database using tblastn
 def run_tblastn (species_name) :
-    blastout        = blastout_path + '/protein/' + species_name + '.blastout'
-    query_sequence  = proteins_path + species_name + '.fa';
+    blastout        = "{0}/protein/{1}.blastout".format(blastout_path, species_name)
+    query_sequence  = "{0}/{1}.fa".format(proteins_path, species_name)
     
     if (not path.isfile(query_sequence)) :
         print query_sequence, " file does not exist. "
         return -1;
-    print "Current tblastn query being executed on ", query_sequence, "."
     #tblastn: species dna on exon database
     cmd = "{0} -d {1} -i {2} -o {3}".format(tblastn, exon_db, query_sequence, blastout)
     system(cmd)
@@ -165,7 +165,7 @@ def run_SW (species_name, number_of_exons):
     # todo: this function should return the output file of the tool, the database should contain all the exons
     swSharpout      = swSharpout_path + species_name + '.swSharpout'
     return swSharpout
-    #
+    #####
     unimportant_file = "tmp.txt"
     query_sequence = regions_path + species_name + '.fa'
     sw_exons = {}
@@ -256,7 +256,7 @@ def find_exons (species_name, tool, number_of_exons):
     exons                       = annotate_exons(exons_found, exons, sequence, number_of_exons)
     return exons
 
-def get_exon_sizes(number_of_exons):
+def get_exon_lenghts(number_of_exons):
     exons       = {}
     exon_file   = open(exon_db, "r")
     for line in exon_file.readlines():
@@ -286,7 +286,7 @@ def format_individual_statistic_SW(exons_SW, number_of_exons):
     return stat
     #
     stat = {}
-    base_exon_sizes = get_exon_sizes(number_of_exons)
+    base_exon_sizes = get_exon_lenghts(number_of_exons)
     print "SW debug"
     print exons_SW
     print "base exon size:"
@@ -296,10 +296,11 @@ def format_individual_statistic_SW(exons_SW, number_of_exons):
         print recognised_length
         stat[current_exon] = recognised_length / base_exon_sizes[current_exon]
     return stat
-def generate_statistics_based_on_search(exons):
+def generate_statistics_based_on_search(exons, base_exon_lengths):
     statistics = []
     for current_exon in range(1, len(exons) + 1):
         statistics.append([current_exon,
+                           base_exon_lengths[current_exon],
                            exons[current_exon].score, 
                            exons[current_exon].alignment_matches, 
                            exons[current_exon].alignment_length,
@@ -307,19 +308,66 @@ def generate_statistics_based_on_search(exons):
     return statistics
 ###############################
 ###############################
-# Generates statistics for a particular exon search
-# Returns: "<species_name>, <type_of_search>, <exon>, <exon_length>, <score>, <number_of_matches>, <alignment_length>"
-def generate_species_statistics(exons_via_proteins, exons_via_dna, exons_SW, all_species):
+# Generates statistics 
+# Returns: "<protein_id>, 
+#           <species_name>, 
+#           <type_of_search>, 
+#           <exon>, 
+#           <exon_length>, 
+#           <score>, 
+#           <number_of_matches>, 
+#           <alignment_length>"
+def generate_statistics(exons_via_proteins, exons_via_dna, exons_SW, all_species, protein_id):
+    statistics_header = ["Protein_ID", 
+                         "Species", 
+                         "Type_of_search", 
+                         "Exon_number", 
+                         "Length", 
+                         "Score", 
+                         "Alignment_matches", 
+                         "Alignment_length",
+                         "Annotation"]
+    tblastn_statistics = []
+    blastn_statistics = []
+    
+    base_exon_length = get_exon_lenghts(len(exons_via_proteins))
+    
     for species in sorted(all_species):
-        print generate_statistics_based_on_search(exons_via_proteins[species])
-        print generate_statistics_based_on_search(exons_via_dna[species])
+        tblastn_species_statistic = generate_statistics_based_on_search(exons_via_proteins[species], base_exon_length)
+        blastn_species_statistic = generate_statistics_based_on_search(exons_via_dna[species], base_exon_length)
+        for exon in tblastn_species_statistic:
+            exon[1] /= 3    #for proteins
+            exon.insert(0, "tblastn")
+            exon.insert(0, species)
+            exon.insert(0, protein_id)
+        for exon in blastn_species_statistic:
+            exon.insert(0, "blastn")
+            exon.insert(0, species)
+            exon.insert(0, protein_id)
+        tblastn_statistics.append(tblastn_species_statistic)
+        blastn_statistics.append(blastn_species_statistic)
         #print generate_statistics_based_on_search(exons_SW[species])
+    ###WRITE TO CSV FILE###
+    statout = csv.writer(open(statistics_path, 'wb+'), delimiter = ',')
+    statout.writerow(statistics_header)
+    for species in tblastn_statistics:
+        for exon in species:
+            statout.writerow(exon)
+    for species in blastn_statistics:
+        for exon in species:
+            statout.writerow(exon)
+    ####
+    return [statistics_header, tblastn_statistics, blastn_statistics]
 
+def generate_required_directories():
+    if (not os.path.isdir(blastout_path)):
+        os.makedirs("{0}/dna".format(blastout_path))
+        os.makedirs("{0}/protein".format(blastout_path))
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-    [number_of_exons, session_resource_path] = [int(argv[1]), argv[2]]
+    [number_of_exons, session_resource_path, protein_id] = [int(argv[1]), argv[2], argv[3]]
     #################
     #resulting proteins path
     global proteins_path
@@ -336,9 +384,10 @@ def main(argv=None):
     swSharpout_path = "{0}/{1}".format(session_resource_path, config.get('SW#', 'swSharpout'))
     exon_db = "{0}/{1}/exons.fa".format(session_resource_path, config.get('Exon database path', 'exons_path'))
     log_path = "{0}/{1}".format(session_resource_path, config.get('LOG', 'exon_finder'))
-    statistics_path = "{0}/{1}".format(session_resource_path, config.get('Statistics', 'exon_finder'))
+    statistics_path = "{0}/{1}.csv".format(session_resource_path, config.get('Statistics', 'exon_finder'))
     description_f = "{0}/{1}".format(session_resource_path, config.get('Session files', 'descr_output'))
     ################
+    generate_required_directories()
     all_species = parse_descr_file(description_f)
     LOG = open(log_path, 'w')
 
@@ -355,8 +404,8 @@ def main(argv=None):
         # 3)
         #exons_SW[species] = find_exons(species_name, "SW", number_of_exons)
         
-        generate_species_statistics(exons_via_proteins, exons_via_DNA, exons_SW, all_species)
-        
+    print generate_statistics(exons_via_proteins, exons_via_DNA, exons_SW, all_species, protein_id)
+    
     return 0
     
 if __name__ == '__main__':

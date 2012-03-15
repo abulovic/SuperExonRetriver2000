@@ -233,6 +233,6 @@ def get_proteins ():
             
             
             
-#get_gene_regions()
-#get_expanded_gene_regions()
+get_gene_regions()
+get_expanded_gene_regions()
 get_proteins()
