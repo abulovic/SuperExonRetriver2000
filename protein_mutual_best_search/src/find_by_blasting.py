@@ -24,9 +24,14 @@ fastacmd = config.get('Fastacmd cfg', 'fastacmd')
 def find_by_blasting (proteome_db_f, query_sequence_f, result_seq_f):
     cmd = "%s -d %s -i %s -o tmp_blastout" % (blastp, proteome_db_f, query_sequence_f)
     system(cmd)
+    tmp_blastout_line = open('tmp_blastout').read()
+    if (len(tmp_blastout_line) == 0):
+        return []
+    
     #get protein IDs from 10 best hits
     system("head -n 10 tmp_blastout | awk \'{print $2}\' > tmp_prot_ids")
     #fastacmd to extract seqs
+    print "%s -d %s -i tmp_prot_ids > %s" % (fastacmd, proteome_db_f, result_seq_f)
     system("%s -d %s -i tmp_prot_ids > %s" % (fastacmd, proteome_db_f, result_seq_f))
   
     headers = popen("grep \'>\' %s" % result_seq_f).read().split('\n')
