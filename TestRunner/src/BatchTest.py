@@ -27,6 +27,7 @@ def generate_file_name (prot_type, species):
     return file_name
 
 def generate_directories_tree ():
+    protein_file = open(protein_list_file, 'r')
     for protein_id in protein_file.readlines():
         protein_id = protein_id.strip()
         protein_sessions_dir = "%s/%s" % (session_folder, protein_id);
@@ -47,6 +48,7 @@ def generate_directories_tree ():
             os.makedirs("%s/%s/dna" % (protein_sessions_dir, blastout_folder))
         if (not os.path.isdir("%s/%s/protein" % (protein_sessions_dir, blastout_folder))):
             os.makedirs("%s/%s/protein" % (protein_sessions_dir, blastout_folder))
+    protein_file.close()
 ##################################
 ## Load necessary configuration ##
 
@@ -63,7 +65,7 @@ input_protein_file      = config.get('Session files', 'input_protein_file')
 
 gene_regions_folder     = config.get('Gene regions path', 'regions')
 expanded_regions_folder = config.get('Gene regions path', 'expanded_regions')
-exons_path              = config.get('Exon database path', 'exons')
+exons_path              = config.get('Exon database path', 'exons_path')
 mut_best_proteins       = config.get('Found proteins path', 'proteins')
 blastout_folder         = config.get('Blastout path', 'blastout')
 
@@ -76,10 +78,8 @@ protein_type    = "all"
 
 protein_database = generate_file_name(protein_type, species);
 
-protein_file = open(protein_list_file, 'r')
-
 generate_directories_tree()
-
+protein_file = open(protein_list_file, 'r')
 for protein_id in protein_file.readlines():
     protein_id = protein_id.strip()
     protein_session_dir = "%s/%s" % (session_folder, protein_id)
@@ -93,15 +93,15 @@ for protein_id in protein_file.readlines():
                                                                  input_protein)
     
     # extract the protein from the database
-    #os.system(cmd_retrieve_protein)
+    os.system(cmd_retrieve_protein)
     
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     # run the mutual best protein search
-    #os.system(cmd_run_mutual_best)
+    os.system(cmd_run_mutual_best)
     
     #get the dna data
     cmd_retrieve_dna = "python ../../ensembl_search/src/grab_slices.py %s" % protein_session_dir
-    #os.system(cmd_retrieve_dna)
+    os.system(cmd_retrieve_dna)
     
     #get the base exons
     cmd_generate_exons = "python ../../exon_finder/src/exon_base_generator.py %s %s %s" % (input_protein, 
@@ -109,8 +109,7 @@ for protein_id in protein_file.readlines():
                                                                                            (protein_session_dir, species),
                                                                                           protein_session_dir)
     number_of_exons = os.system(cmd_generate_exons)>>8
-
+    print "%s %s %s" % (number_of_exons, protein_session_dir, protein_id)
     #run exon_finder
-    cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s" % (number_of_exons, protein_session_dir, protein_id)
+    cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s %s" % (number_of_exons, protein_session_dir, protein_id)
     os.system(cmd_run_exon_finder)
-    protein_file.close()

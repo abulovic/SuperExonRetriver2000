@@ -336,7 +336,8 @@ def generate_statistics(exons_via_proteins, exons_via_dna, exons_SW, all_species
         tblastn_species_statistic = generate_statistics_based_on_search(exons_via_proteins[species], base_exon_length)
         blastn_species_statistic = generate_statistics_based_on_search(exons_via_dna[species], base_exon_length)
         for exon in tblastn_species_statistic:
-            exon[1] /= 3    #for proteins
+            exon[3] *= 3    # proteins -> dna
+            exon[4] *= 3
             exon.insert(0, "tblastn")
             exon.insert(0, species)
             exon.insert(0, protein_id)
@@ -379,7 +380,7 @@ def main(argv=None):
     global log_path
     global statistics_path
     proteins_path = "{0}/{1}".format(session_resource_path, config.get('Found proteins path', 'proteins'))
-    regions_path = "{0}/{1}".format(session_resource_path, config.get('Gene regions path', 'regions'))
+    regions_path = "{0}/{1}".format(session_resource_path, config.get('Gene regions path', 'expanded_regions'))
     blastout_path = "{0}/{1}".format(session_resource_path, config.get('Blastout path', 'blastout'))
     swSharpout_path = "{0}/{1}".format(session_resource_path, config.get('SW#', 'swSharpout'))
     exon_db = "{0}/{1}/exons.fa".format(session_resource_path, config.get('Exon database path', 'exons_path'))
