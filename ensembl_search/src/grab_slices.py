@@ -10,6 +10,7 @@ Created on Mar 6, 2012
 from os import system, path, makedirs, listdir;
 import re;
 import sys;
+import fileinput;
 import ConfigParser;
 
 ###############################
@@ -130,6 +131,21 @@ def generate_protein_file_name (species, protein_type):
         
     return file_name
 
+def add_sequence_end_tags(output_file_name, seq_begin, seq_end):
+    les_stat = "F"
+    res_stat = "F"
+    for line in fileinput.input(output_file_name, inplace=1):
+        if (fileinput.filelineno() == 1):
+            m = re.findall(":1:([0-9]+):-*1", line)
+            seq_len = int(m[0])
+            if (seq_begin - ens_expansion < 1):
+                les_stat = "T"
+            if (seq_end + ens_expansion > seq_len):
+                res_stat = "F"
+            print "%s les:%s res:%s" % (line.strip(), les_stat, res_stat)
+        else:
+            print line,
+
 ###############################
 ###############################
 # function for getting the normal gene regions
@@ -199,9 +215,9 @@ def get_expanded_gene_regions ():
                                                                              parameters[5],     # strand
                                                                              max(0, int(parameters[3])-ens_expansion),     # seq beginning
                                                                              int(parameters[4])+ens_expansion,     # seq ending
-                                                                             output_file_name)
-            print (cmd)   
+                                                                             output_file_name)   
             system(cmd)
+            add_sequence_end_tags(output_file_name, int(parameters[3]), int(parameters[4]))
             print "Wrote data to %s" % output_file_name
         i = i+1
         
@@ -233,6 +249,6 @@ def get_proteins ():
             
             
             
-get_gene_regions()
+#get_gene_regions()
 get_expanded_gene_regions()
-get_proteins()
+#get_proteins()
