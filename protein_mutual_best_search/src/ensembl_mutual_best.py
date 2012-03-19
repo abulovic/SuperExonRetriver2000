@@ -45,7 +45,6 @@ def bidirectional_search (protein_type,     # all / abinitio
         
         ###back search###
         back_ids = find_by_blasting(original_proteome_f, "%s.output_fasta" % species_name, working_results_f)
-        remove("{0}.output_fasta".format(species_name))
         if (len(back_ids) == 0):
             logger("\t reciprocal search in %s using %s as a query produced no hits (?)\n\n" % (original_species_name, species))
             logger("*****************************************\n\n\n")
@@ -57,7 +56,10 @@ def bidirectional_search (protein_type,     # all / abinitio
         # 2) the original gene does not appear on the list -- we take there is no ortohologue in this species
         # 3) the original gene is somewhere down the list  -- for now take that it also means "orthologue not found"
         [ID_protein_b, ID_gene_b, ID_transcript_b, gene_location_b] = back_ids[0].split()[0:4]
+        fasta_f.write(">%s\n" % species_name)
+        fasta_f.write(popen("grep -v \'>\' %s.output_fasta" % species_name).read())
         
+        remove("{0}.output_fasta".format(species_name))
         # if the back gene is the same as the original one, we are done
         # otherwise, go and check in the "ab initio" detected list
         if (ID_gene_b == orig_gene_name):
@@ -151,7 +153,7 @@ protein_input_file = "%s/%s" % (session_resource_path, protein_input)
 #  output files
 descr_f = open(output_descr, 'w')
 fasta_f = open(output_fasta, 'w')
-forward_fasta = re.sub(".output_fasta", ".fwd.output_fasta", output_fasta)
+forward_fasta = re.sub(".fa", ".fwd.fa", output_fasta)
 forward_fasta_f = open(forward_fasta, 'w')
 LOG = open(log_path, "w")
 
@@ -234,11 +236,11 @@ remove(working_results_f)
 # optional: sort and align
 
 afafile = output_fasta;
-afafile = re.sub(".output_fasta", ".mafft.afa", afafile)
+afafile = re.sub(".fa", ".mafft.afa", afafile)
 cmd = "%s --quiet %s > %s" % (mafft, output_fasta, afafile)
 system(cmd);
 
 afafile = forward_fasta
-afafile = re.sub(".output_fasta", ".mafft.afa", afafile)
+afafile = re.sub(".fa", ".mafft.afa", afafile)
 cmd = "%s --quiet %s > %s" % (mafft, forward_fasta, afafile)
 system(cmd)
