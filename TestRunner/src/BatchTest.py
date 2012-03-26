@@ -93,15 +93,15 @@ for protein_id in protein_file.readlines():
                                                                  input_protein)
     
     # extract the protein from the database
-    #os.system(cmd_retrieve_protein)
+    os.system(cmd_retrieve_protein)
     
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     # run the mutual best protein search
-    #os.system(cmd_run_mutual_best)
+    os.system(cmd_run_mutual_best)
     
     #get the dna data
-    cmd_retrieve_dna = "python ../../ensembl_search/src/grab_slices.py %s" % protein_session_dir
-    #os.system(cmd_retrieve_dna)
+    cmd_retrieve_dna = "python ../../ensembl_search/src/LocalEnsemblSearchEngine.py %s" % protein_session_dir
+    os.system(cmd_retrieve_dna)
     
     #get the base exons
     cmd_generate_exons = "python ../../exon_finder/src/exon_base_generator.py %s %s %s" % (input_protein, 
@@ -112,4 +112,4 @@ for protein_id in protein_file.readlines():
     print "%s %s %s" % (number_of_exons, protein_session_dir, protein_id)
     #run exon_finder
     cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s %s" % (number_of_exons, protein_session_dir, protein_id)
-    #os.system(cmd_run_exon_finder)
+    os.system(cmd_run_exon_finder)
