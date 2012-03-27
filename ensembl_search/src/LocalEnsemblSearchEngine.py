@@ -51,6 +51,11 @@ expanded_regions_f = "%s/%s" % (session_resource_path, expanded_regions_f)
 protein_folder = config.get('Found proteins path', 'proteins')
 protein_folder = "%s/%s" % (session_resource_path, protein_folder)
 
+exon_folder = config.get('Exon database path', 'exons_path')
+exon_folder = "%s/%s" % (protein_folder, exon_folder)
+
+exon_database = "%s/db/" % (exon_folder)
+
 
 ###############################
 # create session dir, if not existing
@@ -65,6 +70,16 @@ if (not path.exists(expanded_regions_f)):
     
 if (not path.exists(protein_folder)):
     makedirs(protein_folder)
+    
+if (not path.exists(exon_folder)):
+    makedirs(exon_folder)
+    
+if (not path.exists(exon_database)):
+    makedirs(exon_database)
+    
+
+    
+
 
     
 
@@ -239,7 +254,7 @@ def get_proteins ():
                 database = generate_protein_file_name(species_name, "abinitio")
                 
             cmd = "fastacmd -d %s -s %s -p T -o %s"  %       (database,          # database name
-                                                             prot_id,               # id
+                                                             prot_id,            # id
                                                              output_file_name)
             print(cmd)
             system(cmd)

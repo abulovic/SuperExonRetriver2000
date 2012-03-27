@@ -1,12 +1,15 @@
 '''
 Created on Mar 13, 2012
 
-@author: Ana
+@author: anana
 '''
 
 import re
-import os
+import os, sys, inspect
 import ConfigParser;
+from BioMartSearchEngine import *
+from exon_base_generator import generateExonFastaFromDescription
+
 
 ################################
 ################################
@@ -40,6 +43,10 @@ def generate_directories_tree ():
             os.makedirs("%s/%s" % (protein_sessions_dir, expanded_regions_folder))
         if (not os.path.isdir("%s/%s" % (protein_sessions_dir, exons_path))):
             os.mkdir("%s/%s" % (protein_sessions_dir, exons_path))
+        if (not os.path.isdir("%s/%s/db" % (protein_sessions_dir, exons_path))):
+            os.mkdir("%s/%s/db" % (protein_sessions_dir, exons_path))
+        if (not os.path.isdir("%s/%s/wise2" % (protein_sessions_dir, exons_path))):
+            os.mkdir("%s/%s/wise2" % (protein_sessions_dir, exons_path))
         if (not os.path.isdir("%s/%s" % (protein_sessions_dir, mut_best_proteins))):
             os.makedirs("%s/%s" % (protein_sessions_dir, mut_best_proteins))
         if (not os.path.isdir("%s/%s" % (protein_sessions_dir, blastout_folder))):
@@ -79,6 +86,9 @@ protein_type    = "all"
 protein_database = generate_file_name(protein_type, species);
 
 generate_directories_tree()
+
+biomart = BioMartSearchEngine()
+
 protein_file = open(protein_list_file, 'r')
 for protein_id in protein_file.readlines():
     protein_id = protein_id.strip()
@@ -93,23 +103,29 @@ for protein_id in protein_file.readlines():
                                                                  input_protein)
     
     # extract the protein from the database
-    os.system(cmd_retrieve_protein)
+    #os.system(cmd_retrieve_protein)
     
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     # run the mutual best protein search
-    os.system(cmd_run_mutual_best)
+    #os.system(cmd_run_mutual_best)
     
     #get the dna data
     cmd_retrieve_dna = "python ../../ensembl_search/src/LocalEnsemblSearchEngine.py %s" % protein_session_dir
-    os.system(cmd_retrieve_dna)
+    #os.system(cmd_retrieve_dna)
+    
+    #get the exons
+    abinitioSpecies = biomart.populateExonDatabase(protein_id)
     
     #get the base exons
-    cmd_generate_exons = "python ../../exon_finder/src/exon_base_generator.py %s %s %s" % (input_protein, 
-                                                                                           "%s/gene_regions/%s.fa" % 
-                                                                                           (protein_session_dir, species),
-                                                                                          protein_session_dir)
-    number_of_exons = os.system(cmd_generate_exons)>>8
-    print "%s %s %s" % (number_of_exons, protein_session_dir, protein_id)
+    for species in abinitioSpecies:
+        cmd_generate_exons = "python ../../exon_finder/src/exon_base_generator.py %s %s %s %s" % ( "%s/%s/%s.fa" % (protein_session_dir, mut_best_proteins, species),
+                                                                                                "%s/gene_regions/%s.fa" %  (protein_session_dir, species),
+                                                                                                protein_session_dir,
+                                                                                                species)
+        number_of_exons = os.system(cmd_generate_exons)>>8
+        print "Found %d exons for species %s" % (number_of_exons, species)
+    generateExonFastaFromDescription(protein_session_dir)
+    #print "%s %s %s" % (number_of_exons, protein_session_dir, protein_id)
     #run exon_finder
-    cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s %s" % (number_of_exons, protein_session_dir, protein_id)
-    os.system(cmd_run_exon_finder)
+    #cmd_run_exon_finder = "python ../../exon_finder/src/exon_finder.py %s %s %s" % (number_of_exons, protein_session_dir, protein_id)
+    #os.system(cmd_run_exon_finder)

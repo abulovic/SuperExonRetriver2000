@@ -20,6 +20,9 @@ def bidirectional_search (protein_type,     # all / abinitio
     logger("%s\n" % species_name)
     ## do the forward search
     
+    ID_gene = ""
+    ID_transcript = ""
+    
     proteome_database = generate_file_name (protein_type, species_name)
     
     
@@ -33,11 +36,13 @@ def bidirectional_search (protein_type,     # all / abinitio
         print forward_ids
         logger("best forward hit:  %s  \n\n" % forward_ids[0])
         
+        
         if (protein_type == "all"):
             [ID_protein, ID_gene, ID_transcript, gene_location] = forward_ids[0].split()[0:4]
         else :
             [ID_protein, ID_protein2, gene_location] = forward_ids[0].split()[0:3]
         extract_first_seq (working_results_f, ID_protein, "%s.output_fasta" % species_name)
+        
         
         #write forward protein to out file
         forward_fasta_f.write(">%s_FWD\n" % species_name)
@@ -56,13 +61,21 @@ def bidirectional_search (protein_type,     # all / abinitio
         # 2) the original gene does not appear on the list -- we take there is no ortohologue in this species
         # 3) the original gene is somewhere down the list  -- for now take that it also means "orthologue not found"
         [ID_protein_b, ID_gene_b, ID_transcript_b, gene_location_b] = back_ids[0].split()[0:4]
-        fasta_f.write(">%s\n" % species_name)
-        fasta_f.write(popen("grep -v \'>\' %s.output_fasta" % species_name).read())
         
-        remove("{0}.output_fasta".format(species_name))
+        
         # if the back gene is the same as the original one, we are done
         # otherwise, go and check in the "ab initio" detected list
         if (ID_gene_b == orig_gene_name):
+
+            species_data = popen("grep -v \'>\' %s.output_fasta" % species_name).read();
+            remove("{0}.output_fasta".format(species_name))
+            fasta_f.write(">%s\n%s" % (species_name, species_data))
+            
+            # for chromosomal dna, write to chr.fa file
+            dna_type = gene_location.split(":")[0]
+            if (dna_type == "chromosome"):
+                chromosome_fasta_f.write(">%s pep:%s gene:%s transcript:%s %s\n%s" % (species_name, ID_protein, ID_gene, ID_transcript, gene_location, species_data ))
+            
             if (protein_type == "all"):
                 logger("\t best mutual hit:  %s  %s\n\n" % (ID_gene, ID_protein))
             else :
@@ -72,8 +85,23 @@ def bidirectional_search (protein_type,     # all / abinitio
             logger("\t back search returns  %s as the best hit\n\n" % ID_gene_b)
             if (protein_type == "all"):
                 logger("\t no mutual best found in known -- try ab initio \n\n")
-    return (match_found, ID_protein, gene_location)
+                
+    if (protein_type == "all"):
+        return (match_found, ID_protein, gene_location, ID_gene, ID_transcript)
+    else:
+        return (match_found, ID_protein, gene_location)
     
+   
+########################################
+# invoke mafft and do msa on the results
+# of the bidirectional search 
+def mafft_alignment (input_fasta_file):
+    
+
+    afafile = re.sub(".fa", ".mafft.afa", input_fasta_file.name)
+    cmd = "%s --quiet %s > %s" % (mafft, input_fasta_file.name, afafile)
+    print cmd
+    system(cmd);
     
 ###############################
 ###############################
@@ -104,8 +132,7 @@ def generate_file_name (prot_type, species):
 ###############################
 ###############################
 #Tools configuration and setting paths
-
-config_file     = "../../config.cfg"
+config_file = "../../config.cfg"
 config          = ConfigParser.RawConfigParser()
 config.read(config_file)
 
@@ -155,6 +182,8 @@ descr_f = open(output_descr, 'w')
 fasta_f = open(output_fasta, 'w')
 forward_fasta = re.sub(".fa", ".fwd.fa", output_fasta)
 forward_fasta_f = open(forward_fasta, 'w')
+chromosome_fasta = re.sub(".fa", ".chr.fa", output_fasta)
+chromosome_fasta_f = open(chromosome_fasta, 'w')
 LOG = open(log_path, "w")
 
 ###############################
@@ -194,11 +223,11 @@ extract_first_seq(working_results_f, orig_protein, orig_seq_f)
 not_found = []
 
 for species in species_list:
-    (match_found_known, ID_protein_known, gene_location_known) = bidirectional_search("all", species, protein_input_file)
+    (match_found_known, ID_protein_known, gene_location_known, ID_gene, ID_transcript) = bidirectional_search("all", species, protein_input_file)
     print "Found in known: " + str(match_found_known)
     if (match_found_known):
         descr_f.write("%s\n" % (species))
-        descr_f.write("%s %s %s\n\n" % (ID_protein_known, gene_location_known, "known"))
+        descr_f.write("%s %s %s %s %s\n\n" % (ID_protein_known, gene_location_known, "known", ID_gene, ID_transcript))
     else:
         (match_found_abinitio, ID_protein_abinitio, gene_location_abinitio) = bidirectional_search("abinitio", species, protein_input_file)
         print "Found in abinitio: " + str(match_found_abinitio)
@@ -214,6 +243,12 @@ for species in species_list:
 
 fasta_f.close()
 descr_f.close()
+chromosome_fasta_f.close()
+
+
+mafft_alignment(fasta_f)
+mafft_alignment(chromosome_fasta_f)
+mafft_alignment(forward_fasta_f)
 ###############################
 ###############################
 #Summary of proteins that were not found
@@ -235,12 +270,4 @@ remove(working_results_f)
 ###############################
 # optional: sort and align
 
-afafile = output_fasta;
-afafile = re.sub(".fa", ".mafft.afa", afafile)
-cmd = "%s --quiet %s > %s" % (mafft, output_fasta, afafile)
-system(cmd);
 
-afafile = forward_fasta
-afafile = re.sub(".fa", ".mafft.afa", afafile)
-cmd = "%s --quiet %s > %s" % (mafft, forward_fasta, afafile)
-system(cmd)
