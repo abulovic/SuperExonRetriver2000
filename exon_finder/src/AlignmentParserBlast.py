@@ -4,10 +4,10 @@ Created on Mar 27, 2012
 @author: Mario, anana
 '''
 
-import re
+import re, os
 from AlignmentParser import AlignmentParser
 
-class blastAlignmentParser(AlignmentParser):
+class AlignmentParserBlast(AlignmentParser):
     '''
     Class offers methods for parsing various blast outputs.
     Refers to blastn / tblastn.
@@ -18,9 +18,28 @@ class blastAlignmentParser(AlignmentParser):
         @param algorithmName: optional - algorithm name, blast by default
         '''
         self.algorithmName = algorithmName
-        super(blastAlignmentParser, self).__init__()
-    
+        super(AlignmentParserBlast, self).__init__()
         
+    def batchParseOutput (self, numberOfExons, alg="blastn"):
+        '''
+        Do a batch parsing of blast outputs.
+        @param alg: algorithm to parse the outputs from. Can be blastn, tblastn or both 
+        '''
+        if (alg == "blastn"):
+            for blastoutFile in os.listdir("%s/dna" % (self.blastoutAbs)):
+                print blastoutFile
+                if (blastoutFile.endswith('.blastout')):
+                    blastoutFile = "%s/dna/%s" % (self.blastoutAbs, blastoutFile)
+                    [exons, exonsFound] = self.parseOutput(blastoutFile, numberOfExons)
+                    print exonsFound
+        if (alg == "tblastn"):
+            for blastoutFile in os.listdir("%s/protein" % (self.blastoutAbs)):
+                print blastoutFile
+                if (blastoutFile.endswith('.blastout')):
+                    blastoutFile = "%s/protein/%s" % (self.blastoutAbs, blastoutFile)
+                    [exons, exonsFound] = self.parseOutput(blastoutFile, numberOfExons)
+                    print exonsFound
+        return (exons,exonsFound)
         
     def parseOutput (self, alignmentOutputFile, numberOfExons):
         '''
@@ -46,8 +65,10 @@ class blastAlignmentParser(AlignmentParser):
                 out = ""
             else:
                 out += line
-                
+        if (reading_flag == False):
+            return  [[], []]      
         for line in out.split("\n"):
+            #print line
             if (line != ""):
                 exon_id = int(line.split(" ")[0])
                 exons_found.append(exon_id)
@@ -80,13 +101,16 @@ class blastAlignmentParser(AlignmentParser):
         
         
 if __name__ == '__main__':
-    blastParser = blastAlignmentParser()
+    blastParser = AlignmentParserBlast()
     blastParser.setProteinFolder("ENSP00000311134")
+    '''
     [exons, exons_found] = blastParser.parseOutput("/home/intern/Project/workspaceBIO/sessions/ENSP00000311134/blastout/dna/Ailuropoda_melanoleuca.blastout", 15)
     for key in exons_found:
         exon = exons[key]
         print exon
         print exon.match, exon.length
+        '''
+    blastParser.batchParseOutput(15, "tblastn")
         
         
         

@@ -27,7 +27,7 @@ class AlignmentParser(object):
     def readConfigurations (self):
         
         self.projectRoot            = self.config.get('Project root', 'project_root_folder')
-        self.sessionsFolder         = "%s/%s" % (self.projectRoot, self.config.get('Project root', 'project_root_folder'))
+        self.sessionsFolder         = "%s/%s" % (self.projectRoot, self.config.get('Project root', 'session_folder'))
         self.geneRegions            = self.config.get('Gene regions path', 'regions')
         self.expandedGeneRegions    = self.config.get('Gene regions path', 'expanded_regions')
         self.exons                  = self.config.get('Exon database path', 'exons_path')
