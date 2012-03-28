@@ -5,7 +5,7 @@ Created on Mar 27, 2012
 '''
 
 class Exon(object):
-    def __init__(self, exon_id, query, target, length):
+    def __init__(self, exon_id, query="", target="", length=0):
         self.id             = int(exon_id)
         self.query          = query
         self.target         = target
@@ -26,6 +26,9 @@ class Exon(object):
         
     def set_score(self, score):
         self.score          = int(score)    
+        
+    def set_sequence (self, sequence):
+        self.sequence = sequence
         
     def __lt__ (self, other):
         if isinstance(other, Exon):

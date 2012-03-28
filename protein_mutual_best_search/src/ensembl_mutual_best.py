@@ -29,8 +29,10 @@ def bidirectional_search (protein_type,     # all / abinitio
     forward_ids = find_by_blasting(proteome_database, original_sequence_fa, working_results_f)
     if (len(forward_ids) == 0):
         logger("%s not found in %s, \"known\" sequences\n\n" % (original_sequence_fa, species_name))
-        return (False, "", "")
-    
+        if (protein_type == "all"):
+            return (False, "", "", None, None)
+        else:
+            return (False, "", "")
     else:
         # if we found something, we still need to check if it is the mutual best match
         print forward_ids
