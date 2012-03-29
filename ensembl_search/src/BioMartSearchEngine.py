@@ -110,6 +110,12 @@ class BioMartSearchEngine(object):
         
         print "reordering exons... %s" % exonFileName
         headerPattern = re.compile(r'>(\d+)\|(\d+)\|(\w+)\|(\w+)\|(.*)')
+        
+        fileSize = os.path.getsize(exonFileName)
+        if (fileSize == 0):
+            os.remove(exonFileName)
+            return
+        
         exonFile = open(exonFileName, 'r')
         exonSequence = ""
         exons = []
