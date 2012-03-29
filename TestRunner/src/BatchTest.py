@@ -4,18 +4,20 @@ Created on Mar 13, 2012
 @author: anana
 '''
 
+
+
 import re
 import os, sys, inspect
+
+sys.path.append("../../ensembl_search/src")
+sys.path.append("../../exon_finder/src")
+
 import ConfigParser;
 from BioMartSearchEngine import *
-from exon_base_generator import generateExonFastaFromDescription
 from AlignmentGenerator import *
 from AlignmentParserBlast import *
 from AlignmentParserSW import *
 from StatisticsGenerator import StatisticsGenerator
-
-sys.path.append("../../ensembl_search/src")
-sys.path.append("../../exon_finder/src")
 
 
 

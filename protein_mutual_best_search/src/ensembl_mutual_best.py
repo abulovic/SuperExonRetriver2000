@@ -35,7 +35,7 @@ def bidirectional_search (protein_type,     # all / abinitio
             return (False, "", "")
     else:
         # if we found something, we still need to check if it is the mutual best match
-        print forward_ids
+        #print forward_ids
         logger("best forward hit:  %s  \n\n" % forward_ids[0])
         
         

@@ -264,6 +264,7 @@ class AlignmentGenerator(object):
             refSpec = self.referenceSpeciesAll
         
         exonDbFile = "%s/%s.fa" % (self.exonsDbAbs, refSpec)
+        unimportant_file = "tmp.txt" # serves just to supress the sw output
             
         if (swType == "ex-dna"):
             if (expanded == True):
@@ -275,8 +276,9 @@ class AlignmentGenerator(object):
             
             self.checkIfDatabaseExists(exonDbFile, False)
             
-            cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, querySequence, exonDbFile, outputFile)
+            cmd = "{0} -i {1} -j {2} --out {3} > {4}".format(self.swSharp, querySequence, exonDbFile, outputFile, unimportant_file)
             os.system(cmd)
+            os.remove(unimportant_file)
             print cmd
             #os.system(cmd)
          
