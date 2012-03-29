@@ -171,12 +171,18 @@ class StatisticsGenerator(object):
         statistics = []
         
         for current_exon in range(1, len(exons) + 1):
-            statistics.append([current_exon,
-                               base_exon_lengths[current_exon],
-                               exons[current_exon].score, 
-                               exons[current_exon].no_of_matches, 
-                               exons[current_exon].alignment_length])
-
+            if exons[current_exon].viability:
+                statistics.append([current_exon,
+                                   base_exon_lengths[current_exon],
+                                   exons[current_exon].score, 
+                                   exons[current_exon].no_of_matches, 
+                                   exons[current_exon].alignment_length])
+            else:
+                statistics.append([current_exon,
+                                   base_exon_lengths[current_exon],
+                                   0, 
+                                   0, 
+                                   0])
         return statistics
     
 if __name__ == '__main__':

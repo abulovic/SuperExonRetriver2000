@@ -276,6 +276,7 @@ class AlignmentGenerator(object):
             self.checkIfDatabaseExists(exonDbFile, False)
             
             cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, querySequence, exonDbFile, outputFile)
+            os.system(cmd)
             print cmd
             #os.system(cmd)
          

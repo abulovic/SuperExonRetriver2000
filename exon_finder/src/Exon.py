@@ -15,6 +15,7 @@ class Exon:
         self.score      =   0
         self.no_of_matches      =   0
         self.alignment_length   =   0
+        self.viability   =   True
     def set_intervals(self, q_start, q_end, t_start, t_end):
         self.q_start    =   int(q_start)
         self.q_end      =   int(q_end)

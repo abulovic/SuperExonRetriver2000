@@ -28,8 +28,13 @@ class AlignmentParserSW (AlignmentParser):
         for swoutFile in os.listdir(swoutDirectory):
             if (swoutFile.endswith('.swout')):
                 species = swoutFile.split('.')[0]
-                exons = self.parseOutputSW(swoutFile)
-                exonsDir[species] = exons
+                swoutFileAbs = "%s/%s" % (swoutDirectory, swoutFile)
+                exons = self.parseOutputSW(swoutFileAbs)
+                exons = self.discard_FP(exons)
+                exon_dict = {}
+                for exon in exons:
+                    exon_dict[exon.id] = exon      
+                exonsDir[species] = exon_dict
                 
         return exonsDir
                 
@@ -37,20 +42,30 @@ class AlignmentParserSW (AlignmentParser):
     def parseOutputSW(self, swout_path):
         exons = []
         swout = open(swout_path, 'r')
-        exon_block_pattern  = re.compile(r'>(\d+) exon length (\d+)')
-        intervals_pattern   = re.compile(r'Intervals: (\d+) (\d+) (\d+) (\d+)')
-        identity_pattern    = re.compile(r'Identity: (\d+)/(\d+) \(\d+\.\d+%\)')
-        score_pattern       = re.compile(r'Score: (\d+)\.\d+')
-        sequence_pattern    = re.compile(r'[\d\s]+([ATCG-]+)[\d\s]+')
+        exon_block_pattern  = re.compile(r'Name: >(\d+).*')
+        base_exon_length_pattern  = re.compile(r'Length: (\d+).*')
+        intervals_pattern   = re.compile(r'Intervals: (\d+) (\d+) (\d+) (\d+).*')
+        identity_pattern    = re.compile(r'Identity: (\d+)/(\d+) \(\d+\.\d+%\).*')
+        score_pattern       = re.compile(r'Score: (\d+)\.\d+.*')
+        sequence_pattern    = re.compile(r'[\d\s]+([ATCG-]+)[\d\s]+.*')
         query_sequence_flag = True
+        exon_id = 0
+        
         for line in swout.readlines():
             exon_block_match    =   re.match(exon_block_pattern, line)
             if exon_block_match is not None:
-                exons.append(Exon(exon_block_match.groups()[0], 
-                                  exon_block_match.groups()[1], 
+                exon_id = exon_block_match.groups()[0]
+                continue
+            
+            base_exon_length    =   re.match(base_exon_length_pattern, line)
+            if base_exon_length is not None and exon_id != 0:
+                exons.append(Exon(exon_id, 
+                                  base_exon_length.groups()[0], 
                                   "", 
                                   ""))
+                exon_id = 0
                 continue
+            
             intervals_match     =   re.match(intervals_pattern, line)
             if intervals_match  is not None:
                 exons[len(exons) - 1].set_intervals(intervals_match.groups()[0], 
@@ -75,6 +90,7 @@ class AlignmentParserSW (AlignmentParser):
                     exons[len(exons) - 1].target    +=  sequence_match.groups()[0]
                 query_sequence_flag                 =   not query_sequence_flag
                 continue
+              
         return exons
     
     def isSorted(self, inList):
@@ -119,7 +135,8 @@ class AlignmentParserSW (AlignmentParser):
 if __name__ == '__main__':
     swParser = AlignmentParserSW()
     swParser.setProteinFolder("ENSP00000311134")
-    exons = swParser.parseOutput("/home/intern/Documents/sw_input/sw_output/sus_scrofa_out.txt")
+    exons = swParser.parseOutputSW("/home/intern/Project/workspaceBIO/sessions/ENSP00000311134/swout/dna/Sus_scrofa.swout")
+    exons = swParser.discard_FP(exons)
     for exon in sorted(exons, reverse=True):
         print exon.id, float(exon.no_of_matches) / exon.alignment_length
 
