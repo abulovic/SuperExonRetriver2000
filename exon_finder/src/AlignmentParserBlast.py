@@ -25,21 +25,22 @@ class AlignmentParserBlast(AlignmentParser):
         Do a batch parsing of blast outputs.
         @param alg: algorithm to parse the outputs from. Can be blastn, tblastn or both 
         '''
+        exonDir = {}
         if (alg == "blastn"):
             for blastoutFile in os.listdir("%s/dna" % (self.blastoutAbs)):
-                print blastoutFile
                 if (blastoutFile.endswith('.blastout')):
+                    species = blastoutFile.split('.')[0]
                     blastoutFile = "%s/dna/%s" % (self.blastoutAbs, blastoutFile)
                     [exons, exonsFound] = self.parseOutput(blastoutFile, numberOfExons)
-                    print exonsFound
+                    exonDir[species] = exons
         if (alg == "tblastn"):
             for blastoutFile in os.listdir("%s/protein" % (self.blastoutAbs)):
-                print blastoutFile
                 if (blastoutFile.endswith('.blastout')):
+                    species = blastoutFile.split('.')[0]
                     blastoutFile = "%s/protein/%s" % (self.blastoutAbs, blastoutFile)
                     [exons, exonsFound] = self.parseOutput(blastoutFile, numberOfExons)
-                    print exonsFound
-        return (exons,exonsFound)
+                    exonDir[species] = exons
+        return exonDir
         
     def parseOutput (self, alignmentOutputFile, numberOfExons):
         '''
@@ -85,11 +86,11 @@ class AlignmentParserBlast(AlignmentParser):
                 if(found_flag == True):
                     reg = re.match(r'^\s*Score\s*=\s*(\d*.*|d*)\s*bits\s*\((\d*)\)', line)
                     if(reg):
-                        exons[exons_found[exon_counter]].set_score(int(reg.group(2)))
+                        exons[exons_found[exon_counter]].set_score(int(reg.groups()[1]))
                         #exons[exons_found[exon_counter]].score = int(reg.group(2))
                     reg = re.match(r'^\s*Identities\s*=\s*(\d*)\/(\d*)', line)
                     if(reg):
-                        exons[exons_found[exon_counter]].set_identity (int(reg.group(1)), int(reg.group(2)))
+                        exons[exons_found[exon_counter]].set_identity (int(reg.groups()[0]), int(reg.groups()[1]))
                         #exons[exons_found[exon_counter]].alignment_matches  = int(reg.group(1))
                         #exons[exons_found[exon_counter]].alignment_length   = int(reg.group(2))
                     reg = re.match(r'^Query: (\d*)', line)

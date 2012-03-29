@@ -11,7 +11,12 @@ from BioMartSearchEngine import *
 from exon_base_generator import generateExonFastaFromDescription
 from AlignmentGenerator import *
 from AlignmentParserBlast import *
-from StatisticsGenerator import *
+from AlignmentParserSW import *
+from StatisticsGenerator import StatisticsGenerator
+
+sys.path.append("../../ensembl_search/src")
+sys.path.append("../../exon_finder/src")
+
 
 
 def parseDescriptionFile (descrFileName):
@@ -65,6 +70,8 @@ def generate_directories_tree ():
         numberOfExons = int(numberOfExons)
         protein_sessions_dir = "%s/%s" % (session_folder, proteinId);
         
+        print "%s/%s/dna" % (protein_sessions_dir, swout_folder)
+        
         if (not os.path.isdir(protein_sessions_dir)):
             os.makedirs(protein_sessions_dir)
         if (not os.path.isdir("%s/%s" % (protein_sessions_dir, gene_regions_folder))):
@@ -91,10 +98,10 @@ def generate_directories_tree ():
             
         if (not os.path.isdir("%s/%s/" % (protein_sessions_dir, swout_folder))):
             os.makedirs("%s/%s/" % (protein_sessions_dir, swout_folder))
-        if (not os.path.isdir("%s/%s/" % (protein_sessions_dir, swout_folder))):
-            os.makedirs("%s/%s/dna" % (protein_sessions_dir, swout_folder))
-        if (not os.path.isdir("%s/%s/" % (protein_sessions_dir, swout_folder))):
-            os.makedirs("%s/%s/exon" % (protein_sessions_dir, swout_folder))
+        if (not os.path.isdir("%s/%s/dna" % (protein_sessions_dir, swout_folder))):
+            os.makedirs("%s/%s/dna/" % (protein_sessions_dir, swout_folder))
+        if (not os.path.isdir("%s/%s/exon" % (protein_sessions_dir, swout_folder))):
+            os.makedirs("%s/%s/exon/" % (protein_sessions_dir, swout_folder))
     protein_file.close()
 ##################################
 ## Load necessary configuration ##
@@ -131,10 +138,12 @@ protein_database = generate_file_name(protein_type, species);
 
 generate_directories_tree()
 
-biomart = BioMartSearchEngine()
-alignmentGen = AlignmentGenerator()
-alParserBlast= AlignmentParserBlast()
-statGen =  StatisticsGenerator()
+biomart         = BioMartSearchEngine()
+alignmentGen    = AlignmentGenerator()
+alParserBlast   = AlignmentParserBlast()
+alParserSW      = AlignmentParserSW()
+statGen         =  StatisticsGenerator()
+
 
 protein_file = open(protein_list_file, 'r')
 for line in protein_file.readlines():
@@ -155,34 +164,36 @@ for line in protein_file.readlines():
                                                                  input_protein)
     
     # extract the protein from the database
-    os.system(cmd_retrieve_protein)
+    #os.system(cmd_retrieve_protein)
     
     alignmentGen.setProteinFolder(protein_id)
     alParserBlast.setProteinFolder(protein_id)
+    alParserSW.setProteinFolder(protein_id)
     statGen.setProteinFolder(protein_id)
     
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     #run the mutual best protein search
-    os.system(cmd_run_mutual_best)
+    #os.system(cmd_run_mutual_best)
     
     #get the dna data
     cmd_retrieve_dna = "python ../../ensembl_search/src/LocalEnsemblSearchEngine.py %s" % protein_session_dir
-    os.system(cmd_retrieve_dna)
+    #os.system(cmd_retrieve_dna)
     
     #get the exons
-    biomart.populateExonDatabase(protein_id)
+    #biomart.populateExonDatabase(protein_id)
     
     (known_species, abinitioSpecies) = parseDescriptionFile("%s/%s/%s" % (session_folder, protein_id, descr_file))
     
-    alignmentGen.runBatchBlastn(True)
-    alignmentGen.runBatchTblastn()
+    #alignmentGen.runBatchBlastn(True)
+    #alignmentGen.runBatchTblastn()
     
-    alignmentGen.runBatchGenewise(abinitioSpecies)
+    #alignmentGen.runBatchGenewise(abinitioSpecies)
     
-    (exonsBlastn, exonsFoundBlastn) = alParserBlast.batchParseOutput(numberOfExons, "blastn")
-    (exonsTblastn, exonsFoundTblastn) = alParserBlast.batchParseOutput(numberOfExons, "tblastn")
-    
-    statGen.generate_statistics(exonsTblastn, exonsBlastn, None, known_species+abinitioSpecies, protein_id)
+    exonsBlastn = alParserBlast.batchParseOutput(numberOfExons, "blastn")
+    exonsTblastn = alParserBlast.batchParseOutput(numberOfExons, "tblastn")
+    exonsSW = alParserSW.batchParseOutputExDna()
+
+    statGen.generate_statistics(exonsTblastn, exonsBlastn, exonsSW, known_species+abinitioSpecies, protein_id)
     
     #get the base exons
     '''

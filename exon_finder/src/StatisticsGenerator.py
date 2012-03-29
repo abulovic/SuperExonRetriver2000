@@ -5,6 +5,8 @@ Created on Mar 29, 2012
 '''
 import sys, csv, re
 import ConfigParser
+from operator import attrgetter
+from timeit import itertools
 
 class StatisticsGenerator(object):
     '''
@@ -98,10 +100,10 @@ class StatisticsGenerator(object):
                              "Length", 
                              "Score", 
                              "Alignment_matches", 
-                             "Alignment_length",
-                             "Annotation"]
+                             "Alignment_length"]
         tblastn_statistics = []
         blastn_statistics = []
+        SW_statistics = []
         
         base_exon_length = self.get_exon_lenghts(len(exons_via_proteins))
         
@@ -124,14 +126,25 @@ class StatisticsGenerator(object):
                     exon.insert(0, protein_id)
             
                 blastn_statistics.append(blastn_species_statistic)
+                
+            if (exons_SW.has_key(species)):
+                SW_species_statistic = self.generate_statistics_based_on_search(exons_SW[species], base_exon_length)
+                for exon in SW_species_statistic:
+                    exon.insert(0, "SW")
+                    exon.insert(0, species)
+                    exon.insert(0, protein_id)
+                SW_statistics.append(SW_species_statistic)
             #print generate_statistics_based_on_search(exons_SW[species])
         ###WRITE TO CSV FILE###
-        statout = csv.writer(open(self.statisticsAbs, 'wb+'), delimiter = ',')
+        statout = csv.writer(open("%s.csv" % self.statisticsAbs, 'wb+'), delimiter = ',')
         statout.writerow(statistics_header)
         for species in tblastn_statistics:
             for exon in species:
                 statout.writerow(exon)
         for species in blastn_statistics:
+            for exon in species:
+                statout.writerow(exon)
+        for species in SW_statistics:
             for exon in species:
                 statout.writerow(exon)
         ####
@@ -156,13 +169,14 @@ class StatisticsGenerator(object):
     
     def generate_statistics_based_on_search (self, exons, base_exon_lengths):
         statistics = []
+        
         for current_exon in range(1, len(exons) + 1):
             statistics.append([current_exon,
                                base_exon_lengths[current_exon],
                                exons[current_exon].score, 
-                               exons[current_exon].alignment_matches, 
-                               exons[current_exon].alignment_length,
-                               exons[current_exon].annotation])
+                               exons[current_exon].no_of_matches, 
+                               exons[current_exon].alignment_length])
+
         return statistics
     
 if __name__ == '__main__':

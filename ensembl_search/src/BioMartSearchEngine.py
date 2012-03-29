@@ -38,6 +38,7 @@ class BioMartSearchEngine(object):
         <Attribute name = "ensembl_transcript_id" />
         <Attribute name = "gene_exon" />
         <Attribute name = "ensembl_exon_id" />
+        <Attribute name = "strand" />
     </Dataset>
 </Query>
         '''
@@ -108,7 +109,7 @@ class BioMartSearchEngine(object):
     def reorderExons (self, exonFileName):
         
         print "reordering exons... %s" % exonFileName
-        headerPattern = re.compile(r'>(\d+)\|(\d+)\|(\w+)\|(\w+)')
+        headerPattern = re.compile(r'>(\d+)\|(\d+)\|(\w+)\|(\w+)\|(.*)')
         exonFile = open(exonFileName, 'r')
         exonSequence = ""
         exons = []
@@ -121,13 +122,15 @@ class BioMartSearchEngine(object):
                 headerInfo = headerInfo.groups()
                 if exonSequence != "":
                     print headerInfoList
-                    exon = AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], exonSequence)
+                    exon = AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
                     print "Adding exon"
                     exons.append(exon)
                     exonSequence = ""
                 headerInfoList = headerInfo
             else:
                 exonSequence = exonSequence + line
+        exon = AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
+        exons.append(exon) 
             
         exonFile.close()
         # if no appropriate exons found (genewise output, then do nothing
@@ -144,21 +147,28 @@ class BioMartSearchEngine(object):
        
        
 class AuxExon (object):
-    def __init__ (self, beg, end, transId, exonId, seq):
+    def __init__ (self, beg, end, transId, exonId, strand, seq):
         self.beg = beg
         self.end = end
         self.transId = transId
         self.exonId = exonId
+        self.strand = strand
         self.seq = seq
     def __lt__ (self, other):
-        if (other.beg > self.beg):
-            return True
+        if (self.strand == "1"):
+            if (other.beg > self.beg):
+                return True
+            else:
+                return False
         else:
-            return False
+            if (other.beg > self.beg):
+                return False
+            else:
+                return True
             
 if __name__ == '__main__':
     biomart = BioMartSearchEngine()
-    biomart.populateExonDatabase("ENSP00000252816")
+    biomart.populateExonDatabase("ENSP00000311134")
         
         
         

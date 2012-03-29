@@ -33,6 +33,7 @@ class AlignmentParser(object):
         self.exons                  = self.config.get('Exon database path', 'exons_path')
         self.exonsDb                = "%s/%s" % (self.exons, self.config.get('Exon database path', 'exons_db'))
         self.blastout               = self.config.get('Blastout path', 'blastout')
+        self.swout                  = self.config.get('SWout path', 'swout')
         
     def setProteinFolder (self, proteinDir):
         '''
@@ -45,6 +46,7 @@ class AlignmentParser(object):
         self.exonsAbs                   = "%s/%s/%s/" % (self.sessionsFolder, proteinDir, self.exons)
         self.exonsDbAbs                 = "%s/%s/%s/" % (self.sessionsFolder, proteinDir, self.exonsDb)
         self.blastoutAbs                = "%s/%s/%s/" % (self.sessionsFolder, proteinDir, self.blastout)
+        self.swoutAbs                   = "%s/%s/%s/" % (self.sessionsFolder, proteinDir, self.swout)
         
         
       
@@ -68,7 +70,7 @@ class AlignmentParser(object):
         '''
         exons = {}
         for current_exon in range(1, number_of_exons + 1):
-            exons[current_exon] = Exon(current_exon, "", "", 0)
+            exons[current_exon] = Exon(current_exon, 0, "", "")
         return exons
       
     def parseOutput (self, alignmentOutputFile, numberOfExons):
