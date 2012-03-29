@@ -96,8 +96,13 @@ class BioMartSearchEngine(object):
             exonFileName = "%s/%s.fa" % (exonDatabase, species)
             cmd = "perl %s %s > %s" % (self.perlBiomartScript, queryFileName, exonFileName)
             print cmd
-            os.system(cmd)
-            
+            while (True):
+     
+                os.system(cmd)
+                fileSize = os.path.getsize(exonFileName)
+                if (fileSize != 0):
+                    break
+         
             
         for (species, ensemblSpeciesName, transcriptId) in transcripts :
             exonFileName = "%s/%s.fa" % (exonDatabase, species)
@@ -122,14 +127,11 @@ class BioMartSearchEngine(object):
         headerInfoList = []
         
         for line in exonFile.readlines():
-            print line
             headerInfo = re.match(headerPattern, line)
             if (headerInfo != None):
                 headerInfo = headerInfo.groups()
                 if exonSequence != "":
-                    print headerInfoList
                     exon = AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
-                    print "Adding exon"
                     exons.append(exon)
                     exonSequence = ""
                 headerInfoList = headerInfo
