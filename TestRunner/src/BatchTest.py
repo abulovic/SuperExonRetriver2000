@@ -166,7 +166,7 @@ for line in protein_file.readlines():
                                                                  input_protein)
     
     # extract the protein from the database
-    #os.system(cmd_retrieve_protein)
+    os.system(cmd_retrieve_protein)
     
     alignmentGen.setProteinFolder(protein_id)
     alParserBlast.setProteinFolder(protein_id)
@@ -175,14 +175,17 @@ for line in protein_file.readlines():
     
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     #run the mutual best protein search
-    #os.system(cmd_run_mutual_best)
+    mutual_best_return_value = os.system(cmd_run_mutual_best)>>8
+    if (mutual_best_return_value == -1):
+        print ("For protein %s no original protein was retrieved by blastp." % protein_id)
+        continue
     
     #get the dna data
     cmd_retrieve_dna = "python ../../ensembl_search/src/LocalEnsemblSearchEngine.py %s" % protein_session_dir
     #os.system(cmd_retrieve_dna)
     
     #get the exons
-    #biomart.populateExonDatabase(protein_id)
+    biomart.populateExonDatabase(protein_id)
     
     (known_species, abinitioSpecies) = parseDescriptionFile("%s/%s/%s" % (session_folder, protein_id, descr_file))
     

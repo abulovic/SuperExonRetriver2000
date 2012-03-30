@@ -205,6 +205,9 @@ output_protein = ""
 #  (together with the  gene/protein/transcript entry it belongs to)
 original_proteome_f     = generate_file_name("all", original_species_name)
 orig_search_ids         = find_by_blasting(original_proteome_f, protein_input_file, working_results_f)
+if (len(orig_search_ids) == 0):
+    logger("No original species ID retrieved by blasting.\n")
+    return -1
 logger("the closest match to %s in  %s is %s\n" % (protein_input_file, original_species_name, orig_search_ids[0]))
 
 split_info              = re.split(" ", orig_search_ids[0])
