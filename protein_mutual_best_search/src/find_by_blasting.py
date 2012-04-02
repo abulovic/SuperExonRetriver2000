@@ -23,6 +23,7 @@ fastacmd = config.get('Fastacmd cfg', 'fastacmd')
 #out: "proteinID, geneID, transcriptID, location, novelty" list for the results
 def find_by_blasting (proteome_db_f, query_sequence_f, result_seq_f):
     cmd = "%s -d %s -i %s -o tmp_blastout" % (blastp, proteome_db_f, query_sequence_f)
+    print cmd
     system(cmd)
     tmp_blastout_line = open('tmp_blastout').read()
     if (len(tmp_blastout_line) == 0):

@@ -263,7 +263,9 @@ def get_proteins ():
             
             
             
-            
-get_gene_regions()
-get_expanded_gene_regions()
-get_proteins()
+try:            
+    get_gene_regions()
+    get_expanded_gene_regions()
+    get_proteins()
+except (Exception):
+    print "Exception in EnsemblSearch, exception {1}".format(sys.exc_info())

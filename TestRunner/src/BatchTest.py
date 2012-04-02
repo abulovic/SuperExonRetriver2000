@@ -144,7 +144,7 @@ biomart         = BioMartSearchEngine()
 alignmentGen    = AlignmentGenerator()
 alParserBlast   = AlignmentParserBlast()
 alParserSW      = AlignmentParserSW()
-statGen         =  StatisticsGenerator()
+statGen         = StatisticsGenerator()
 
 
 protein_file = open(protein_list_file, 'r')
@@ -168,10 +168,13 @@ for line in protein_file.readlines():
     # extract the protein from the database
     os.system(cmd_retrieve_protein)
     
-    alignmentGen.setProteinFolder(protein_id)
-    alParserBlast.setProteinFolder(protein_id)
-    alParserSW.setProteinFolder(protein_id)
-    statGen.setProteinFolder(protein_id)
+    try:
+        alignmentGen.setProteinFolder(protein_id)
+        alParserBlast.setProteinFolder(protein_id)
+        alParserSW.setProteinFolder(protein_id)
+        statGen.setProteinFolder(protein_id)
+    except (Exception):
+        print "Exception in setting protein folder, protein {0}, exception {1}".format(protein_id, sys.exc_info())
     
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     #run the mutual best protein search
@@ -182,23 +185,48 @@ for line in protein_file.readlines():
     
     #get the dna data
     cmd_retrieve_dna = "python ../../ensembl_search/src/LocalEnsemblSearchEngine.py %s" % protein_session_dir
-    #os.system(cmd_retrieve_dna)
+    os.system(cmd_retrieve_dna)
     
     #get the exons
-    biomart.populateExonDatabase(protein_id)
+
+    try:
+        biomart.populateExonDatabase(protein_id)
+    except (Exception):
+        print "Exception in populateExonDatabase, protein {0}, exception {1}".format(protein_id, sys.exc_info())
+        continue
     
-    (known_species, abinitioSpecies) = parseDescriptionFile("%s/%s/%s" % (session_folder, protein_id, descr_file))
+    try:
+        (known_species, abinitioSpecies) = parseDescriptionFile("%s/%s/%s" % (session_folder, protein_id, descr_file))
+    except (Exception):
+        print "Exception in parse_description_file, protein {0}, exception {1}".format(protein_id, sys.exc_info())
+        continue
     
     #alignmentGen.runBatchBlastn(True)
     #alignmentGen.runBatchTblastn()
     
     #alignmentGen.runBatchGenewise(abinitioSpecies)
-    
-    exonsBlastn = alParserBlast.batchParseOutput(numberOfExons, "blastn")
-    exonsTblastn = alParserBlast.batchParseOutput(numberOfExons, "tblastn")
-    exonsSW = alParserSW.batchParseOutputExDna()
+    try:
+        exonsBlastn = alParserBlast.batchParseOutput(numberOfExons, "blastn")
+    except (Exception):
+        print "Exception in batchParseOutput blastn, protein {0}, exception {1}".format(protein_id, sys.exc_info())
+        continue
+    try:
+        exonsTblastn = alParserBlast.batchParseOutput(numberOfExons, "tblastn")
+    except (Exception):
+        print "Exception in batchParseOutput tblastn, protein {0}, exception {1}".format(protein_id, sys.exc_info())
+        continue
+        
+    try:
+        exonsSW = alParserSW.batchParseOutputExDna()
+    except (Exception):
+        print "Exception in SW batchParseOutput, protein {0}, exception {1}".format(protein_id, sys.exc_info())
+        continue
 
-    statGen.generate_statistics(exonsTblastn, exonsBlastn, exonsSW, known_species+abinitioSpecies, protein_id)
+    try:
+        statGen.generate_statistics(exonsTblastn, exonsBlastn, exonsSW, known_species+abinitioSpecies, protein_id)
+    except (Exception):
+        print "Exception in generate_statistics, protein {0}, exception {1}".format(protein_id, sys.exc_info())
+        continue
     
     #get the base exons
     '''

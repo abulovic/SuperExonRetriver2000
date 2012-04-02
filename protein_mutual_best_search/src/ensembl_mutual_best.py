@@ -164,6 +164,7 @@ species_list            = popen("cat %s" % species_list).read().split("\n")
 #
 #output_fasta = "test.output_fasta";
 #output_descr = "test.output_descr";
+
 if(len(sys.argv) < 2):
     print "ERROR:\tInvalid number of input arguments.\n"
     print "Usage: Recquired command line arguments:"
@@ -207,7 +208,7 @@ original_proteome_f     = generate_file_name("all", original_species_name)
 orig_search_ids         = find_by_blasting(original_proteome_f, protein_input_file, working_results_f)
 if (len(orig_search_ids) == 0):
     logger("No original species ID retrieved by blasting.\n")
-    return -1
+    exit (-1)
 logger("the closest match to %s in  %s is %s\n" % (protein_input_file, original_species_name, orig_search_ids[0]))
 
 split_info              = re.split(" ", orig_search_ids[0])
@@ -227,23 +228,26 @@ extract_first_seq(working_results_f, orig_protein, orig_seq_f)
 #
 not_found = []
 
-for species in species_list:
-    (match_found_known, ID_protein_known, gene_location_known, ID_gene, ID_transcript) = bidirectional_search("all", species, protein_input_file)
-    print "Found in known: " + str(match_found_known)
-    if (match_found_known):
-        descr_f.write("%s\n" % (species))
-        descr_f.write("%s %s %s %s %s\n\n" % (ID_protein_known, gene_location_known, "known", ID_gene, ID_transcript))
-    else:
-        (match_found_abinitio, ID_protein_abinitio, gene_location_abinitio) = bidirectional_search("abinitio", species, protein_input_file)
-        print "Found in abinitio: " + str(match_found_abinitio)
-        if (match_found_abinitio):
+try:
+    for species in species_list:
+        (match_found_known, ID_protein_known, gene_location_known, ID_gene, ID_transcript) = bidirectional_search("all", species, protein_input_file)
+        print "Found in known: " + str(match_found_known)
+        if (match_found_known):
             descr_f.write("%s\n" % (species))
-            descr_f.write("%s %s %s\n\n" % (ID_protein_abinitio, gene_location_abinitio, "abinitio"))
+            descr_f.write("%s %s %s %s %s\n\n" % (ID_protein_known, gene_location_known, "known", ID_gene, ID_transcript))
         else:
-            not_found.append(species)
-            forward_ids_dict[species] = (ID_protein_known, gene_location_known)
-            ab_init_forward_ids_dict[species] = (ID_protein_abinitio, gene_location_abinitio)
-            logger("\t\t no mutual best found in ab initio either\n\n\n")
+            (match_found_abinitio, ID_protein_abinitio, gene_location_abinitio) = bidirectional_search("abinitio", species, protein_input_file)
+            print "Found in abinitio: " + str(match_found_abinitio)
+            if (match_found_abinitio):
+                descr_f.write("%s\n" % (species))
+                descr_f.write("%s %s %s\n\n" % (ID_protein_abinitio, gene_location_abinitio, "abinitio"))
+            else:
+                not_found.append(species)
+                forward_ids_dict[species] = (ID_protein_known, gene_location_known)
+                ab_init_forward_ids_dict[species] = (ID_protein_abinitio, gene_location_abinitio)
+                logger("\t\t no mutual best found in ab initio either\n\n\n")
+except (Exception):
+    print "Exception in ensembl_mutual_best, somewhere out there, exception {1}".format(sys.exc_info())
             
 
 fasta_f.close()

@@ -131,13 +131,13 @@ class BioMartSearchEngine(object):
             if (headerInfo != None):
                 headerInfo = headerInfo.groups()
                 if exonSequence != "":
-                    exon = AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
+                    exon = _AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
                     exons.append(exon)
                     exonSequence = ""
                 headerInfoList = headerInfo
             else:
                 exonSequence = exonSequence + line
-        exon = AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
+        exon = _AuxExon(headerInfoList[0], headerInfoList[1], headerInfoList[2], headerInfoList[3], headerInfoList[4], exonSequence)
         exons.append(exon) 
             
         exonFile.close()
@@ -154,7 +154,7 @@ class BioMartSearchEngine(object):
        
        
        
-class AuxExon (object):
+class _AuxExon (object):
     def __init__ (self, beg, end, transId, exonId, strand, seq):
         self.beg = beg
         self.end = end
