@@ -10,6 +10,7 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from AlignmentParserSW import AlignmentParserSW
 
 class AlignmentGenerator(object):
     '''
@@ -167,6 +168,13 @@ class AlignmentGenerator(object):
             if (fastaFile.endswith('.fa')):
                 speciesName = fastaFile.split('.')[0]
                 self.runSWForSpecies(speciesName, swType, expanded)
+                
+        else :
+            queryDirectory = self.exonsDbAbs
+            for fastaFile in os.listdir(queryDirectory):
+                speciesName = fastaFile.split('.')[0]
+                self.runSWForSpecies(speciesName, swType="ex-ex")
+                
 
     def runBatchGenewise (self, speciesList, expanded = False):
         
@@ -183,6 +191,7 @@ class AlignmentGenerator(object):
             
             # run wise
             cmd = "{0} {1} {2} {3} > {4}".format(self.wise, proteinFile, dnaFile, self.wise_flags, wise_out)
+            print cmd
             os.system(cmd)
             
             self.createExonsDescription(wise_out, dnaFile, exons_out)
@@ -244,9 +253,6 @@ class AlignmentGenerator(object):
 
             
             
-        
-        
-    
     
     def runSWForSpecies (self, speciesName, swType = "ex-dna", expanded = True):
         '''
@@ -287,7 +293,7 @@ class AlignmentGenerator(object):
             outputDir = "%s/exon/%s" % (self.swoutAbs, speciesName)
             if (not os.path.isdir(outputDir)):
                 os.makedirs(outputDir)
-            self.disectExonsAndRunSW(exonSpecies, exonDbFile, outputDir)
+            species_exons = self.disectExonsAndRunSW(exonSpecies, exonDbFile, outputDir)
 
 
     def disectExonsAndRunSW(self, exonSpeciesFasta, exonDbFile, outputDir):
@@ -325,13 +331,14 @@ class AlignmentGenerator(object):
                     
                     cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, tmpFile, exonDbFile, outputFile)
                     print cmd
+                    #os.system(cmd)
                     
                 exonSeq = ""
                 exonHeader = line.strip()
                 
             else:
                 exonSeq = exonSeq + line.strip()
-        
+                
         exonSpeciesFile.close()
         
         
@@ -441,9 +448,9 @@ class AlignmentGenerator(object):
 if __name__ == '__main__':
     alGen = AlignmentGenerator()
     alGen.setProteinFolder("ENSP00000311134")
-    alGen.runBatchBlastn(True)
-    alGen.runBatchTblastn()
-    #alGen.runBatchSW("ex-ex")
+    #alGen.runBatchBlastn(True)
+    #alGen.runBatchTblastn()
+    alGen.runBatchSW("ex-ex")
 
 
         
