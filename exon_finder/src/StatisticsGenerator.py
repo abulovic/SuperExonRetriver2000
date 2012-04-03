@@ -92,7 +92,7 @@ class StatisticsGenerator(object):
         self.referenceSpeciesDict = referenceSpeciesDict
         
         
-    def generate_statistics(self, exons_via_proteins, exons_via_dna, exons_SW, all_species, protein_id):
+    def generate_statistics(self, exons_via_proteins, exons_via_dna, exons_SW, exonsSWEnsembl, all_species, protein_id):
         statistics_header = ["Protein_ID", 
                              "Species", 
                              "Type_of_search", 
@@ -104,6 +104,7 @@ class StatisticsGenerator(object):
         tblastn_statistics = []
         blastn_statistics = []
         SW_statistics = []
+        SWE_statistics = []
         
         base_exon_length = self.get_exon_lenghts(len(exons_via_proteins))
         
@@ -134,6 +135,14 @@ class StatisticsGenerator(object):
                     exon.insert(0, species)
                     exon.insert(0, protein_id)
                 SW_statistics.append(SW_species_statistic)
+                
+            if (exonsSWEnsembl.has_key(species)):
+                SWE_species_statistic = self.generate_statistics_based_on_search(exons_SW[species], base_exon_length)
+                for exon in SWE_species_statistic:
+                    exon.insert(0, "SW_ensembl")
+                    exon.insert(0, species)
+                    exon.insert(0, protein_id)
+                SWE_statistics.append(SWE_species_statistic)
             #print generate_statistics_based_on_search(exons_SW[species])
         ###WRITE TO CSV FILE###
         statout = csv.writer(open("%s.csv" % self.statisticsAbs, 'wb+'), delimiter = ',')
@@ -145,6 +154,9 @@ class StatisticsGenerator(object):
             for exon in species:
                 statout.writerow(exon)
         for species in SW_statistics:
+            for exon in species:
+                statout.writerow(exon)
+        for species in SWE_statistics:
             for exon in species:
                 statout.writerow(exon)
         ####

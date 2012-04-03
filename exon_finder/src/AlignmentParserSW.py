@@ -37,6 +37,28 @@ class AlignmentParserSW (AlignmentParser):
                 exonsDir[species] = exon_dict
                 
         return exonsDir
+    
+    def batchParseOutputExEx(self):
+        swoutDirectory = "{0}/exon/".format(self.swoutAbs)
+        exonsDir = {}
+        
+        speciesDirs = os.listdir(swoutDirectory)
+        for speciesDir in speciesDirs:
+            speciesDirAbs = "{0}/{1}/".format(swoutDirectory, speciesDir)
+            swoutFileList = os.listdir(speciesDirAbs)
+            
+            exonList = []
+            
+            for swoutFile in swoutFileList:
+                swoutFileAbs = "{0}/{1}".format(speciesDirAbs, swoutFile)
+                exons = self.parseOutputSW(swoutFileAbs)
+                if (len(exons) >= 1):
+                    exonList.append(exons[0])
+                    
+            exonsDir[speciesDir] = exonList
+            
+        return exonsDir
+             
                 
         
     def parseOutputSW(self, swout_path):

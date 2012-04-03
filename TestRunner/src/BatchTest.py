@@ -201,10 +201,25 @@ for line in protein_file.readlines():
         print "Exception in parse_description_file, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
     
-    #alignmentGen.runBatchBlastn(True)
-    #alignmentGen.runBatchTblastn()
+    try:
+        alignmentGen.runBatchBlastn(True)
+        alignmentGen.runBatchTblastn()
+    except (Exception):
+        print "Exception in run batch blast, exception {1}".format(sys.exc_info())
+        continue
+    try:
+        alignmentGen.runBatchSW()
+        alignmentGen.runBatchSW(swType="ex-ex")
+    except (Exception):
+        print "Exception in run batch SW, exception {1}".format(sys.exc_info())
+        continue
     
-    #alignmentGen.runBatchGenewise(abinitioSpecies)
+    try:
+        alignmentGen.runBatchGenewise(abinitioSpecies)
+    except (Exception):
+        print "Exception in run batch genewise, exception {1}".format(sys.exc_info())
+        continue
+    
     try:
         exonsBlastn = alParserBlast.batchParseOutput(numberOfExons, "blastn")
     except (Exception):
@@ -221,9 +236,14 @@ for line in protein_file.readlines():
     except (Exception):
         print "Exception in SW batchParseOutput, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
+    
+    try:
+        exonsSWEnsembl = alParserSW.batchParseOutputExEx()
+    except (Exception):
+        print "Exception in SW batchParse output ex-ex, protein {0}, exception {1}".format(protein_id, sys.exc_info())
 
     try:
-        statGen.generate_statistics(exonsTblastn, exonsBlastn, exonsSW, known_species+abinitioSpecies, protein_id)
+        statGen.generate_statistics(exonsTblastn, exonsBlastn, exonsSW, exonsSWEnsembl, known_species+abinitioSpecies, protein_id)
     except (Exception):
         print "Exception in generate_statistics, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
