@@ -320,9 +320,9 @@ class AlignmentGenerator(object):
         exonCounter = 0
         for line in exonSpeciesFile.readlines():
             if (line.startswith('>')):
-                exonCounter = exonCounter + 1
                 # if exon Sequence available, store it in the tmp file and 
                 if (exonSeq != ""):
+                    exonCounter = exonCounter + 1
                     outputFile = "%s/exon%d.swout" % (outputDir, exonCounter)
                     
                     tmp = open(tmpFile, 'w')
@@ -338,6 +338,15 @@ class AlignmentGenerator(object):
                 
             else:
                 exonSeq = exonSeq + line.strip()
+                
+        exonCounter = exonCounter + 1
+        outputFile = "%s/exon%d.swout" % (outputDir, exonCounter)
+        tmp = open(tmpFile, 'w')
+        tmp.write("%s\n%s\n" % (exonHeader, exonSeq))
+        tmp.close()
+        cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, tmpFile, exonDbFile, outputFile)
+        print cmd
+        #os.system(cmd)
                 
         exonSpeciesFile.close()
         
