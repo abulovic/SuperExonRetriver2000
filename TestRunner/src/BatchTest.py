@@ -205,19 +205,19 @@ for line in protein_file.readlines():
         alignmentGen.runBatchBlastn(True)
         alignmentGen.runBatchTblastn()
     except (Exception):
-        print "Exception in run batch blast, exception {1}".format(sys.exc_info())
+        print "Exception in run batch blast, proiten {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
     try:
         alignmentGen.runBatchSW()
         alignmentGen.runBatchSW(swType="ex-ex")
     except (Exception):
-        print "Exception in run batch SW, exception {1}".format(sys.exc_info())
+        print "Exception in run batch SW, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
     
     try:
         alignmentGen.runBatchGenewise(abinitioSpecies)
     except (Exception):
-        print "Exception in run batch genewise, exception {1}".format(sys.exc_info())
+        print "Exception in run batch genewise, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
     
     try:
