@@ -51,16 +51,15 @@ class AlignmentParserSW (AlignmentParser):
             
             for swoutFile in swoutFileList:
                 swoutFileAbs = "{0}/{1}".format(speciesDirAbs, swoutFile)
-                exons = self.parseOutputSW(swoutFileAbs)
+                # sort exons by number of matches / length of exon
+                exons = sorted(self.parseOutputSWEns(swoutFileAbs), key=lambda ex: float(ex.no_of_matches)/ex.length, reverse=True)
                 if (len(exons) >= 1):
                     exonList.append(exons[0])
                     
             exonsDir[speciesDir] = exonList
             
         return exonsDir
-             
-                
-        
+    
     def parseOutputSW(self, swout_path):
         exons = []
         swout = open(swout_path, 'r')
@@ -86,6 +85,66 @@ class AlignmentParserSW (AlignmentParser):
                                   "", 
                                   ""))
                 exon_id = 0
+                continue
+            
+            intervals_match     =   re.match(intervals_pattern, line)
+            if intervals_match  is not None:
+                exons[len(exons) - 1].set_intervals(intervals_match.groups()[0], 
+                                                    intervals_match.groups()[1], 
+                                                    intervals_match.groups()[2], 
+                                                    intervals_match.groups()[3])
+                continue
+            identity_match      =   re.match(identity_pattern, line)
+            if identity_match   is not None:
+                exons[len(exons) - 1].set_identity(identity_match.groups()[0],
+                                                   identity_match.groups()[1])
+                continue
+            score_match         =   re.match(score_pattern, line)
+            if score_match      is not None:
+                exons[len(exons) - 1].set_score(score_match.groups()[0])
+                continue
+            sequence_match      =   re.match(sequence_pattern, line)
+            if sequence_match   is not None:
+                if query_sequence_flag is True:
+                    exons[len(exons) - 1].query     +=  sequence_match.groups()[0]
+                else:
+                    exons[len(exons) - 1].target    +=  sequence_match.groups()[0]
+                query_sequence_flag                 =   not query_sequence_flag
+                continue
+              
+        return exons
+             
+                
+        
+    def parseOutputSWEns(self, swout_path):
+        exons = []
+        swout = open(swout_path, 'r')
+        exon_block_pattern  = re.compile(r'Name: >(\d+).*')
+        base_exon_length_pattern  = re.compile(r'Length: (\d+).*')
+        intervals_pattern   = re.compile(r'Intervals: (\d+) (\d+) (\d+) (\d+).*')
+        identity_pattern    = re.compile(r'Identity: (\d+)/(\d+) \(\d+\.\d+%\).*')
+        score_pattern       = re.compile(r'Score: (\d+)\.\d+.*')
+        sequence_pattern    = re.compile(r'[\d\s]+([ATCG-]+)[\d\s]+.*')
+        query_sequence_flag = True
+        exon_id = 0
+        
+        for line in swout.readlines():
+            exon_block_match    =   re.match(exon_block_pattern, line)
+            if exon_block_match is not None:
+                if (exon_id != -1):
+                    exon_id = exon_block_match.groups()[0]
+                    continue
+                else:
+                    exons[-1].set_aligned_protein_ID(exon_block_match.groups()[0])
+                    exon_id = 0
+            
+            base_exon_length    =   re.match(base_exon_length_pattern, line)
+            if base_exon_length is not None and exon_id != 0 and exon_id != -1:
+                exons.append(Exon(exon_id, 
+                                  base_exon_length.groups()[0], 
+                                  "", 
+                                  ""))
+                exon_id = -1
                 continue
             
             intervals_match     =   re.match(intervals_pattern, line)
@@ -157,9 +216,11 @@ class AlignmentParserSW (AlignmentParser):
 if __name__ == '__main__':
     swParser = AlignmentParserSW()
     swParser.setProteinFolder("ENSP00000311134")
-    exons = swParser.parseOutputSW("/home/intern/Project/workspaceBIO/sessions/ENSP00000311134/swout/dna/Sus_scrofa.swout")
-    exons = swParser.discard_FP(exons)
-    for exon in sorted(exons, reverse=True):
-        print exon.id, float(exon.no_of_matches) / exon.alignment_length
+    #exons = swParser.parseOutputSW("/home/intern/Project/workspaceBIO/sessions/ENSP00000311134/swout/dna/Sus_scrofa.swout")
+    #exons = swParser.discard_FP(exons)
+    #for exon in sorted(exons, reverse=True):
+    #    print exon.id, float(exon.no_of_matches) / exon.alignment_length
+    exons = swParser.batchParseOutputExEx()
+    print exons
 
         

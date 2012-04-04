@@ -331,7 +331,7 @@ class AlignmentGenerator(object):
                     
                     cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, tmpFile, exonDbFile, outputFile)
                     print cmd
-                    #os.system(cmd)
+                    os.system(cmd)
                     
                 exonSeq = ""
                 exonHeader = line.strip()
@@ -346,7 +346,7 @@ class AlignmentGenerator(object):
         tmp.close()
         cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, tmpFile, exonDbFile, outputFile)
         print cmd
-        #os.system(cmd)
+        os.system(cmd)
                 
         exonSpeciesFile.close()
         

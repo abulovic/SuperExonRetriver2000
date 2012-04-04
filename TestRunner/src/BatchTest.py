@@ -176,6 +176,7 @@ for line in protein_file.readlines():
     except (Exception):
         print "Exception in setting protein folder, protein {0}, exception {1}".format(protein_id, sys.exc_info())
     
+    
     cmd_run_mutual_best = "python ../../protein_mutual_best_search/src/ensembl_mutual_best.py %s %s" % (species, protein_session_dir)
     #run the mutual best protein search
     mutual_best_return_value = os.system(cmd_run_mutual_best)>>8
@@ -194,12 +195,14 @@ for line in protein_file.readlines():
     except (Exception):
         print "Exception in populateExonDatabase, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
+        
     
     try:
         (known_species, abinitioSpecies) = parseDescriptionFile("%s/%s/%s" % (session_folder, protein_id, descr_file))
     except (Exception):
         print "Exception in parse_description_file, protein {0}, exception {1}".format(protein_id, sys.exc_info())
         continue
+
     
     try:
         alignmentGen.runBatchBlastn(True)

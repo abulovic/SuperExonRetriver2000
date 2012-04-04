@@ -26,6 +26,8 @@ class Exon:
         self.alignment_length   =   int(length)
     def set_score(self, score):
         self.score              =   score
+    def set_aligned_protein_ID (self, referece_species_ID):
+        self.reference_species_ID = int(referece_species_ID)
     def set_viablity(self, viability):
         self.viability          =   viability
     def set_frame(self, frame):

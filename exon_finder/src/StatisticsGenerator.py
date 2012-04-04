@@ -137,7 +137,7 @@ class StatisticsGenerator(object):
                 SW_statistics.append(SW_species_statistic)
                 
             if (exonsSWEnsembl.has_key(species)):
-                SWE_species_statistic = self.generate_statistics_based_on_search(exons_SW[species], base_exon_length)
+                SWE_species_statistic = self.generate_statistics_based_on_search_Ens(exonsSWEnsembl[species], base_exon_length)
                 for exon in SWE_species_statistic:
                     exon.insert(0, "SW_ensembl")
                     exon.insert(0, species)
@@ -195,9 +195,28 @@ class StatisticsGenerator(object):
                                    0, 
                                    0, 
                                    0])
+
         return statistics
     
+    def generate_statistics_based_on_search_Ens (self, exons, base_exon_lengths):
+            statistics = []
+            exonFound = False
+            for exon_id in range (1, len(exons)+1):
+                for exon in exons:
+                    if (exon.reference_species_ID == exon_id):
+                        exonFound = True
+                        statistics.append([exon_id,
+                                       exon.id,
+                                       exon.length,
+                                       exon.score, 
+                                       exon.no_of_matches, 
+                                       exon.alignment_length])
+                if not exonFound:
+                    statistics.append([exon_id, 0, 0, 0, 0])
+            return statistics
+        
 if __name__ == '__main__':
     statGen = StatisticsGenerator()
-    statGen.setProteinFolder("ENSP00000253237")
+    statGen.setProteinFolder("ENSP00000311134")
+    
     
