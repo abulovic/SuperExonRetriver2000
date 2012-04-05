@@ -7,6 +7,8 @@ Created on Mar 26, 2012
 import ConfigParser;
 import os, re;
 
+
+
 class BioMartSearchEngine(object):
     '''
     Queries the BioMart for exons
@@ -16,13 +18,13 @@ class BioMartSearchEngine(object):
         '''
         Loads the project specific configuration
         '''
-        config = ConfigParser.RawConfigParser()
-        config.read("../../config.cfg")
+        self.config = ConfigParser.RawConfigParser()
+        self.config.read("../../config.cfg")
         
-        rootDir             = config.get("Project root", "project_root_folder")
-        self.sessionDir     = config.get("Project root", "session_folder")
+        rootDir             = self.config.get("Project root", "project_root_folder")
+        self.sessionDir     = self.config.get("Project root", "session_folder")
         self.sessionDir     = "%s/%s" % (rootDir, self.sessionDir)
-        self.descrFileName  = config.get("Session files", "descr_output")
+        self.descrFileName  = self.config.get("Session files", "descr_output")
         
         self.perlBiomartScript  = "%s/ensembl_search/src/BioMartRemoteAccess.pl" % (rootDir)
         self.tmpXmlFile         = "Query.xml"
@@ -43,6 +45,25 @@ class BioMartSearchEngine(object):
 </Query>
         '''
         
+    def generate_file_name (self, masked, species, id_type, id):
+        ensembldb = self.config.get("Ensembl cfg", "ensembldb")
+        file_name = "%s/%s/dna/" % (ensembldb, species.lower())
+        tmp_file=""
+        for file in os.listdir(file_name):
+            if (file != "README"):
+                tmp_file = file 
+                break
+        m = re.findall ('(.*).dna', tmp_file)   
+        if (masked == True):
+            file_name = "%s/%s.dna_rm." % (file_name, m[0])
+        else :
+            file_name = "%s/%s.dna." % (file_name, m[0])
+        if (id_type == 'chromosome'):
+            file_name = "%schromosome.%s.fa" % (file_name, id)
+        else :
+            file_name = "%stoplevel.fa" % (file_name)
+        return file_name
+        
     def parseDescriptionFile (self, descrFileName):
         descrFile = open(descrFileName, 'r')
         
@@ -62,7 +83,11 @@ class BioMartSearchEngine(object):
                 data = line.split()
                 if (len(data) == 5):
                     transcriptId = data[4]
-                    transcripts.append((species, ensemblSpeciesName, transcriptId))
+                    locationData = data[1].split(':')
+                    transcriptLocationType = locationData[0]
+                    transcriptLocationID = locationData[2]
+                    strand = locationData[5]
+                    transcripts.append((species, ensemblSpeciesName, transcriptId, transcriptLocationType, transcriptLocationID, strand))
                     knownSpecies.append(species)
                 else :
                     abinitioSpecies.append(species)
@@ -88,7 +113,7 @@ class BioMartSearchEngine(object):
         exonDatabase   = "%s/%s/exons/db/" % (self.sessionDir, proteinDirectory)
         queryFileName = "%s/%s/%s" % (self.sessionDir, proteinDirectory, self.tmpXmlFile)
         
-        for (species, ensemblSpeciesName, transcriptId) in transcripts :
+        for (species, ensemblSpeciesName, transcriptId, transcriptLocationType, transcriptLocationID, strand) in transcripts :
             queryFile = open(queryFileName, 'w')
             query = self.templateXML % (ensemblSpeciesName, transcriptId)
             queryFile.write(query)
@@ -104,9 +129,10 @@ class BioMartSearchEngine(object):
                     break
          
             
-        for (species, ensemblSpeciesName, transcriptId) in transcripts :
+        for (species, ensemblSpeciesName, transcriptId, transcriptLocationType, transcriptLocationID, strand) in transcripts :
             exonFileName = "%s/%s.fa" % (exonDatabase, species)
-            self.reorderExons(exonFileName)
+            exons = self.reorderExons(exonFileName)
+            self.removeFrameshiftIntrons(species, exonFileName, exons,transcriptId, transcriptLocationType, transcriptLocationID, strand)
             
         return (knownSpecies, abinitioSpecies)
             
@@ -144,6 +170,8 @@ class BioMartSearchEngine(object):
         # if no appropriate exons found (genewise output, then do nothing
         if (len(exons) == 0):
             return
+        return sorted(exons)
+        '''
         exonFile = open(exonFileName, 'w')
         exonCount = 1    
         for exon in sorted(exons):
@@ -151,13 +179,94 @@ class BioMartSearchEngine(object):
             ">%d %s|%s|%s|%s\n%s" % (exonCount, exon.beg, exon.end, exon.transId, exon.exonId, exon.seq)
             exonCount = exonCount + 1
         exonFile.close()
+        '''
+        
+    def removeFrameshiftIntrons (self, species, exonOutputFileName, exons, transcriptId, transcriptLocationType, transcriptLocationID, strand):
+        
+        print "Removing frameshift introns for species %s, transcript %s" % (species, transcriptId)
+        exonFile = open(exonOutputFileName, 'w')
+        dnaDB = self.generate_file_name (False, species, transcriptLocationType, transcriptLocationID)
+        if (transcriptLocationType == "chromosome"):
+            fastacmdSearchID = "chrom%s" % str(transcriptLocationID)
+        else:
+            fastacmdSearchID = transcriptLocationID
+        
+        cmd = "fastacmd -d %s -s %s -S %s -L %s,%s -p F -o %s"  %           (dnaDB,          # database name
+                                                                             fastacmdSearchID,                # id
+                                                                             strand,     # strand
+                                                                             "%d",     # seq beginning
+                                                                             "%d",     # seq ending
+                                                                             "tmp.fa")
+        
+        if (exons == None):
+            return
+        
+        newExons = []
+        
+        startingLocation = exons[0].beg
+        endLocation = exons[0].end
+        
+        for exonCounter in range (1, len(exons)):
+            exon = exons[exonCounter]
+            if (species == "Sorex_araneus"):
+                print exon.seq
+            
+            if (strand == "1"):
+
+                if (abs(exon.beg - endLocation) <= 10):
+                    print "MERGING!!"
+                    endLocation = exon.end
+                else :
+                    cmdEx = cmd % (startingLocation, endLocation)
+                    print cmdEx
+                    os.system(cmdEx)
+                    exonSeq = open("tmp.fa", 'r')
+                    exonSeq.readline()
+                    newExons.append(_AuxExon(startingLocation, endLocation, transcriptId, "", strand, exonSeq.read()))
+                    exonSeq.close()
+                    
+                    startingLocation = exon.beg
+                    endLocation = exon.end
+                    
+            else:
+                if (abs(exon.end - startingLocation) <= 10):
+                    print "MERGING!!"
+                    startingLocation = exon.beg
+                else:
+                    cmdEx = cmd % (startingLocation, endLocation)
+                    print cmdEx
+                    os.system(cmdEx)
+                    exonSeq = open("tmp.fa", 'r')
+                    exonSeq.readline()
+                    newExons.append(_AuxExon(startingLocation, endLocation, transcriptId, "", strand, exonSeq.read()))
+                    exonSeq.close()
+                    
+                    startingLocation = exon.beg
+                    endLocation = exon.end
+                
+        cmdEx = cmd % (startingLocation, endLocation)
+        print cmdEx
+        os.system(cmdEx)
+        exonSeq = open("tmp.fa", 'r')
+        exonSeq.readline()
+        newExons.append(_AuxExon(startingLocation, endLocation, transcriptId, "", strand, exonSeq.read()))
+        exonSeq.close()
+        exonFile.close()
+        print "Species %s, number of exons:: %d" % (species, len(newExons))
+        
+        exonFile = open(exonOutputFileName, 'w')
+        exonCount = 1    
+        for exon in sorted(newExons):
+            exonFile.write(">%d %s|%s|%s\n%s" % (exonCount, exon.beg, exon.end, exon.transId, exon.seq))
+            exonCount = exonCount + 1
+        exonFile.close()
        
        
        
 class _AuxExon (object):
     def __init__ (self, beg, end, transId, exonId, strand, seq):
-        self.beg = beg
-        self.end = end
+        self.beg = int(beg)
+        self.end = int(end)
         self.transId = transId
         self.exonId = exonId
         self.strand = strand
@@ -176,7 +285,9 @@ class _AuxExon (object):
             
 if __name__ == '__main__':
     biomart = BioMartSearchEngine()
+    #biomart.populateExonDatabase("ENSP00000252816")
     biomart.populateExonDatabase("ENSP00000311134")
+    #biomart.populateExonDatabase("ENSP00000341765")
         
         
         
