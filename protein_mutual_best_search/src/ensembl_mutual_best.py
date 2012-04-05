@@ -247,7 +247,7 @@ try:
                 ab_init_forward_ids_dict[species] = (ID_protein_abinitio, gene_location_abinitio)
                 logger("\t\t no mutual best found in ab initio either\n\n\n")
 except (Exception):
-    print "Exception in ensembl_mutual_best, somewhere out there, exception {1}".format(sys.exc_info())
+    print "Exception in ensembl_mutual_best, somewhere out there, exception {0}".format(sys.exc_info())
             
 
 fasta_f.close()
