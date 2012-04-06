@@ -329,7 +329,7 @@ class AlignmentGenerator(object):
                     tmp.write("%s\n%s\n" % (exonHeader, exonSeq))
                     tmp.close()
                     
-                    cmd = "{0} -i {1} -j {2} --out {3}".format(self.swSharp, tmpFile, exonDbFile, outputFile)
+                    cmd = "{0} -i {1} -j {2} --out {3} > {4}".format(self.swSharp, tmpFile, exonDbFile, outputFile, "sw.tmp")
                     print cmd
                     os.system(cmd)
                     

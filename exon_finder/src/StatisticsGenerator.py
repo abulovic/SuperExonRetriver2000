@@ -92,7 +92,7 @@ class StatisticsGenerator(object):
         self.referenceSpeciesDict = referenceSpeciesDict
         
         
-    def generate_statistics(self, exons_via_proteins, exons_via_dna, exons_SW, exonsSWEnsembl, all_species, protein_id):
+    def generate_statistics(self, exons_via_proteins, exons_via_dna, exons_SW, exonsSWEnsembl, all_species, protein_id, numberOfExons):
         statistics_header = ["Protein_ID", 
                              "Species", 
                              "Type_of_search", 
@@ -137,7 +137,7 @@ class StatisticsGenerator(object):
                 SW_statistics.append(SW_species_statistic)
                 
             if (exonsSWEnsembl.has_key(species)):
-                SWE_species_statistic = self.generate_statistics_based_on_search_Ens(exonsSWEnsembl[species], base_exon_length)
+                SWE_species_statistic = self.generate_statistics_based_on_search_Ens(exonsSWEnsembl[species], base_exon_length, numberOfExons)
                 for exon in SWE_species_statistic:
                     exon.insert(0, "SW_ensembl")
                     exon.insert(0, species)
@@ -169,7 +169,7 @@ class StatisticsGenerator(object):
         exon_file   = open(exon_db, "r")
         
         p1 = re.compile('>(\d+) exon length (\d+)')
-        p2 = re.compile('>(\d+) (\d+)\|(\d+)\|(\w+)\|(\w+)')
+        p2 = re.compile('>(\d+) (\d+)\|(\d+)\|(\w+)')
         for line in exon_file.readlines():
             m1 = re.match(p1, line)
             m2 = re.match(p2, line)
@@ -198,10 +198,11 @@ class StatisticsGenerator(object):
 
         return statistics
     
-    def generate_statistics_based_on_search_Ens (self, exons, base_exon_lengths):
+    def generate_statistics_based_on_search_Ens (self, exons, base_exon_lengths, numberOfExons):
             statistics = []
             exonFound = False
-            for exon_id in range (1, len(exons)+1):
+            for exon_id in range (1, numberOfExons+1):
+                exonFound = False
                 for exon in exons:
                     if (exon.reference_species_ID == exon_id):
                         exonFound = True

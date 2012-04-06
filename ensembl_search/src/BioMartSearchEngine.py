@@ -108,7 +108,7 @@ class BioMartSearchEngine(object):
         # find transcripts for all the species with known genes
         (transcripts, knownSpecies, abinitioSpecies) = self.parseDescriptionFile(descrFileName)
         
-        print transcripts
+        #print transcripts
         
         exonDatabase   = "%s/%s/exons/db/" % (self.sessionDir, proteinDirectory)
         queryFileName = "%s/%s/%s" % (self.sessionDir, proteinDirectory, self.tmpXmlFile)
@@ -120,12 +120,13 @@ class BioMartSearchEngine(object):
             queryFile.close()
             exonFileName = "%s/%s.fa" % (exonDatabase, species)
             cmd = "perl %s %s > %s" % (self.perlBiomartScript, queryFileName, exonFileName)
-            print cmd
+            print "Downloading exons for species {0}, transcript {1}...".format(species, transcriptId)
             while (True):
      
                 os.system(cmd)
                 fileSize = os.path.getsize(exonFileName)
                 if (fileSize != 0):
+                    print "success."
                     break
          
             
@@ -190,10 +191,13 @@ class BioMartSearchEngine(object):
             fastacmdSearchID = "chrom%s" % str(transcriptLocationID)
         else:
             fastacmdSearchID = transcriptLocationID
-        
-        cmd = "fastacmd -d %s -s %s -S %s -L %s,%s -p F -o %s"  %           (dnaDB,          # database name
+        if (strand == "1"):
+            strand_fastacmd = 1
+        else:
+            strand_fastacmd = 2
+        cmd = "fastacmd -d %s -s %s -S %d -L %s,%s -p F -o %s"  %           (dnaDB,          # database name
                                                                              fastacmdSearchID,                # id
-                                                                             strand,     # strand
+                                                                             strand_fastacmd,     # strand
                                                                              "%d",     # seq beginning
                                                                              "%d",     # seq ending
                                                                              "tmp.fa")
@@ -208,17 +212,13 @@ class BioMartSearchEngine(object):
         
         for exonCounter in range (1, len(exons)):
             exon = exons[exonCounter]
-            if (species == "Sorex_araneus"):
-                print exon.seq
             
             if (strand == "1"):
 
                 if (abs(exon.beg - endLocation) <= 10):
-                    print "MERGING!!"
                     endLocation = exon.end
                 else :
                     cmdEx = cmd % (startingLocation, endLocation)
-                    print cmdEx
                     os.system(cmdEx)
                     exonSeq = open("tmp.fa", 'r')
                     exonSeq.readline()
@@ -230,11 +230,9 @@ class BioMartSearchEngine(object):
                     
             else:
                 if (abs(exon.end - startingLocation) <= 10):
-                    print "MERGING!!"
                     startingLocation = exon.beg
                 else:
                     cmdEx = cmd % (startingLocation, endLocation)
-                    print cmdEx
                     os.system(cmdEx)
                     exonSeq = open("tmp.fa", 'r')
                     exonSeq.readline()
@@ -245,7 +243,6 @@ class BioMartSearchEngine(object):
                     endLocation = exon.end
                 
         cmdEx = cmd % (startingLocation, endLocation)
-        print cmdEx
         os.system(cmdEx)
         exonSeq = open("tmp.fa", 'r')
         exonSeq.readline()
@@ -285,8 +282,8 @@ class _AuxExon (object):
             
 if __name__ == '__main__':
     biomart = BioMartSearchEngine()
-    #biomart.populateExonDatabase("ENSP00000252816")
-    biomart.populateExonDatabase("ENSP00000311134")
+    biomart.populateExonDatabase("ENSP00000252816")
+    #biomart.populateExonDatabase("ENSP00000311134")
     #biomart.populateExonDatabase("ENSP00000341765")
         
         
