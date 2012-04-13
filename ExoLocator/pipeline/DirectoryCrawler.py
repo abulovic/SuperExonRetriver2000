@@ -23,6 +23,7 @@ class DirectoryCrawler(object):
         config = ConfigParser.RawConfigParser()
         config.read("../pipeline.cfg")
         
+        self.protein_id         = None
         # absolute project and session directories
         self.project_root_dir   = config.get('root', 'project_dir')
         self.sessions_dir       = config.get('root', 'session_dir')
