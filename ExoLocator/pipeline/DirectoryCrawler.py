@@ -9,13 +9,13 @@ import os
 
 class DirectoryCrawler(object):
     '''
-    classdocs
+    Utility class, provides methods for automatic absolute path generating for particular protein.
     '''
 
 
     def __init__(self, protein_id = None):
         '''
-        Loads the configuration
+        Loads the configuration from pipeline configuration file
         '''
         if (not os.path.isfile("../pipeline.cfg")):
             raise IOError("There is no pipeline.cfg file present in the project directory.")
@@ -50,9 +50,15 @@ class DirectoryCrawler(object):
         self.log_root = config.get('log', 'root')
         self.mutual_best_log = "%s/%s" % (self.log_root, config.get('log', 'mutual_best'))
         
+        if (protein_id):
+            self.set_protein_id(protein_id)
+        
         
     
     def set_protein_id (self, protein_id):
+        '''
+        Sets the protein id and constructs absolute paths for all directories
+        '''
         self.protein_id = protein_id
         
         # sequence absolute paths
@@ -79,61 +85,92 @@ class DirectoryCrawler(object):
         self.mutual_best_log_abs    = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.mutual_best_log)
         
         
+        
     def get_gene_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute gene directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.gene)
         else:
             return self.gene_abs
         
     def get_expanded_gene_path(self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute expanded gene directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.expanded_gene)
         else:
             return self.expanded_gene_abs
     
     def get_protein_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute protein directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.protein)
         else:
             return self.protein_abs
     
     def get_exon_ensembl_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute exon ensembl directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.exon_ensembl)
         else:
             return self.exon_ensembl_abs
     
     def get_exon_genewise_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute exon genewise directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.exon_genewise)
         else:
             return self.exon_genewise_abs
     
     def get_blastn_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute blastn directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.blastn_output)
         else:
             return self.blastn_output_abs
     
     def get_tblastn_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute tblastn directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.tblastn_output)
         else:
             return self.tblastn_output_abs
     
     def get_SW_gene_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute SW gene directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.SW_gene)
         else:
             return self.SW_gene_abs
     
     def get_SW_exon_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute gene directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.SW_exon)
         else:
             return self.SW_exon_abs
     
     def get_genewise_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute genewise directory path, otherwise self.protein_id is used
+        '''
         if (self._generate_absolute_path(self.protein_id, protein_id)):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.genewise_output)
         else:
