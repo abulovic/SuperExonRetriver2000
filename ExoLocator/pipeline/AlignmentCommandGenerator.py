@@ -9,9 +9,8 @@ import os, re
 
 class AlignmentCommandGenerator(object):
     '''
-    classdocs
+    Generates commands for utilities that are used (blast, sw, genewise, fastacmd, formatdb)
     '''
-
 
     def __init__(self):
         '''
@@ -51,17 +50,17 @@ class AlignmentCommandGenerator(object):
     def generate_fastacmd_command (self, sequence_id, 
                                    species_name, 
                                    sequence_type, 
-                                   location_type, 
+                                   location_type,
                                    output_file_path, 
                                    masked,
                                    strand = None, 
                                    sequence_start = None, sequence_stop = None):
         
-        database = "-d %s" % self._generate_genedb_file_name(species_name, sequence_type, sequence_id, masked)
+        database = "-d %s" % self._generate_genedb_file_name(species_name, location_type, sequence_id, masked)
         
         seq_id_cmd = "-s %s" % sequence_id
         
-        if (sequence_type == "protein"):
+        if (sequence_type == "protein" or sequence_type == "P"):
             data_type_cmd = "-p T"
         else:
             data_type_cmd = "-p F"
@@ -105,7 +104,7 @@ class AlignmentCommandGenerator(object):
         if sequence_type == "protein" or sequence_type == "P":
             cmd = "formatdb -i {0} -p T".format(input_db_file)
         else:
-            cmd = "formatdb -i {0} -p T".format(input_db_file)
+            cmd = "formatdb -i {0} -p F".format(input_db_file)
         if additional_flags:
             cmd += " -a F -o F"
             
@@ -161,6 +160,8 @@ class AlignmentCommandGenerator(object):
 def main():
     acg = AlignmentCommandGenerator()
     cmd = acg.generate_SW_command("query.fa", "target.fa", "output", True)
+    print cmd
+    cmd = acg.generate_fastacmd_command("seq_id", "Homo_sapiens", "dna", "chromosome", "out.txt", masked=1, sequence_start=255, sequence_stop=300)
     print cmd
     
     
