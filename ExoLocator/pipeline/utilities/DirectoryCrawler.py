@@ -5,7 +5,6 @@ Created on Apr 12, 2012
 '''
 
 from utils.ConfigurationReader import *
-import os, sys
 
 class DirectoryCrawler(object):
     '''
@@ -245,13 +244,6 @@ class DirectoryCrawler(object):
             return True
         else:
             return False
-        
-    def get_cfg_dir(self):
-        ex_path = sys.path[0]
-        m = re.match("(.*ExoLocator).*", ex_path)
-        proj_root_dir = m.groups()[0]
-        return proj_root_dir + "/cfg/"
-        
     
 def main ():
     dc = DirectoryCrawler()
