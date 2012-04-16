@@ -4,10 +4,9 @@ Created on Apr 13, 2012
 @author: marioot
 '''
 
-
-from pipeline.DirectoryCrawler          import DirectoryCrawler
-from pipeline.AlignmentCommandGenerator import AlignmentCommandGenerator
-from pipeline.AlignmentTargetGenerator  import AlignmentTargetGenerator
+from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from pipeline.alignment.AlignmentCommandGenerator import AlignmentCommandGenerator
+from pipeline.alignment.AlignmentTargetGenerator  import AlignmentTargetGenerator
 import subprocess
 import os
 

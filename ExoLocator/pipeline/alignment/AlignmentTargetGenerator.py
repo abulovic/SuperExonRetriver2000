@@ -52,7 +52,7 @@ class AlignmentTargetGenerator(object):
         if (os.path.isfile("{0}/.status".format(path))):
             return open('{0}/.status'.format(path), 'r').readlines()
         else:
-            return open('../species.txt', 'r').readlines()
+            return open('../../species.txt', 'r').readlines()
         
 def main ():
     atg = AlignmentTargetGenerator()
@@ -60,6 +60,6 @@ def main ():
     print atg.get_tblastn_targets("ENSP00000311134")
     print atg.get_SW_gene_targets("ENSP00000311134")
     print atg.get_SW_exon_targets("ENSP00000311134")
-
+    
 if __name__ == '__main__':
     main()
