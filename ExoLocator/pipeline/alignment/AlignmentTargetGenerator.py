@@ -22,30 +22,46 @@ class AlignmentTargetGenerator(object):
         @param protein_id: retrieves the list of species not aligned with blastn for that protein
         '''       
         path = self.crawler.get_blastn_path(protein_id)
-        return self.get_species_list(path)
+        return self._get_species_list(path)
+    
+    def set_failed_blastn_targets(self, protein_id, failed_species_list):
+        path = self.crawler.get_blastn_path(protein_id)
+        self._write_failed_species_to_status(failed_species_list, path)
         
     def get_tblastn_targets(self, protein_id):
         '''
         @param protein_id: retrieves the list of species not aligned with tblastn for that protein
         '''       
         path = self.crawler.get_tblastn_path(protein_id)
-        return self.get_species_list(path)
+        return self._get_species_list(path)
+        
+    def set_failed_tblastn_targets(self, protein_id, failed_species_list):
+        path = self.crawler.get_tblastn_path(protein_id)
+        self._write_failed_species_to_status(failed_species_list, path)
         
     def get_SW_gene_targets(self, protein_id):
         '''
         @param protein_id: retrieves the list of species not aligned with SW_gene for that protein
         '''       
         path = self.crawler.get_SW_gene_path(protein_id)
-        return self.get_species_list(path)
-        
+        return self._get_species_list(path)
+    
+    def set_failed_SW_gene_targets(self, protein_id, failed_species_list):
+        path = self.crawler.get_SW_gene_path(protein_id)
+        self._write_failed_species_to_status(failed_species_list, path)
+    
     def get_SW_exon_targets(self, protein_id):
         '''
         @param protein_id: retrieves the list of species not aligned with SW_exon for that protein
         '''       
         path = self.crawler.get_SW_exon_path(protein_id)
-        return self.get_species_list(path)
+        return self._get_species_list(path)
+    
+    def set_failed_SW_exon_targets(self, protein_id, failed_species_list):
+        path = self.crawler.get_SW_exon_path(protein_id)
+        self._write_failed_species_to_status(failed_species_list, path)
         
-    def get_species_list(self, path):
+    def _get_species_list(self, path):
         '''
         @param path: returns the list of species in the .status file, if the file doesn't exist, it returns the list contained in species.txt
         '''
@@ -53,7 +69,17 @@ class AlignmentTargetGenerator(object):
             return open('{0}/.status'.format(path), 'r').readlines()
         else:
             return open('../../species.txt', 'r').readlines()
-        
+    
+    def _write_failed_species_to_status(self, failed_species_list, path):
+        '''
+        @param failed_species_list: writes the list of failed species to path/.status file
+        @param path: path to the current protein/operation file 
+        '''
+        status = open('{0}/.status'.format(path), 'w')
+        for species in failed_species_list:
+            status.write(species)
+        status.close()
+    
 def main ():
     atg = AlignmentTargetGenerator()
     print atg.get_blastn_targets("ENSP00000311134")

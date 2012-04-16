@@ -17,11 +17,14 @@ def generate_blastn_alignments(protein_id, species_list = None):
         @param species_list: if provided, runs blastn for this list of species, \
                              otherwise runs for species that are missing the blastn output
     '''
-    if (not species_list):
-        species_list    = AlignmentTargetGenerator().get_blastn_targets(protein_id)
-    
+    alignment_generator = AlignmentTargetGenerator()
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
+    
+    if (not species_list):
+        species_list    = alignment_generator.get_blastn_targets(protein_id)
+        
+    failed_species_list = []
     for species in species_list:
         output_file     = "{0}/{1}.blastout".format(crawler.get_blastn_path(protein_id), species.strip())
         input_file      = "{0}/{1}.fa".format(crawler.get_expanded_gene_path(protein_id), species.strip())
@@ -33,9 +36,9 @@ def generate_blastn_alignments(protein_id, species_list = None):
         output = p.stdout.read()
         if output != "":
 #TODO: LOGGING
+            failed_species_list.append(species)
             print output
-           
-        
+    alignment_generator.set_failed_blastn_targets(protein_id, failed_species_list)
 
 def generate_tblastn_alignments(protein_id, species_list = None):
     '''
@@ -44,11 +47,14 @@ def generate_tblastn_alignments(protein_id, species_list = None):
         @param species_list: if provided, runs tblastn for this list of species, \
                              otherwise runs for species that are missing the tblastn output
     '''
-    if (not species_list):
-        species_list    = AlignmentTargetGenerator().get_tblastn_targets(protein_id)
-    
+    alignment_generator = AlignmentTargetGenerator()
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
+    
+    if (not species_list):
+        species_list    = alignment_generator.get_tblastn_targets(protein_id)
+    
+    failed_species_list = []
     for species in species_list:
         output_file     = "{0}/{1}.blastout".format(crawler.get_tblastn_path(protein_id), species.strip())
         input_file      = "{0}/{1}.fa".format(crawler.get_protein_path(protein_id), species.strip())
@@ -60,19 +66,25 @@ def generate_tblastn_alignments(protein_id, species_list = None):
         output = p.stdout.read()
         if output != "":
 #TODO: LOGGING
+            failed_species_list.append(species)
             print output
-            
+    alignment_generator.set_failed_tblastn_targets(protein_id, failed_species_list)
+    
 def generate_SW_gene_alignments(protein_id, species_list = None):
     '''
         Runs the SW program for a specified protein and list of species, using the expanded gene region.
         @param protein_id
         @param species_list: if provided, runs SW for this list of species, \
                              otherwise runs for species that are missing the SW output
-    '''
-    if (not species_list):
-        species_list         = AlignmentTargetGenerator().get_SW_gene_targets(protein_id)
+    '''        
+    alignment_generator      = AlignmentTargetGenerator()
     crawler                  = DirectoryCrawler()
     command_generator        = CommandGenerator()
+    
+    if (not species_list):
+        species_list         = alignment_generator.get_SW_gene_targets(protein_id)
+        
+    failed_species_list = []
     for species in species_list:
         output_file          = "{0}/{1}.swout".format(crawler.get_SW_gene_path(protein_id), species.strip())
         query_sequence_file  = "{0}/{1}.fa".format(crawler.get_expanded_gene_path(protein_id), species.strip())
@@ -84,8 +96,10 @@ def generate_SW_gene_alignments(protein_id, species_list = None):
         output = p.stdout.read()
         if output != "":
 #TODO: LOGGING
+            failed_species_list.append(species)
             print output
     os.remove(".sw_stdout_supressed")
+    alignment_generator.set_failed_SW_gene_targets(protein_id, failed_species_list)
         
 def generate_SW_exon_alignments(protein_id, species_list = None):
     '''
@@ -93,12 +107,15 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         @param protein_id
         @param species_list: if provided, runs SW for this list of species, \
                              otherwise runs for species that are missing the SW output
-    '''
-    if (not species_list):
-        species_list    = AlignmentTargetGenerator().get_SW_exon_targets(protein_id)
-    
+    '''    
+    alignment_generator = AlignmentTargetGenerator()
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
+    
+    if (not species_list):
+        species_list    = alignment_generator.get_SW_exon_targets(protein_id)
+    
+    failed_species_list = []
     for species in species_list:
         ensembl_exons_path  = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())
         target_fasta_db_file = "{0}/Homo_sapiens.fa".format(crawler.get_exon_ensembl_path(protein_id))
@@ -108,6 +125,7 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
             ensembl_exons_file = open(ensembl_exons_path, 'r')
         except IOError, e:
 #TODO: LOGGING
+            failed_species_list.append(species)
             print e
             continue
         exon_seq = ""
@@ -148,12 +166,15 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         output = p.stdout.read()
         if output != "":
 #TODO: LOGGING
+            failed_species_list.append(species)
             print output
             
         ensembl_exons_file.close()
-        os.remove(tmp_file)
-        os.remove(".sw_stdout_supressed")
-  
+    
+    os.remove(tmp_file)
+    os.remove(".sw_stdout_supressed")
+    alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
+    
 def main ():
     generate_blastn_alignments("ENSP00000311134")
     generate_tblastn_alignments("ENSP00000311134")
