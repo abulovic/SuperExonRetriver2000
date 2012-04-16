@@ -4,10 +4,11 @@ Created on Apr 15, 2012
 @author: intern
 '''
 
-import logging
 import logging.config
 import sys, re
+from utilities.ConfigurationReader import Singleton
 
+@Singleton
 class Logger(object):
     '''
     classdocs
@@ -34,6 +35,6 @@ class Logger(object):
     
         
 if __name__ == '__main__':
-    logger = Logger()
-    l = logging.getLogger('mutual_best')
+    logger = Logger.Instance()
+    l = logger.get_logger('mutual_best')
     l.debug('tralala')

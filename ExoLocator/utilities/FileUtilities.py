@@ -4,9 +4,9 @@ Created on Apr 15, 2012
 @author: intern
 '''
 
-import re
+import re, sys
 
-from utils.ConfigurationReader import *
+from utilities.ConfigurationReader import ConfigurationReader
 
 proteins_known = {}
 proteins_abinitio = {}
@@ -65,6 +65,37 @@ def get_gene_regions (protein_id):
         genes_abinitio[key] = list(value)[1:]
         
     return genes_known, genes_abinitio
+
+def get_project_root_dir ():
+    ex_path = sys.path[0]
+    m = re.match("(.*ExoLocator).*", ex_path)
+    proj_root_dir = m.groups()[0]
+    return proj_root_dir
+
+def get_species_list ():
+    species_file_path = get_project_root_dir() + "/species.txt"
+    species_file = open(species_file_path, 'r')
+    species_list = []
+    
+    for line in species_file.readlines():
+        species_list.append(line.strip()) 
+        
+    species_file.close()
+    return species_list
+
+def get_protein_list ():
+    cr = ConfigurationReader.Instance()
+    protein_file_path = cr.get_value('input', 'protein_list')
+    protein_file = open(protein_file_path, 'r')
+    protein_list = []
+    
+    for line in protein_file.readlines():
+        (prot_id, num_of_exons) = line.strip().split()
+        protein_list.append((prot_id, num_of_exons))
+    protein_file.close()
+    
+    return protein_list
+    
 
 
     

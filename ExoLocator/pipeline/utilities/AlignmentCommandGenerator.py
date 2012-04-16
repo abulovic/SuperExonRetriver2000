@@ -5,8 +5,7 @@ Created on Apr 12, 2012
 '''
 
 import os, re
-from utils.ConfigurationReader import ConfigurationReader
-
+from utilities.ConfigurationReader import ConfigurationReader
 
 class AlignmentCommandGenerator(object):
     '''
@@ -49,6 +48,8 @@ class AlignmentCommandGenerator(object):
         # genewise
         self.genewise       = self.configReader.get_value('wise', 'wise')
         self.genewise_flags = self.configReader.get_value('wise', 'flags')
+        
+        self.mafft          = self.configReader.get_value('mafft', 'mafft')
         
         
     def generate_fastacmd_gene_command (self, sequence_id, 
@@ -128,6 +129,9 @@ class AlignmentCommandGenerator(object):
             
         return cmd
     
+    def generate_mafft_command (self, input_file, output_file):
+        return "{0} {1} > {2}".format(self.mafft, input_file, output_file)
+    
     
     def _generate_genedb_file_name (self, species, sequence_type, sequence_id, masked):
         '''
@@ -178,8 +182,6 @@ class AlignmentCommandGenerator(object):
 def main():
     acg = AlignmentCommandGenerator()
     cmd = acg.generate_SW_command("query.fa", "target.fa", "output", True)
-    print cmd
-    cmd = acg.generate_fastacmd_command("seq_id", "Homo_sapiens", "dna", "chromosome", "out.txt", masked=1, sequence_start=255, sequence_stop=300)
     print cmd
     
     

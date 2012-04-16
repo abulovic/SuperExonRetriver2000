@@ -61,7 +61,6 @@ class ConfigurationReader:
     Loads configuration files from the cfg directory
     '''
     
-
     def get_cfg_dir(self):
         ex_path = sys.path[0]
         m = re.match("(.*ExoLocator).*", ex_path)
@@ -118,16 +117,3 @@ if __name__ == '__main__':
     cr = ConfigurationReader.Instance()
     print cr.get_value('wise', 'flags')
     print cr.get_value('tralala', 'lala')
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-    
-    
-    

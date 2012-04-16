@@ -3,8 +3,8 @@ Created on Apr 12, 2012
 
 @author: intern
 '''
-
-from utils.ConfigurationReader import *
+import os
+from utilities.ConfigurationReader import ConfigurationReader
 
 class DirectoryCrawler(object):
     '''
