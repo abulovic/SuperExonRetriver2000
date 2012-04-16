@@ -4,8 +4,8 @@ Created on Apr 12, 2012
 @author: intern
 '''
 
-import ConfigParser
-import os
+from utils.ConfigurationReader import *
+import os, sys
 
 class DirectoryCrawler(object):
     '''
@@ -17,39 +17,35 @@ class DirectoryCrawler(object):
         '''
         Loads the configuration from pipeline configuration file
         '''
-        if (not os.path.isfile("../pipeline.cfg")):
-            raise IOError("There is no pipeline.cfg file present in the project directory.")
-        
-        config = ConfigParser.RawConfigParser()
-        config.read("../pipeline.cfg")
+        config_reader = ConfigurationReader.Instance()
         
         self.protein_id         = None
         # absolute project and session directories
-        self.project_root_dir   = config.get('root', 'project_dir')
-        self.sessions_dir       = config.get('root', 'session_dir')
+        self.project_root_dir   = config_reader.get_value('root', 'project_dir')
+        self.sessions_dir       = config_reader.get_value('root', 'session_dir')
         
         # sequence databases
-        self.sequence_root  = config.get('sequence', 'root')
-        self.gene           = "%s/%s" % (self.sequence_root, config.get('sequence', 'gene'))
-        self.expanded_gene  = "%s/%s" % (self.sequence_root, config.get('sequence', 'exp_gene'))
-        self.protein        = "%s/%s" % (self.sequence_root, config.get('sequence', 'protein'))
-        self.exon_ensembl   = "%s/%s" % (self.sequence_root, config.get('sequence', 'exon_ens'))
-        self.exon_genewise  = "%s/%s" % (self.sequence_root, config.get('sequence', 'exon_wise'))
+        self.sequence_root  = config_reader.get_value('sequence', 'root')
+        self.gene           = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'gene'))
+        self.expanded_gene  = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exp_gene'))
+        self.protein        = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'protein'))
+        self.exon_ensembl   = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exon_ens'))
+        self.exon_genewise  = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exon_wise'))
         
         # alignment outputs
-        self.alignment_root = config.get('alignment', 'root')
-        self.blastn_output  = "%s/%s" % (self.alignment_root, config.get('alignment', 'blastn'))
-        self.tblastn_output = "%s/%s" % (self.alignment_root, config.get('alignment', 'tblastn'))
-        self.SW_gene        = "%s/%s" % (self.alignment_root, config.get('alignment', 'SW_gene'))
-        self.SW_exon        = "%s/%s" % (self.alignment_root, config.get('alignment', 'SW_exon'))
+        self.alignment_root = config_reader.get_value('alignment', 'root')
+        self.blastn_output  = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'blastn'))
+        self.tblastn_output = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'tblastn'))
+        self.SW_gene        = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'sw_gene'))
+        self.SW_exon        = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'sw_exon'))
         
         # annotation output
-        self.annotation_root = config.get('annotation', 'root')
-        self.genewise_output = "%s/%s" % (self.annotation_root, config.get('annotation', 'wise'))
+        self.annotation_root = config_reader.get_value('annotation', 'root')
+        self.genewise_output = "%s/%s" % (self.annotation_root, config_reader.get_value('annotation', 'wise'))
         
         # log directory
-        self.log_root = config.get('log', 'root')
-        self.mutual_best_log = "%s/%s" % (self.log_root, config.get('log', 'mutual_best'))
+        self.log_root = config_reader.get_value('log', 'root')
+        self.mutual_best_log = "%s/%s" % (self.log_root, config_reader.get_value('log', 'mutual_best'))
         
         if (protein_id):
             self.set_protein_id(protein_id)
@@ -249,6 +245,12 @@ class DirectoryCrawler(object):
             return True
         else:
             return False
+        
+    def get_cfg_dir(self):
+        ex_path = sys.path[0]
+        m = re.match("(.*ExoLocator).*", ex_path)
+        proj_root_dir = m.groups()[0]
+        return proj_root_dir + "/cfg/"
         
     
 def main ():
