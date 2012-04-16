@@ -6,6 +6,7 @@ Created on Apr 12, 2012
 
 import ConfigParser
 import os, re
+from utils.ConfigurationReader import *
 
 class AlignmentCommandGenerator(object):
     '''
@@ -15,36 +16,39 @@ class AlignmentCommandGenerator(object):
     def __init__(self):
         '''
         Loads the utils configuration (utils.cfg)
-        '''
+        
         if (not os.path.isfile("../utils.cfg")):
             raise IOError("There is no utils.cfg file present in the project directory.")
         
         config = ConfigParser.RawConfigParser()
         config.read("../utils.cfg")
+        '''
+        
+        self.configReader = ConfigurationReader.Instance()
         
         # blast tools
-        self.blast_e_value  = config.get('blast', 'expectation')
+        self.blast_e_value  = self.configReader.get_value('blast', 'expectation')
         
-        self.blastn         = config.get('blast', 'blastn')
+        self.blastn         = self.configReader.get_value('blast', 'blastn')
         self.blastn         = self.blastn % self.blast_e_value
         
-        self.tblastn        = config.get('blast', 'tblastn')
+        self.tblastn        = self.configReader.get_value('blast', 'tblastn')
         self.tblastn        = self.tblastn % self.blast_e_value
         
-        self.blastp         = config.get('blast', 'blastp')
+        self.blastp         = self.configReader.get_value('blast', 'blastp')
         self.blastp         = self.blastp % self.blast_e_value
         
         # ensembl database
-        self.ensembldb      = config.get('local_ensembl', 'ensembldb')
-        self.gene_expansion = int (config.get('local_ensembl', 'expansion'))
-        self.dna_masked     = int (config.get('local_ensembl', 'masked'))
+        self.ensembldb      = self.configReader.get_value('local_ensembl', 'ensembldb')
+        self.gene_expansion = int (self.configReader.get_value('local_ensembl', 'expansion'))
+        self.dna_masked     = int (self.configReader.get_value('local_ensembl', 'masked'))
         
         # Smith-Waterman
-        self.sw_sharp       = config.get('sw#', 'sw#')
+        self.sw_sharp       = self.configReader.get_value('sw#', 'sw#')
         
         # genewise
-        self.genewise       = config.get('wise', 'wise')
-        self.genewise_flags = config.get('wise', 'flags')
+        self.genewise       = self.configReader.get_value('wise', 'wise')
+        self.genewise_flags = self.configReader.get_value('wise', 'flags')
         
         
     def generate_fastacmd_command (self, sequence_id, 
@@ -58,7 +62,10 @@ class AlignmentCommandGenerator(object):
         
         database = "-d %s" % self._generate_genedb_file_name(species_name, location_type, sequence_id, masked)
         
-        seq_id_cmd = "-s %s" % sequence_id
+        if (location_type != "chromosome"):
+            seq_id_cmd = "-s %s" % sequence_id
+        else:
+            seq_id_cmd = "-s chrom%s" % sequence_id
         
         if (sequence_type == "protein" or sequence_type == "P"):
             data_type_cmd = "-p T"
