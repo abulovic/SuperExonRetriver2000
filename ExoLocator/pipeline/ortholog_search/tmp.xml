@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!DOCTYPE BlastOutput PUBLIC "-//NCBI//NCBI BlastOutput/EN" "http://www.ncbi.nlm.nih.gov/dtd/NCBI_BlastOutput.dtd">
+<BlastOutput>
+  <BlastOutput_program>blastp</BlastOutput_program>
+  <BlastOutput_version>blastp 2.2.21 [Jun-14-2009]</BlastOutput_version>
+  <BlastOutput_reference>~Reference: Altschul, Stephen F., Thomas L. Madden, Alejandro A. Schaffer, ~Jinghui Zhang, Zheng Zhang, Webb Miller, and David J. Lipman (1997), ~&quot;Gapped BLAST and PSI-BLAST: a new generation of protein database search~programs&quot;,  Nucleic Acids Res. 25:3389-3402.</BlastOutput_reference>
+  <BlastOutput_db>/home/intern/mnt/release-66/fasta//vicugna_pacos/pep/Vicugna_pacos.vicPac1.66.pep.abinitio.fa</BlastOutput_db>
+  <BlastOutput_query-ID>lcl|1_0</BlastOutput_query-ID>
+  <BlastOutput_query-def>lcl|ENSP00000324799 pep:known chromosome:GRCh37:1:229385383:229387557:1 gene:ENSG00000177800 transcript:ENST00000323223 gene_biotype:protein_coding transcript_biotype:protein_coding</BlastOutput_query-def>
+  <BlastOutput_query-len>136</BlastOutput_query-len>
+  <BlastOutput_param>
+    <Parameters>
+      <Parameters_matrix>BLOSUM62</Parameters_matrix>
+      <Parameters_expect>0.01</Parameters_expect>
+      <Parameters_gap-open>11</Parameters_gap-open>
+      <Parameters_gap-extend>1</Parameters_gap-extend>
+      <Parameters_filter>F</Parameters_filter>
+    </Parameters>
+  </BlastOutput_param>
+  <BlastOutput_iterations>
+    <Iteration>
+      <Iteration_iter-num>1</Iteration_iter-num>
+      <Iteration_query-ID>lcl|1_0</Iteration_query-ID>
+      <Iteration_query-def>lcl|ENSP00000324799 pep:known chromosome:GRCh37:1:229385383:229387557:1 gene:ENSG00000177800 transcript:ENST00000323223 gene_biotype:protein_coding transcript_biotype:protein_coding</Iteration_query-def>
+      <Iteration_query-len>136</Iteration_query-len>
+      <Iteration_stat>
+        <Statistics>
+          <Statistics_db-num>93309</Statistics_db-num>
+          <Statistics_db-len>15951729</Statistics_db-len>
+          <Statistics_hsp-len>86</Statistics_hsp-len>
+          <Statistics_eff-space>3.96358e+08</Statistics_eff-space>
+          <Statistics_kappa>0.041</Statistics_kappa>
+          <Statistics_lambda>0.267</Statistics_lambda>
+          <Statistics_entropy>0.14</Statistics_entropy>
+        </Statistics>
+      </Iteration_stat>
+      <Iteration_message>No hits found</Iteration_message>
+    </Iteration>
+    <Iteration>
+      <Iteration_iter-num>1</Iteration_iter-num>
+      <Iteration_stat>
+        <Statistics>
+          <Statistics_db-num>93309</Statistics_db-num>
+          <Statistics_db-len>15951729</Statistics_db-len>
+          <Statistics_hsp-len>86</Statistics_hsp-len>
+          <Statistics_eff-space>3.96358e+08</Statistics_eff-space>
+          <Statistics_kappa>0.041</Statistics_kappa>
+          <Statistics_lambda>0.267</Statistics_lambda>
+          <Statistics_entropy>0.14</Statistics_entropy>
+        </Statistics>
+      </Iteration_stat>
+    </Iteration>
+  </BlastOutput_iterations>
+</BlastOutput>
