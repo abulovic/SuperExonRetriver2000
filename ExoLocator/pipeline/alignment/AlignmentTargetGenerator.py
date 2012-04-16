@@ -3,8 +3,9 @@ Created on Apr 13, 2012
 
 @author: marioot
 '''
-from pipeline.DirectoryCrawler import DirectoryCrawler
+
 import os
+from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 
 class AlignmentTargetGenerator(object):
     '''
@@ -52,3 +53,13 @@ class AlignmentTargetGenerator(object):
             return open('{0}/.status'.format(path), 'r').readlines()
         else:
             return open('../species.txt', 'r').readlines()
+        
+def main ():
+    atg = AlignmentTargetGenerator()
+    print atg.get_blastn_targets("ENSP00000311134")
+    print atg.get_tblastn_targets("ENSP00000311134")
+    print atg.get_SW_gene_targets("ENSP00000311134")
+    print atg.get_SW_exon_targets("ENSP00000311134")
+
+if __name__ == '__main__':
+    main()
