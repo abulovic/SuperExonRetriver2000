@@ -4,9 +4,9 @@ Created on Apr 12, 2012
 @author: intern
 '''
 
-import ConfigParser
 import os, re
-from utils.ConfigurationReader import *
+from utils.ConfigurationReader import ConfigurationReader
+
 
 class AlignmentCommandGenerator(object):
     '''
@@ -51,26 +51,24 @@ class AlignmentCommandGenerator(object):
         self.genewise_flags = self.configReader.get_value('wise', 'flags')
         
         
-    def generate_fastacmd_command (self, sequence_id, 
+    def generate_fastacmd_gene_command (self, sequence_id, 
                                    species_name, 
-                                   sequence_type, 
                                    location_type,
                                    output_file_path, 
-                                   masked,
+                                   masked = 0,
                                    strand = None, 
                                    sequence_start = None, sequence_stop = None):
         
-        database = "-d %s" % self._generate_genedb_file_name(species_name, location_type, sequence_id, masked)
+        
         
         if (location_type != "chromosome"):
             seq_id_cmd = "-s %s" % sequence_id
         else:
             seq_id_cmd = "-s chrom%s" % sequence_id
         
-        if (sequence_type == "protein" or sequence_type == "P"):
-            data_type_cmd = "-p T"
-        else:
-            data_type_cmd = "-p F"
+
+        data_type_cmd = "-p F"
+        database = "-d %s" % self._generate_genedb_file_name(species_name, location_type, sequence_id, masked)
             
         if (strand == None or int(strand) == 1):
             strand_cmd = "-S 1"
@@ -78,7 +76,7 @@ class AlignmentCommandGenerator(object):
             strand_cmd = "-S 2"
             
         if (sequence_start and sequence_stop):
-            location_cmd = "-L %d,%d" % (sequence_start, sequence_stop)
+            location_cmd = "-L %s,%s" % (sequence_start, sequence_stop)
         else:
             location_cmd = ""
             
@@ -87,7 +85,13 @@ class AlignmentCommandGenerator(object):
         return "fastacmd {0} {1} {2} {3} {4} {5}".format(database, seq_id_cmd, data_type_cmd, strand_cmd, location_cmd, output_cmd)
         
     
-    
+    def generate_fastacmd_protein_command (self, protein_id, species_name, protein_type, output_file_path):
+        
+        data_type_cmd = "-p T"
+        prot_id_cmd = "-s %s" % protein_id
+        database = "-d %s" % self._generate_proteindb_file_name(species_name, protein_type)
+        output_cmd = "-o %s" % output_file_path
+        return "fastacmd {0} {1} {2} {3}".format(prot_id_cmd, data_type_cmd, database, output_cmd)
     
     def generate_blastn_command (self, database, input_file, output_file):
         cmd = "{0} -d {1} -i {2} -o {3}".format(self.blastn, database, input_file, output_file)
@@ -96,6 +100,13 @@ class AlignmentCommandGenerator(object):
     def generate_tblastn_command (self, database, input_file, output_file):
         cmd = "{0} -d {1} -i {2} -o {3}".format(self.tblastn, database, input_file, output_file)
         return cmd
+    
+    def generate_blastp_command (self, database, input_file, output_file):
+        cmd = "{0} -d {1} -i {2} -o {3}".format(self.blastp, database, input_file, output_file)
+        return cmd
+    def generate_blastp_command_for_species(self, species_name, input_file, output_file, protein_type):
+        database = self._generate_proteindb_file_name(species_name, protein_type)
+        return self.generate_blastp_command(database, input_file, output_file)
     
     def generate_SW_command (self, query_sequence_file, target_fasta_db_file, output_file, supress_stdout = True):
         cmd = "{0} -i {1} -j {2} --out {3}".format(self.sw_sharp, query_sequence_file, target_fasta_db_file, output_file)
