@@ -57,6 +57,9 @@ class DirectoryCrawler(object):
         '''
         self.protein_id = protein_id
         
+        # root absolute path
+        self.root_abs  = "{0}/{1}".format(self.sessions_dir, protein_id)
+        
         # sequence absolute paths
         self.sequence_root_abs  = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.sequence_root)
         self.gene_abs           = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.gene)
@@ -81,6 +84,14 @@ class DirectoryCrawler(object):
         self.mutual_best_log_abs    = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.mutual_best_log)
         
         
+    def get_root_path(self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute root directory path for specified protein_id, otherwise self.protein_id is used
+        '''
+        if (self._generate_absolute_path(self.protein_id, protein_id)):
+            return "{0}/{1}".format(self.sessions_dir, protein_id)
+        else:
+            return self.root_abs
         
     def get_gene_path (self, protein_id = None):
         '''
