@@ -7,6 +7,7 @@ Created on Apr 13, 2012
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 from pipeline.utilities.CommandGenerator import CommandGenerator
 from pipeline.alignment.AlignmentTargetGenerator  import AlignmentTargetGenerator
+from utilities.Logger import Logger
 from subprocess import Popen, PIPE, STDOUT
 import os
 
@@ -15,8 +16,12 @@ def generate_blastn_alignments(protein_id, species_list = None):
         Runs the blastn program for a specified protein and list of species
         @param protein_id
         @param species_list: if provided, runs blastn for this list of species, \
-                             otherwise runs for species that are missing the blastn output
+                             otherwise runs for species that are missing the blastn output \
+                             who are determined by .status file in the blastn folder.
     '''
+    logger = Logger.Instance()
+    alignment_logger = logger.get_logger('alignment')
+    
     alignment_generator = AlignmentTargetGenerator()
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
@@ -35,9 +40,9 @@ def generate_blastn_alignments(protein_id, species_list = None):
         p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output = p.stdout.read()
         if output != "":
-#TODO: LOGGING
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, BLASTN, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species)
-            print output
     alignment_generator.set_failed_blastn_targets(protein_id, failed_species_list)
 
 def generate_tblastn_alignments(protein_id, species_list = None):
@@ -45,8 +50,12 @@ def generate_tblastn_alignments(protein_id, species_list = None):
         Runs the tblastn program for a specified protein and list of species
         @param protein_id
         @param species_list: if provided, runs tblastn for this list of species, \
-                             otherwise runs for species that are missing the tblastn output
+                             otherwise runs for species that are missing the tblastn output \
+                             who are determined by .status file in the tblastn folder.
     '''
+    logger = Logger.Instance()
+    alignment_logger = logger.get_logger('alignment')
+    
     alignment_generator = AlignmentTargetGenerator()
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
@@ -65,7 +74,8 @@ def generate_tblastn_alignments(protein_id, species_list = None):
         p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output = p.stdout.read()
         if output != "":
-#TODO: LOGGING
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, TBLASTN, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species)
             print output
     alignment_generator.set_failed_tblastn_targets(protein_id, failed_species_list)
@@ -75,8 +85,12 @@ def generate_SW_gene_alignments(protein_id, species_list = None):
         Runs the SW program for a specified protein and list of species, using the expanded gene region.
         @param protein_id
         @param species_list: if provided, runs SW for this list of species, \
-                             otherwise runs for species that are missing the SW output
-    '''        
+                             otherwise runs for species that are missing the SW output \
+                             who are determined by .status file in the /SW/gene folder.
+    '''       
+    logger = Logger.Instance()
+    alignment_logger = logger.get_logger('alignment')
+     
     alignment_generator      = AlignmentTargetGenerator()
     crawler                  = DirectoryCrawler()
     command_generator        = CommandGenerator()
@@ -95,7 +109,8 @@ def generate_SW_gene_alignments(protein_id, species_list = None):
         p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output = p.stdout.read()
         if output != "":
-#TODO: LOGGING
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, SW GENE, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species)
             print output
     os.remove(".sw_stdout_supressed")
@@ -106,8 +121,12 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         Runs the SW program for a specified protein, species and individual exons retrived from ensembl.
         @param protein_id
         @param species_list: if provided, runs SW for this list of species, \
-                             otherwise runs for species that are missing the SW output
-    '''    
+                             otherwise runs for species that are missing the SW output\
+                             who are determined by .status file in the /SW/exon folder.
+    ''' 
+    logger = Logger.Instance()
+    alignment_logger = logger.get_logger('alignment')
+    
     alignment_generator = AlignmentTargetGenerator()
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
@@ -124,7 +143,8 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         try:
             ensembl_exons_file = open(ensembl_exons_path, 'r')
         except IOError, e:
-#TODO: LOGGING
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, SW EXON, {2}".format(protein_id, species.strip(), e))
             failed_species_list.append(species)
             print e
             continue
@@ -146,7 +166,8 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
                     p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
                     output = p.stdout.read()
                     if output != "":
-#TODO: LOGGING
+                        #LOGGING
+                        alignment_logger.warning("{0}, {1}, SW EXON, {2}".format(protein_id, species.strip(), output.strip()))
                         print output
                 exon_header = line.strip()
                 exon_seq = ""
@@ -165,7 +186,8 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output = p.stdout.read()
         if output != "":
-#TODO: LOGGING
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, SW EXON, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species)
             print output
             
