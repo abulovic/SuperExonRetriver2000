@@ -23,8 +23,9 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
     protein_info_known = _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, "all")
     if protein_info_known:
         (protein_id, protein_type, location_type, assembly, location_id, seq_start, seq_end, strand, gene_id, transcript_id) = protein_info_known
-        mutual_best_logger.info("%s, match found in all: %s type %s, location type %s" % (target_species.upper(), protein_id, protein_type, location_type))
-        print "%s, match found in all: %s type %s, location type %s" % (target_species.upper(), protein_id, protein_type, location_type)
+        mutual_best_logger.info("%s,%s,match found in all: location %s %s,%s" % 
+                                (target_species.upper(), original_protein_id, location_type, location_id, protein_id))
+        print "%s,%s,match found in all: location %s %s,%s" % (target_species.upper(), protein_id, location_type, location_id, protein_id)
                                 
         
         descr_file.write("{0}\t{1}\t{2}\t{3}\t{4}:{5}:{6}:{7}:{8}:{9}\n".format(target_species, 
@@ -38,13 +39,14 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
                                                                               seq_end, 
                                                                               strand))
     else:
-        mutual_best_logger.info("%s, match not found in all, trying abinitio..." % target_species.upper())
-        print "%s, match not found in all, trying abinitio" % target_species.upper()
+        mutual_best_logger.info("%s,%s, match not found in all - trying abinitio..." % (target_species.upper(), original_protein_id))
+        print "%s, match not found in all - trying abinitio" % target_species.upper()
         protein_info_abinitio = _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, "abinitio")
         if protein_info_abinitio:
             (protein_id, protein_type, location_type, assembly, location_id, seq_start, seq_end, strand, transcript_id) = protein_info_abinitio
             print "%s, match found in abinitio: %s type %s, location type %s" % (target_species.upper(), protein_id, protein_type, location_type)
-            mutual_best_logger.info("%s, match found in abinitio: %s type %s, location type %s" % (target_species.upper(), protein_id, protein_type, location_type))
+            mutual_best_logger.info("%s,%s,match found in abinitio: location %s %s,%s" % 
+                                    (target_species.upper(), original_protein_id, location_type, location_id, protein_id))
             descr_file.write("{0}\t{1}\t{2}:{3}:{4}:{5}:{6}:{7}\n".format(target_species, 
                                                                               protein_id, 
                                                                               location_type, 
@@ -55,7 +57,7 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
                                                                               strand))
         else:
             print "%s, protein not found in abinitio either." % target_species.upper()
-            mutual_best_logger.info("%s, protein not found in abinitio either." % target_species.upper())
+            mutual_best_logger.info("%s,%s,protein not found in abinitio either." % (target_species.upper(), original_protein_id))
     
  
 def _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, db_type):
