@@ -7,6 +7,8 @@ Created on Apr 15, 2012
 import re, sys
 
 from utilities.ConfigurationReader import ConfigurationReader
+from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+import os
 
 proteins_known = {}
 proteins_abinitio = {}
@@ -95,6 +97,47 @@ def get_protein_list ():
     protein_file.close()
     
     return protein_list
+
+def read_status_file (protein_id):
+    
+    dc = DirectoryCrawler()
+    status_file_path = dc.get_mutual_best_status_file_path(protein_id)
+    try:
+        status_file = open(status_file_path, 'r')
+    except IOError:
+        raise IOError('No .status file for protein %s' % protein_id)
+    
+    status_dict = dict(token.split() for token in status_file.read().strip().split('\n'))
+    
+    return status_dict
+
+def append_to_status_file (protein_id, key, value):
+    
+    dc = DirectoryCrawler()
+    status_file_path = dc.get_mutual_best_status_file_path(protein_id)
+    status_dict = {}
+    
+    if (os.path.isfile(status_file_path)):
+        status_dict = read_status_file(protein_id)
+    
+    if (status_dict.has_key(key)):
+        if (status_dict[key] == value):
+            return
+        else:
+            status_dict[key] = value
+            status_file = open(status_file_path, 'w')
+            for key, value in status_dict:
+                status_file.write("%s %s\n")
+            status_file.close()
+            
+    else:
+        status_file = open(status_file_path, 'a+')
+        status_file.write("%s %s\n" % (key, value))
+        status_file.close()
+        
+
+
+    
     
 
 

@@ -180,6 +180,12 @@ class DirectoryCrawler(object):
             return "{0}/{1}/{2}.descr".format(self.sessions_dir, protein_id, protein_id)
         else:
             return "{0}/{1}/{2}.descr".format(self.sessions_dir, self.protein_id, self.protein_id)
+        
+    def get_mutual_best_status_file_path (self, protein_id = None):
+        if (self._generate_absolute_path(self.protein_id, protein_id)):
+            return "{0}/{1}/.status".format(self.sessions_dir, protein_id)
+        else:
+            return "{0}/{1}/.status".format(self.sessions_dir, self.protein_id)
     
     def generate_directory_tree(self, protein_id = None):
         '''

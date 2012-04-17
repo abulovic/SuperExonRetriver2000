@@ -58,6 +58,8 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
         else:
             print "%s, protein not found in abinitio either." % target_species.upper()
             mutual_best_logger.info("%s,%s,protein not found in abinitio either." % (target_species.upper(), original_protein_id))
+            
+            
     
  
 def _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, db_type):
