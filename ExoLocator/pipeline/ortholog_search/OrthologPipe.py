@@ -8,7 +8,7 @@ import os
 from subprocess import Popen, PIPE, STDOUT
 
 from utilities.FileUtilities import get_protein_list, get_species_list,\
-    get_protein_ids, read_status_file, append_to_status_file
+    get_protein_ids, read_status_file, update_entry_in_status_file
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 
 from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
@@ -75,11 +75,11 @@ def main():
         (known_dict, abinitio_dict) = get_protein_ids(protein_id)
         if (not abinitio_dict and (not known_dict or (len(known_dict.keys()) == 1 and known_dict.keys()[0] == reference_species))):
             mutual_best_logger.info ("-,%s, mutual best failed for this protein." % protein_id)
-            append_to_status_file(protein_id, "MUTUAL_BEST", "FAILED")
+            update_entry_in_status_file(protein_id, "MUTUAL_BEST", "FAILED")
             failed_proteins.append(protein_id)
             
         else:
-            append_to_status_file(protein_id, "MUTUAL_BEST", "OK")
+            update_entry_in_status_file(protein_id, "MUTUAL_BEST", "OK")
             
             
     for failed_protein_id in failed_proteins:
