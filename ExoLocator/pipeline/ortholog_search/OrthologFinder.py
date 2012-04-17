@@ -75,6 +75,7 @@ def _search_for_ortholog_in_database(original_species, target_species, original_
     
     output_file = "tmp.xml"
     forward_blastp_cmd = acg.generate_blastp_command_for_species(target_species, original_protein_fasta, output_file, db_type)
+    print forward_blastp_cmd
     os.system(forward_blastp_cmd)
     
     result_handle = open(output_file)  
@@ -97,6 +98,7 @@ def _search_for_ortholog_in_database(original_species, target_species, original_
     os.system(fastacmd)
     
     backward_blastp_cmd = acg.generate_blastp_command_for_species(original_species, fasta_input_file, output_file, "all")
+    print backward_blastp_cmd
     os.system(backward_blastp_cmd)
     
     result_handle = open(output_file)  

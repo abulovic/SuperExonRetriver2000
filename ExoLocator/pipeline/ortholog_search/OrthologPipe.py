@@ -73,7 +73,7 @@ def main():
         
         # check what we've found out, whether this protein has any orthologs
         (known_dict, abinitio_dict) = get_protein_ids(protein_id)
-        if (not abinitio_dict and (len(known_dict.keys()) == 1 and known_dict.keys()[0] == reference_species)):
+        if (not abinitio_dict and (not known_dict or (len(known_dict.keys()) == 1 and known_dict.keys()[0] == reference_species))):
             mutual_best_logger.info ("-,%s, mutual best failed for this protein." % protein_id)
             append_to_status_file(protein_id, "MUTUAL_BEST", "FAILED")
             failed_proteins.append(protein_id)
