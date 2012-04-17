@@ -10,10 +10,12 @@ from utilities.ConfigurationReader import ConfigurationReader
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 import os
 
-proteins_known = {}
-proteins_abinitio = {}
+
 
 def parse_descr_file (protein_id):
+    
+    proteins_known = {}
+    proteins_abinitio = {}
     
     cr = ConfigurationReader.Instance()
     descr_file_path = cr.get_value('root', 'session_dir') + "/" + protein_id + "/" + protein_id + ".descr"
