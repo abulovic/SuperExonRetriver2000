@@ -11,7 +11,7 @@ from Bio.Blast import NCBIXML
 from utilities.ConfigurationReader import ConfigurationReader
 from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-from utilities.FileUtilities import get_species_list
+from utilities.FileUtilities import get_species_list, execute_command_and_log
 
 
 
@@ -20,9 +20,12 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
     #(species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
     #(species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
     
-    protein_info_known = _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, "all")
+    protein_info_known = _search_for_ortholog_in_database(original_species, target_species, 
+                                                          original_protein_fasta, original_protein_id, 
+                                                          "all", mutual_best_logger)
     if protein_info_known:
         (protein_id, protein_type, location_type, assembly, location_id, seq_start, seq_end, strand, gene_id, transcript_id) = protein_info_known
+        
         mutual_best_logger.info("%s,%s,match found in all: location %s %s,%s" % 
                                 (target_species.upper(), original_protein_id, location_type, location_id, protein_id))
         print "%s,%s,match found in all: location %s %s,%s" % (target_species.upper(), protein_id, location_type, location_id, protein_id)
@@ -41,12 +44,17 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
     else:
         mutual_best_logger.info("%s,%s, match not found in all - trying abinitio..." % (target_species.upper(), original_protein_id))
         print "%s, match not found in all - trying abinitio" % target_species.upper()
-        protein_info_abinitio = _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, "abinitio")
+        
+        protein_info_abinitio = _search_for_ortholog_in_database(original_species, target_species, 
+                                                                 original_protein_fasta, original_protein_id, 
+                                                                 "abinitio", mutual_best_logger)
         if protein_info_abinitio:
             (protein_id, protein_type, location_type, assembly, location_id, seq_start, seq_end, strand, transcript_id) = protein_info_abinitio
+            
             print "%s, match found in abinitio: %s type %s, location type %s" % (target_species.upper(), protein_id, protein_type, location_type)
             mutual_best_logger.info("%s,%s,match found in abinitio: location %s %s,%s" % 
                                     (target_species.upper(), original_protein_id, location_type, location_id, protein_id))
+            
             descr_file.write("{0}\t{1}\t{2}:{3}:{4}:{5}:{6}:{7}\n".format(target_species, 
                                                                               protein_id, 
                                                                               location_type, 
@@ -62,7 +70,7 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
             
     
  
-def _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, db_type):
+def _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, db_type, logger):
     '''
     @param db_type: all / abinitio
     '''
@@ -76,15 +84,21 @@ def _search_for_ortholog_in_database(original_species, target_species, original_
     output_file = "tmp.xml"
     forward_blastp_cmd = acg.generate_blastp_command_for_species(target_species, original_protein_fasta, output_file, db_type)
     print forward_blastp_cmd
-    os.system(forward_blastp_cmd)
+    
+    execute_command_and_log(logger, forward_blastp_cmd, (target_species, original_protein_id))
     
     result_handle = open(output_file)  
     blast_records = NCBIXML.parse(result_handle)
     
-    best_forward_hit = blast_records.next()
+    try:
+        best_forward_hit = blast_records.next()
+    except (ValueError):
+        logger.error("%s,%s,XML file empty - no forward blast results" % (target_species, original_protein_id))
+        return None
+        
     if (best_forward_hit.alignments):
-        bfh_alignment = best_forward_hit.alignments[0]
-        protein_match = re.match(protein_id_pattern, bfh_alignment.title)
+        bfh_title = _get_best_alignment(original_protein_id, best_forward_hit)
+        protein_match = re.match(protein_id_pattern, bfh_title)
     else:
         return None
     
@@ -95,19 +109,26 @@ def _search_for_ortholog_in_database(original_species, target_species, original_
     
     fasta_input_file = "species.fasta"
     fastacmd = acg.generate_fastacmd_protein_command(protein_id, target_species, db_type, fasta_input_file)
-    os.system(fastacmd)
+    
+    execute_command_and_log(logger, fastacmd, (target_species, original_protein_id))
     
     backward_blastp_cmd = acg.generate_blastp_command_for_species(original_species, fasta_input_file, output_file, "all")
     print backward_blastp_cmd
-    os.system(backward_blastp_cmd)
+    
+    execute_command_and_log(logger, backward_blastp_cmd, (target_species, original_protein_id))
     
     result_handle = open(output_file)  
     blast_records = NCBIXML.parse(result_handle)
     
-    best_backward_hit = blast_records.next()
+    try:
+        best_backward_hit = blast_records.next()
+    except (ValueError):
+        logger.error("%s,%s,XML file empty - no backward blast results" % (target_species, original_protein_id))
+        return None
+    
     if (best_backward_hit.alignments):
-        bbh_alignment = best_backward_hit.alignments[0]
-        protein_match_b = re.match(protein_id_pattern, bbh_alignment.title)
+        bbh_title = _get_best_alignment(original_protein_id, best_backward_hit)
+        protein_match_b = re.match(protein_id_pattern, bbh_title)
         protein_id_b = protein_match_b.groups()[0]
     else:
         return None
@@ -122,6 +143,30 @@ def _search_for_ortholog_in_database(original_species, target_species, original_
             return (protein_id, protein_type, location_type, assembly, location_id, seq_start, seq_end, strand, transcript_id)
     else:
         return None
+    
+def _get_best_alignment (protein_id, blast_record):
+    
+    best_score = blast_record.descriptions[0].score
+    best_alignments = [blast_record.descriptions[0].title]
+    i = 1
+    '''
+    Get the best alignments
+    '''
+    while i < len(blast_record.descriptions):
+        
+        if (blast_record.descriptions[i].score == best_score):
+            best_alignments.append(blast_record.descriptions[i].title)
+        else:
+            break
+        i += 1
+    
+    pattern = re.compile("lcl\|(.*)\spep::*")
+    for title in best_alignments:
+        prot_match = re.match(pattern, title)
+        if prot_match.groups()[0] == protein_id:
+            return title
+    return best_alignments[0]
+    
     
     
 if __name__ == '__main__':

@@ -4,11 +4,12 @@ Created on Apr 15, 2012
 @author: intern
 '''
 
-import re, sys
+import re, sys, os
 
 from utilities.ConfigurationReader import ConfigurationReader
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-import os
+
+from subprocess import Popen, PIPE, STDOUT
 
 
 
@@ -183,6 +184,23 @@ def update_entry_in_status_file (protein_id, status_entry, status_entry_value):
         status_file = open(status_file_path, 'a+')
         status_file.write("%s %s\n" % (status_entry, status_entry_value))
         status_file.close()
+        
+def execute_command_and_log (logger, command, arguments = None):
+    '''
+    Arguments (if provided) should have the format of a list containing (species, protein_id)
+    '''
+    p = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    output = p.stdout.read()
+    if output:
+        output = output.strip()
+        output = " ".join(output.split('\n'))
+        if arguments:
+            arguments = list(arguments)
+            arguments.append(output)
+            arguments.append(command)
+            logger.error("%s,%s,%s,%s" % tuple(arguments))
+        else:
+            logger.error(",,%s,%s" % (output, command))
         
 
 if __name__ == '__main__':
