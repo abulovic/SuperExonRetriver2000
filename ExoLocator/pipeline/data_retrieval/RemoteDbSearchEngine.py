@@ -7,7 +7,7 @@ from subprocess                          import Popen, PIPE, STDOUT
 from utilities.ConfigurationReader       import ConfigurationReader
 from utilities.DescriptionParser         import DescriptionParser
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-import re, os
+import re, os, time
 from utilities.Logger import Logger
 
 def populate_sequence_exon_ensembl(protein_id):
@@ -54,9 +54,9 @@ def populate_sequence_exon_ensembl(protein_id):
         query_file.close()
         exon_file_name  = "{0}/{1}.fa".format(exon_ensembl_path, species)
         biomart_command = "perl %s %s > %s" % (perl_biomart_script, query_file_name, exon_file_name)
-        #print "Downloading exons for species {0}, transcript {1}...".format(species, transcript_id)
         while (True):
             Popen(biomart_command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+            time.sleep(1)
             if (os.path.exists(exon_file_name)):
                 break
         #LOGGING
@@ -78,7 +78,9 @@ def populate_sequence_exon_ensembl(protein_id):
     
     if failed_species_list:
         _write_failed_species(exon_ensembl_path, failed_species_list)
-    
+        return False
+    return True
+
 def _write_failed_species(path, failed_species_list):
     '''
     Creates or updates the .status file for a respective sequence

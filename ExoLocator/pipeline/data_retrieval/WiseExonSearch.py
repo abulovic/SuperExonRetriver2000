@@ -4,12 +4,16 @@ Created on Apr 19, 2012
 @author: marioot
 '''
 from subprocess                          import Popen, PIPE, STDOUT
-from utilities.ConfigurationReader       import ConfigurationReader
 from utilities.DescriptionParser         import DescriptionParser
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-import re, os
+import re, os, time
 from utilities.Logger import Logger
 from pipeline.utilities.CommandGenerator import CommandGenerator
+
+from Bio.Seq import Seq
+from Bio.Alphabet import IUPAC
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 def populate_sequence_exon_genewise(protein_id):
     '''
@@ -32,28 +36,86 @@ def populate_sequence_exon_genewise(protein_id):
         return
     
     failed_species_list = []
-    for (species, data) in proteins_abinitio.items():
+    for (species, data) in proteins_known.items():
         protein_file    = "{0}/{1}.fa".format(directory_crawler.get_protein_path(protein_id), species)
         gene_file       = "{0}/{1}.fa".format(directory_crawler.get_gene_path(protein_id), species)
-        wise_file       = "{0}/{1}.genewise".format(directory_crawler.get_exon_genewise_path(protein_id), species)
+        wise_file       = "{0}/{1}.genewise".format(directory_crawler.get_genewise_path(protein_id), species)
         exon_file       = "{0}/{1}.fa".format(directory_crawler.get_exon_genewise_path(protein_id), species)
         
         wise_command    = command_generator.generate_genewise_command(protein_file, gene_file, wise_file)
         
-        Popen(wise_command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        wise_command_output = Popen(wise_command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True).stdout.read()
+        time.sleep(1)
+        if wise_command_output != "":
+            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, 'ENSEMBL', species.strip(), wise_command_output.strip()))
+            os.remove(wise_file)
+            failed_species_list.append(species.strip())
+            continue
         #LOGGING
+        while (True):
+            if (os.path.getsize(wise_file)):
+                break
         wise_file_line  = open(wise_file, 'r').readline()
-        wise_file.close()
         
         error_pattern = re.compile("Warning Error")
-        if re.search(error_pattern, wise_file_line) is None:
+        if re.search(error_pattern, wise_file_line) is not None:
+            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, 'ENSEMBL', species.strip(), wise_file_line.strip()))
+            os.remove(wise_file)
+            failed_species_list.append(species.strip())
             continue
-        alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, 'ENSEMBL', species.strip(), wise_file_line.strip()))
-        os.remove(wise_file)
-        failed_species_list.append(species.strip())
+        try:
+            _analyse_wise_file(protein_id, wise_file, protein_file, gene_file, exon_file)
+        except IOError, e:
+            alignment_logger.error("{0}, {1}, , {2}".format(protein_id, 'GENEWISE', e))    
+            failed_species_list.append(species.strip())
+    if failed_species_list:
+        _write_failed_species(directory_crawler.get_exon_genewise_path(protein_id), failed_species_list)
+        return False
+    return True
         
-        
-        
+def _analyse_wise_file(protein_id, wise_file, protein_file, gene_file, exon_file):    
+    exon_pattern = re.compile(r'  Exon (\d+) (\d+) phase \d+')
+    gene_location_pattern = re.compile(r'>.*:(\d+)\-(\d+).*')
+    
+    # Reading the gene sequence
+    input_DNA_f = open(gene_file, 'r');
+    gene_header = input_DNA_f.readline();
+    DNA = re.sub("\n", "", input_DNA_f.read());
+    DNA = Seq( DNA, IUPAC.unambiguous_dna )
+    input_DNA_f.close()
+    #
+    exon_out = open(exon_file, 'w')
+    wise_out    = open(wise_file, 'r')
+    exon_cnt = 0
+    for line in wise_out.readlines():
+        exon_pattern_match = re.match(exon_pattern, line)
+        if exon_pattern_match is not None:
+            exon_cnt += 1
+            relative_lower_coord = int(exon_pattern_match.groups()[0]) - 1
+            relative_upper_coord = int(exon_pattern_match.groups()[1])
+            
+            location_match = re.match(gene_location_pattern, gene_header)
+            absolute_lower_coord = int(location_match.groups()[0]) + relative_lower_coord
+            absolute_upper_coord = int(location_match.groups()[0]) + relative_upper_coord
+            
+            record = SeqRecord(Seq(str(DNA[relative_lower_coord:relative_upper_coord]),
+                                   IUPAC.unambiguous_dna),
+                                   id=str(exon_cnt), 
+                                   description="exon length {0}|{1}|{2}".format(relative_upper_coord - relative_lower_coord, absolute_lower_coord, absolute_upper_coord))
+            SeqIO.write(record, exon_out, "fasta")
+    exon_out.close()
+    return True
+
+def _write_failed_species(path, failed_species_list):
+    '''
+    Creates or updates the .status file for a respective sequence
+    type with the names of species for which sequences haven't been found.
+    '''
+    status_file = open("{0}/.status".format(path), 'w')
+    for species in failed_species_list:
+        status_file.write("{0}\n".format(species))
+    status_file.close()
+               
 def main ():
     populate_sequence_exon_genewise("ENSP00000311134")
 

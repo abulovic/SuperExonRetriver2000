@@ -56,7 +56,8 @@ def read_status_file (protein_id):
     '''
     @return: status_dict dictionary of mapped status entries to their values
     Status entries may be:
-        MUTUAL_BEST: OK/FAILED
+        MUTUAL_BEST:    OK/FAILED
+        DATA_RETRIEVAL: OK/PARTIAL/FAILED
     '''
     
     dc = DirectoryCrawler()

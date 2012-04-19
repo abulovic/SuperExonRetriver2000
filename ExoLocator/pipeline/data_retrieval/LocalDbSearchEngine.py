@@ -59,10 +59,13 @@ def _populate_gene (protein_id, gene_path, region_expansion):
         if output != "":
             #LOGGING
             alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, logger_name, species.strip(), output.strip()))
+            os.remove(gene_fasta)
             failed_species_list.append(species)
             
     if failed_species_list:
         _write_failed_species(gene_path, failed_species_list)
+        return False
+    return True
 
 def populate_sequence_expanded_gene (protein_id):
     '''
@@ -111,6 +114,7 @@ def populate_sequence_protein (protein_id):
         if output != "":
             #LOGGING
             alignment_logger.warning("{0}, PROTEIN, {1}, {2}".format(protein_id, species.strip(), output.strip()))
+            os.remove(protein_fasta)
             failed_species_list.append(species)
           
     for species, orthologous_protein_id in proteins_abinitio.items():
@@ -121,9 +125,12 @@ def populate_sequence_protein (protein_id):
         if output != "":
             #LOGGING
             alignment_logger.warning("{0}, PROTEIN, {1}, {2}".format(protein_id, species.strip(), output.strip()))
+            os.remove(protein_fasta)
             failed_species_list.append(species)
     if failed_species_list:
         _write_failed_species(directory_crawler.get_protein_path(protein_id), failed_species_list)
+        return False
+    return True
 
 def _write_failed_species(path, failed_species_list):
     '''
