@@ -8,12 +8,13 @@ import os
 from subprocess import Popen, PIPE, STDOUT
 
 from utilities.FileUtilities import get_protein_list, get_species_list,\
-    get_protein_ids, read_status_file, update_entry_in_status_file
+    read_status_file, update_entry_in_status_file
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 
 from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
 from pipeline.ortholog_search.OrthologFinder import find_ortholog_by_RBH
 from utilities.Logger import Logger
+from utilities.DescriptionParser import DescriptionParser
 
 def main():
     
@@ -41,7 +42,7 @@ def main():
         status_file_path = dc.get_mutual_best_status_file_path(protein_id)
         
         if (os.path.isfile(status_file_path) and os.path.getsize(status_file_path)):
-            print get_protein_ids(protein_id)
+            print DescriptionParser().get_protein_ids(protein_id)
             
             status_dict = read_status_file(protein_id)
             if (status_dict.has_key('MUTUAL_BEST')):
@@ -72,7 +73,7 @@ def main():
         mutual_best_logger.info("\n\n")
         
         # check what we've found out, whether this protein has any orthologs
-        (known_dict, abinitio_dict) = get_protein_ids(protein_id)
+        (known_dict, abinitio_dict) = DescriptionParser().get_protein_ids(protein_id)
         if (not abinitio_dict and (not known_dict or (len(known_dict.keys()) == 1 and known_dict.keys()[0] == reference_species))):
             mutual_best_logger.info ("-,%s, mutual best failed for this protein." % protein_id)
             update_entry_in_status_file(protein_id, "MUTUAL_BEST", "FAILED")

@@ -4,11 +4,11 @@ Created on Apr 13, 2012
 @author: marioot
 '''
 
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-from pipeline.utilities.CommandGenerator import CommandGenerator
+from pipeline.utilities.DirectoryCrawler          import DirectoryCrawler
+from pipeline.utilities.CommandGenerator          import CommandGenerator
 from pipeline.alignment.AlignmentTargetGenerator  import AlignmentTargetGenerator
-from utilities.Logger import Logger
-from subprocess import Popen, PIPE, STDOUT
+from utilities.Logger                             import Logger
+from subprocess                                   import Popen, PIPE, STDOUT
 import os
 
 def generate_blastn_alignments(protein_id, species_list = None):
@@ -40,8 +40,9 @@ def generate_blastn_alignments(protein_id, species_list = None):
         output          = command_return.stdout.read()
         if output != "":
             #LOGGING
+            os.remove(output_file)
             alignment_logger.warning("{0}, {1}, BLASTN, {2}".format(protein_id, species.strip(), output.strip()))
-            failed_species_list.append(species)
+            failed_species_list.append(species.strip())
     alignment_generator.set_failed_blastn_targets(protein_id, failed_species_list)
 
 def generate_tblastn_alignments(protein_id, species_list = None):
@@ -73,8 +74,9 @@ def generate_tblastn_alignments(protein_id, species_list = None):
         output          = command_return.stdout.read()
         if output != "":
             #LOGGING
+            os.remove(output_file)
             alignment_logger.warning("{0}, {1}, TBLASTN, {2}".format(protein_id, species.strip(), output.strip()))
-            failed_species_list.append(species)
+            failed_species_list.append(species.strip())
     alignment_generator.set_failed_tblastn_targets(protein_id, failed_species_list)
     
 def generate_SW_gene_alignments(protein_id, species_list = None):
@@ -107,7 +109,7 @@ def generate_SW_gene_alignments(protein_id, species_list = None):
         if output != "":
             #LOGGING
             alignment_logger.warning("{0}, {1}, SW GENE, {2}".format(protein_id, species.strip(), output.strip()))
-            failed_species_list.append(species)
+            failed_species_list.append(species.strip())
     os.remove(".sw_stdout_supressed")
     alignment_generator.set_failed_SW_gene_targets(protein_id, failed_species_list)
         
@@ -130,17 +132,17 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         species_list    = alignment_generator.get_SW_exon_targets(protein_id)
     
     failed_species_list = []
+    tmp_file            = "tmp_sw.fa"
     for species in species_list:
         ensembl_exons_path      = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())
         target_fasta_db_file    = "{0}/Homo_sapiens.fa".format(crawler.get_exon_ensembl_path(protein_id))
         # Isolate each exon to a temporary file to be processed with SW
-        tmp_file                = "tmp_sw.fa"
         try:
             ensembl_exons_file  = open(ensembl_exons_path, 'r')
         except IOError, e:
             #LOGGING
             alignment_logger.warning("{0}, {1}, SW EXONS, {2}".format(protein_id, species.strip(), e))
-            failed_species_list.append(species)
+            failed_species_list.append(species.strip())
             continue
         exon_seq                = ""
         exon_header             = ""
@@ -178,11 +180,14 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         if output != "":
             #LOGGING
             alignment_logger.warning("{0}, {1}, SW EXON, {2}".format(protein_id, species.strip(), output.strip()))
-            failed_species_list.append(species)            
+            failed_species_list.append(species.strip())            
         ensembl_exons_file.close()
     
-    os.remove(tmp_file)
-    os.remove(".sw_stdout_supressed")
+    try:
+        os.remove(tmp_file)
+        os.remove(".sw_stdout_supressed")
+    except OSError:
+        pass
     alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
     
 def main ():
