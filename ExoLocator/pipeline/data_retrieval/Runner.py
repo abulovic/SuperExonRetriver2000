@@ -4,7 +4,7 @@ Created on Apr 19, 2012
 @author: marioot
 '''
 from utilities                  import FileUtilities
-from pipeline.data_retrieval    import LocalDbSearchEngine, RemoteDbSearchEngine
+from pipeline.data_retrieval    import LocalDbSearchEngine, RemoteDbSearchEngine, WiseExonSearch
             
 def populate_genes(protein_list):
     for protein_id in protein_list:
@@ -12,6 +12,12 @@ def populate_genes(protein_list):
             print "ABORTING {0}: no description file!".format(protein_id)
             FileUtilities.update_entry_in_status_file(protein_id, 'GENE_RETRIEVAL', 'FAILED')
             continue
+        try:
+            if FileUtilities.read_status_file(protein_id)['GENE_RETRIEVAL'] == 'OK':
+                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                continue
+        except KeyError:
+            pass
         print "POPULATING {0} genes".format(protein_id)
         if LocalDbSearchEngine.populate_sequence_gene(protein_id):
             FileUtilities.update_entry_in_status_file(protein_id, 'GENE_RETRIEVAL', 'OK')
@@ -24,6 +30,12 @@ def populate_expanded_genes(protein_list):
             print "ABORTING {0}: no description file!".format(protein_id)
             FileUtilities.update_entry_in_status_file(protein_id, 'EXP_GENE_RETRIEVAL', 'FAILED')
             continue
+        try:
+            if FileUtilities.read_status_file(protein_id)['EXP_GENE_RETRIEVAL'] == 'OK':
+                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                continue
+        except KeyError:
+            pass    
         print "POPULATING {0} expanded genes".format(protein_id)
         if LocalDbSearchEngine.populate_sequence_expanded_gene(protein_id):
             FileUtilities.update_entry_in_status_file(protein_id, 'EXP_GENE_RETRIEVAL', 'OK')
@@ -36,6 +48,12 @@ def populate_proteins(protein_list):
             print "ABORTING {0}: no description file!".format(protein_id)
             FileUtilities.update_entry_in_status_file(protein_id, 'PROTEIN_RETRIEVAL', 'FAILED')
             continue
+        try:
+            if FileUtilities.read_status_file(protein_id)['PROTEIN_RETRIEVAL'] == 'OK':
+                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                continue
+        except KeyError:
+            pass
         print "POPULATING {0} proteins".format(protein_id)
         if LocalDbSearchEngine.populate_sequence_protein(protein_id):
             FileUtilities.update_entry_in_status_file(protein_id, 'PROTEIN_RETRIEVAL', 'OK')
@@ -48,6 +66,12 @@ def populate_ensembl_exons(protein_list):
             print "ABORTING {0}: no description file!".format(protein_id)
             FileUtilities.update_entry_in_status_file(protein_id, 'ENSEMBL_EXON_RETRIEVAL', 'FAILED')
             continue
+        try:
+            if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'OK':
+                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                continue
+        except KeyError:
+            pass
         print "POPULATING {0} ensembl exons".format(protein_id)
         if RemoteDbSearchEngine.populate_sequence_exon_ensembl(protein_id):
             FileUtilities.update_entry_in_status_file(protein_id, 'ENSEMBL_EXON_RETRIEVAL', 'OK')
@@ -55,7 +79,22 @@ def populate_ensembl_exons(protein_list):
             FileUtilities.update_entry_in_status_file(protein_id, 'ENSEMBL_EXON_RETRIEVAL', 'PARTIAL') 
 
 def populate_genewise_exons(protein_list):
-    pass
+    for protein_id in protein_list:
+        if FileUtilities.read_status_file(protein_id)['MUTUAL_BEST'] != 'OK':
+            print "ABORTING {0}: no description file!".format(protein_id)
+            FileUtilities.update_entry_in_status_file(protein_id, 'GENEWISE_EXON_RETRIEVAL', 'FAILED')
+            continue
+        try:
+            if FileUtilities.read_status_file(protein_id)['GENEWISE_EXON_RETRIEVAL'] == 'OK':
+                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                continue
+        except KeyError:
+            pass
+        print "POPULATING {0} genewise exons".format(protein_id)
+        if WiseExonSearch.populate_sequence_exon_genewise(protein_id):
+            FileUtilities.update_entry_in_status_file(protein_id, 'GENEWISE_EXON_RETRIEVAL', 'OK')
+        else:
+            FileUtilities.update_entry_in_status_file(protein_id, 'GENEWISE_EXON_RETRIEVAL', 'PARTIAL') 
 
 def main ():
     protein_list_raw = FileUtilities.get_protein_list()
@@ -67,6 +106,7 @@ def main ():
     populate_expanded_genes(protein_list)
     populate_proteins(protein_list)
     populate_ensembl_exons(protein_list)
+    populate_genewise_exons(protein_list)
     
 if __name__ == '__main__':
     main()

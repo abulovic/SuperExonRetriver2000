@@ -7,8 +7,8 @@ from subprocess                                     import Popen, PIPE, STDOUT
 from pipeline.utilities.AlignmentCommandGenerator   import AlignmentCommandGenerator
 from pipeline.utilities.DirectoryCrawler            import DirectoryCrawler
 from utilities.Logger                               import Logger
-from utilities.DescriptionParser import DescriptionParser
-from utilities.ConfigurationReader import ConfigurationReader
+from utilities.DescriptionParser                    import DescriptionParser
+from utilities.ConfigurationReader                  import ConfigurationReader
 import re, os
 
 def _populate_gene (protein_id, gene_path, region_expansion):
@@ -29,10 +29,14 @@ def _populate_gene (protein_id, gene_path, region_expansion):
         (genes_known, genes_abinitio) = DescriptionParser().get_gene_regions(protein_id)
     except IOError, e:
         alignment_logger.error("{0}, {1}, , {2}".format(protein_id, logger_name, e))
-        return
+        return False
+    
+    status_species_list = _read_failed_species(gene_path)
     
     failed_species_list = []
     for species, gene_information in genes_known.items():
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
         (location_type, assembly, location_id, seq_begin, seq_end, strand) = gene_information
         (seq_begin, seq_end) = _expand_region(seq_begin, seq_end, region_expansion)
         gene_fasta      = "{0}/{1}.fa".format(gene_path, species)
@@ -50,6 +54,8 @@ def _populate_gene (protein_id, gene_path, region_expansion):
             failed_species_list.append(species.strip())
              
     for species, gene_information in genes_abinitio.items():
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
         (location_type, assembly, location_id, seq_begin, seq_end, strand) = gene_information
         (seq_begin, seq_end) = _expand_region(seq_begin, seq_end, region_expansion)
         gene_fasta      = "{0}/{1}.fa".format(gene_path, species)
@@ -58,6 +64,10 @@ def _populate_gene (protein_id, gene_path, region_expansion):
         output          = command_return.stdout.read()
         if output != "":
             #LOGGING
+            #Ignoring sequence location.
+            invalid_extension_pattern = re.compile("Ignoring sequence location.")
+            if re.search(invalid_extension_pattern, output) is not None:
+                continue
             alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, logger_name, species.strip(), output.strip()))
             os.remove(gene_fasta)
             failed_species_list.append(species)
@@ -75,7 +85,7 @@ def populate_sequence_expanded_gene (protein_id):
     '''
     expanded_gene_path  = DirectoryCrawler().get_expanded_gene_path(protein_id)
     region_expansion    = int(ConfigurationReader.Instance().get_value('local_ensembl', 'expansion'))
-    _populate_gene(protein_id, expanded_gene_path, region_expansion)
+    return _populate_gene(protein_id, expanded_gene_path, region_expansion)
 
 def populate_sequence_gene(protein_id):
     '''
@@ -85,7 +95,7 @@ def populate_sequence_gene(protein_id):
     '''
     gene_path  = DirectoryCrawler().get_gene_path(protein_id)
     region_expansion    = 0
-    _populate_gene(protein_id, gene_path, region_expansion)
+    return _populate_gene(protein_id, gene_path, region_expansion)
 
 def populate_sequence_protein (protein_id):
     '''
@@ -98,16 +108,20 @@ def populate_sequence_protein (protein_id):
     
     alignment_command_generator = AlignmentCommandGenerator()
     directory_crawler           = DirectoryCrawler()
-    
+    protein_path                = directory_crawler.get_protein_path(protein_id)
     try:
         (proteins_known, proteins_abinitio) = DescriptionParser().get_protein_ids(protein_id)
     except IOError, e:
         alignment_logger.error("{0}, PROTEIN, , {2}".format(protein_id, e))
         return
     
+    status_species_list = _read_failed_species(protein_path)
+    
     failed_species_list = []
     for species, orthologous_protein_id in proteins_known.items():
-        protein_fasta   = "{0}/{1}.fa".format(directory_crawler.get_protein_path(protein_id), species)
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
+        protein_fasta   = "{0}/{1}.fa".format(protein_path, species)
         fastacmd        = alignment_command_generator.generate_fastacmd_protein_command(orthologous_protein_id, species, 'all', protein_fasta)
         command_return  = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output          = command_return.stdout.read()
@@ -118,7 +132,9 @@ def populate_sequence_protein (protein_id):
             failed_species_list.append(species)
           
     for species, orthologous_protein_id in proteins_abinitio.items():
-        protein_fasta   = "{0}/{1}.fa".format(directory_crawler.get_protein_path(protein_id), species)
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
+        protein_fasta   = "{0}/{1}.fa".format(protein_path, species)
         fastacmd        = alignment_command_generator.generate_fastacmd_protein_command(orthologous_protein_id, species, 'abinitio', protein_fasta)
         command_return  = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output          = command_return.stdout.read()
@@ -128,7 +144,7 @@ def populate_sequence_protein (protein_id):
             os.remove(protein_fasta)
             failed_species_list.append(species)
     if failed_species_list:
-        _write_failed_species(directory_crawler.get_protein_path(protein_id), failed_species_list)
+        _write_failed_species(protein_path, failed_species_list)
         return False
     return True
 
@@ -141,7 +157,23 @@ def _write_failed_species(path, failed_species_list):
     for species in failed_species_list:
         status_file.write("{0}\n".format(species))
     status_file.close()
+    
+    if failed_species_list == []:
+        os.remove("{0}/.status".format(path))
    
+def _read_failed_species(path):
+    '''
+    Reads the contents of the .status file and returns the list of species
+    that have failed before.
+    '''
+    failed_species = []
+    if os.path.exists("{0}/.status".format(path)):
+        status_file = open("{0}/.status".format(path), 'r')
+        for line in status_file.readlines():
+            failed_species.append(line.strip())
+        status_file.close()
+    return failed_species
+
 def _expand_region(seq_begin, seq_end, region_expansion):
     '''
     Helper function that expands the region of the DNA.

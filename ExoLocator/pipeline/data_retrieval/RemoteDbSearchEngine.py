@@ -44,9 +44,13 @@ def populate_sequence_exon_ensembl(protein_id):
         return
     #(spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
 
+    status_species_list = _read_failed_species(exon_ensembl_path)
+
     query_file_name     = "{0}/{1}".format(exon_ensembl_path, tmp_xml_file)
     failed_species_list = []
     for (species, data) in proteins_known.items():
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
         query_file      = open(query_file_name, 'w')
         transcript_id   = data[2]
         query = template_XML % (_query_name(species), transcript_id)
@@ -91,6 +95,22 @@ def _write_failed_species(path, failed_species_list):
         status_file.write("{0}\n".format(species))
     status_file.close()
     
+    if failed_species_list == []:
+        os.remove("{0}/.status".format(path))
+
+def _read_failed_species(path):
+    '''
+    Reads the contents of the .status file and returns the list of species
+    that have failed before.
+    '''
+    failed_species = []
+    if os.path.exists("{0}/.status".format(path)):
+        status_file = open("{0}/.status".format(path), 'r')
+        for line in status_file.readlines():
+            failed_species.append(line.strip())
+        status_file.close()
+    return failed_species  
+  
 def _query_name(species_name):
     '''
     Helper function that derives a name of the species for the XML query.
