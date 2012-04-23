@@ -164,7 +164,7 @@ def reset_action_global(key):
         reset_action(protein, key)
         
 def main():
-    reset_action_global('ENSEMBL_EXON_RETRIEVAL')
+    reset_action_global('GENEWISE_EXON_RETRIEVAL')
 
 if __name__ == '__main__':
     main()
