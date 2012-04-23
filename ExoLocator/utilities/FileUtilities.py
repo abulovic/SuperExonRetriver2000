@@ -10,6 +10,7 @@ from utilities.ConfigurationReader import ConfigurationReader
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 
 from subprocess import Popen, PIPE, STDOUT
+import shutil
 
 def get_project_root_dir ():
     '''
@@ -68,6 +69,7 @@ def read_status_file (protein_id):
         raise IOError('No .status file for protein %s' % protein_id)
     
     status_dict = dict(token.split() for token in status_file.read().strip().split('\n'))
+    status_file.close()
     
     return status_dict
 
@@ -93,8 +95,8 @@ def update_entry_in_status_file (protein_id, status_entry, status_entry_value):
         else:
             status_dict[status_entry] = status_entry_value
             status_file = open(status_file_path, 'w')
-            for status_entry, status_entry_value in status_dict:
-                status_file.write("%s %s\n")
+            for status_entry, status_entry_value in status_dict.items():
+                status_file.write("%s %s\n" % (status_entry, status_entry_value))
             status_file.close()
             
     else:
@@ -118,7 +120,52 @@ def execute_command_and_log (logger, command, arguments = None):
             logger.error("%s,%s,%s,%s" % tuple(arguments))
         else:
             logger.error(",,%s,%s" % (output, command))
+
+def clear_directory (path):
+    for root, dirs, files in os.walk(path):
+        for f in files:
+            os.unlink(os.path.join(root, f))
+        for d in dirs:
+            shutil.rmtree(os.path.join(root, d))
+            
+def reset_action (protein_id, key):
+    update_entry_in_status_file(protein_id, key, 'FAILED')
+    crawler = DirectoryCrawler()
+    
+    if key == 'GENE_RETRIEVAL': 
+        clear_directory(crawler.get_gene_path(protein_id))
+    elif key == 'EXP_GENE_RETRIEVAL' : 
+        clear_directory(crawler.get_expanded_gene_path(protein_id))
+    elif key == 'PROTEIN_RETRIEVAL' : 
+        clear_directory(crawler.get_protein_path(protein_id))
+    elif key == 'ENSEMBL_EXON_RETRIEVAL' : 
+        clear_directory(crawler.get_exon_ensembl_path(protein_id))
+    elif key == 'GENEWISE_EXON_RETRIEVAL' : 
+        clear_directory(crawler.get_exon_genewise_path(protein_id))
+    elif key == 'REF_SP_DB_FORMATTING' : 
+        clear_directory(crawler.get_database_path(protein_id))
+    elif key == 'BLASTN_ALIGNMENT' : 
+        clear_directory(crawler.get_blastn_path(protein_id))
+    elif key == 'TBLASTN_ALIGNMENT' : 
+        clear_directory(crawler.get_tblastn_path(protein_id))
+    elif key == 'SW_GENE_ALIGNMENT' : 
+        clear_directory(crawler.get_SW_gene_path(protein_id))
+    elif key == 'SW_EXON_ALIGNMENT' : 
+        clear_directory(crawler.get_SW_exon_path(protein_id))
+    elif key == 'GENEWISE_EXON_RETRIEVAL' : 
+        clear_directory(crawler.get_genewise_path(protein_id))
+
+def reset_action_global(key):
+    protein_list_raw = get_protein_list()
+    protein_list = []
+    for protein_tuple in protein_list_raw:
+        protein_list.append(protein_tuple[0])
         
+    for protein in protein_list:
+        reset_action(protein, key)
+        
+def main():
+    reset_action_global('ENSEMBL_EXON_RETRIEVAL')
 
 if __name__ == '__main__':
-    pass
+    main()

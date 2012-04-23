@@ -31,6 +31,9 @@ class DirectoryCrawler(object):
         self.exon_ensembl   = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exon_ens'))
         self.exon_genewise  = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exon_wise'))
         
+        # reference species database
+        self.database       = "%s/%s" % (self.sequence_root, config_reader.get_value('database', 'db'))
+        
         # alignment outputs
         self.alignment_root = config_reader.get_value('alignment', 'root')
         self.blastn_output  = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'blastn'))
@@ -67,6 +70,9 @@ class DirectoryCrawler(object):
         self.protein_abs        = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.protein)
         self.exon_ensembl_abs   = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.exon_ensembl)
         self.exon_genewise_abs  = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.exon_genewise)
+        
+        # reference species database absolute path
+        self.database_abs       = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.database)
         
         # alignment outputs absolute paths
         self.alignment_root_abs = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.alignment_root)
@@ -183,6 +189,15 @@ class DirectoryCrawler(object):
         else:
             return self.genewise_output_abs
     
+    def get_database_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute genewise directory path, otherwise self.protein_id is used
+        '''
+        if (self._generate_absolute_path(self.protein_id, protein_id)):
+            return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.database)
+        else:
+            return self.database_abs
+    
     def get_misc_path (self, protein_id = None):
         pass
     
@@ -230,6 +245,10 @@ class DirectoryCrawler(object):
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
             
+        tmp_dir = self.get_database_path(protein_id) 
+        if not os.path.isdir(tmp_dir):
+            os.makedirs(tmp_dir)
+
         tmp_dir = self.get_blastn_path(working_id) 
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)

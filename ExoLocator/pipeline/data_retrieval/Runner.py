@@ -14,7 +14,7 @@ def populate_genes(protein_list):
             continue
         try:
             if FileUtilities.read_status_file(protein_id)['GENE_RETRIEVAL'] == 'OK':
-                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                print "SKIPPING {0} genes: .status file -> OK!".format(protein_id)
                 continue
         except KeyError:
             pass
@@ -32,7 +32,7 @@ def populate_expanded_genes(protein_list):
             continue
         try:
             if FileUtilities.read_status_file(protein_id)['EXP_GENE_RETRIEVAL'] == 'OK':
-                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                print "SKIPPING {0} expanded genes: .status file -> OK!".format(protein_id)
                 continue
         except KeyError:
             pass    
@@ -68,7 +68,7 @@ def populate_ensembl_exons(protein_list):
             continue
         try:
             if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'OK':
-                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                print "SKIPPING {0} ensembl exons: .status file -> OK!".format(protein_id)
                 continue
         except KeyError:
             pass
@@ -86,7 +86,7 @@ def populate_genewise_exons(protein_list):
             continue
         try:
             if FileUtilities.read_status_file(protein_id)['GENEWISE_EXON_RETRIEVAL'] == 'OK':
-                print "SKIPPING {0}: .status file -> OK!".format(protein_id)
+                print "SKIPPING {0} genewise exons: .status file -> OK!".format(protein_id)
                 continue
         except KeyError:
             pass

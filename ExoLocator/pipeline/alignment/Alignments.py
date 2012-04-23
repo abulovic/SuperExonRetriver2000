@@ -9,9 +9,11 @@ from pipeline.utilities.CommandGenerator          import CommandGenerator
 from pipeline.alignment.AlignmentTargetGenerator  import AlignmentTargetGenerator
 from utilities.Logger                             import Logger
 from subprocess                                   import Popen, PIPE, STDOUT
+from utilities.DescriptionParser                  import DescriptionParser
 import os
+import shutil
 
-def generate_blastn_alignments(protein_id, species_list = None):
+def generate_blastn_alignments(protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     '''
         Runs the blastn program for a specified protein and list of species
         @param protein_id
@@ -33,7 +35,7 @@ def generate_blastn_alignments(protein_id, species_list = None):
     for species in species_list:
         output_file     = "{0}/{1}.blastout".format(crawler.get_blastn_path(protein_id), species.strip())
         input_file      = "{0}/{1}.fa".format(crawler.get_expanded_gene_path(protein_id), species.strip())
-        database        = "{0}/Homo_sapiens.fa".format(crawler.get_exon_ensembl_path(protein_id))
+        database        = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
         
         command         = command_generator.generate_blastn_command(database, input_file, output_file)
         command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
@@ -43,9 +45,13 @@ def generate_blastn_alignments(protein_id, species_list = None):
             os.remove(output_file)
             alignment_logger.warning("{0}, {1}, BLASTN, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species.strip())
-    alignment_generator.set_failed_blastn_targets(protein_id, failed_species_list)
+            
+    if failed_species_list:
+        alignment_generator.set_failed_blastn_targets(protein_id, failed_species_list)
+        return False
+    return True
 
-def generate_tblastn_alignments(protein_id, species_list = None):
+def generate_tblastn_alignments(protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     '''
         Runs the tblastn program for a specified protein and list of species
         @param protein_id
@@ -67,7 +73,7 @@ def generate_tblastn_alignments(protein_id, species_list = None):
     for species in species_list:
         output_file     = "{0}/{1}.blastout".format(crawler.get_tblastn_path(protein_id), species.strip())
         input_file      = "{0}/{1}.fa".format(crawler.get_protein_path(protein_id), species.strip())
-        database        = "{0}/Homo_sapiens.fa".format(crawler.get_exon_ensembl_path(protein_id))
+        database        = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
         
         command         = command_generator.generate_tblastn_command(database, input_file, output_file)
         command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
@@ -77,9 +83,12 @@ def generate_tblastn_alignments(protein_id, species_list = None):
             os.remove(output_file)
             alignment_logger.warning("{0}, {1}, TBLASTN, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species.strip())
-    alignment_generator.set_failed_tblastn_targets(protein_id, failed_species_list)
-    
-def generate_SW_gene_alignments(protein_id, species_list = None):
+      
+    if failed_species_list:        
+        alignment_generator.set_failed_tblastn_targets(protein_id, failed_species_list)
+        return False
+    return True
+def generate_SW_gene_alignments(protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     '''
         Runs the SW program for a specified protein and list of species, using the expanded gene region.
         @param protein_id
@@ -101,7 +110,7 @@ def generate_SW_gene_alignments(protein_id, species_list = None):
     for species in species_list:
         output_file          = "{0}/{1}.swout".format(crawler.get_SW_gene_path(protein_id), species.strip())
         query_sequence_file  = "{0}/{1}.fa".format(crawler.get_expanded_gene_path(protein_id), species.strip())
-        target_fasta_db_file = "{0}/Homo_sapiens.fa".format(crawler.get_exon_ensembl_path(protein_id))
+        target_fasta_db_file = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
         
         command              = command_generator.generate_SW_command(query_sequence_file, target_fasta_db_file, output_file)
         command_return       = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
@@ -111,9 +120,13 @@ def generate_SW_gene_alignments(protein_id, species_list = None):
             alignment_logger.warning("{0}, {1}, SW GENE, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species.strip())
     os.remove(".sw_stdout_supressed")
-    alignment_generator.set_failed_SW_gene_targets(protein_id, failed_species_list)
+    
+    if failed_species_list: 
+        alignment_generator.set_failed_SW_gene_targets(protein_id, failed_species_list)
+        return False
+    return True
         
-def generate_SW_exon_alignments(protein_id, species_list = None):
+def generate_SW_exon_alignments(protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     '''
         Runs the SW program for a specified protein, species and individual exons retrived from ensembl.
         @param protein_id
@@ -128,14 +141,22 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
     crawler             = DirectoryCrawler()
     command_generator   = CommandGenerator()
     
+    try:
+        (proteins_known, proteins_abinitio) = DescriptionParser().parse_descr_file(protein_id)
+    except IOError, e:
+        alignment_logger.error("{0}, , SW EXONS, {2}".format(protein_id, e))
+    
     if (not species_list):
         species_list    = alignment_generator.get_SW_exon_targets(protein_id)
     
     failed_species_list = []
     tmp_file            = "tmp_sw.fa"
     for species in species_list:
-        ensembl_exons_path      = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())
-        target_fasta_db_file    = "{0}/Homo_sapiens.fa".format(crawler.get_exon_ensembl_path(protein_id))
+        if species.strip() in proteins_known:
+            ensembl_exons_path      = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())
+        else:
+            ensembl_exons_path      = "{0}/{1}.fa".format(crawler.get_exon_genewise_path(protein_id), species.strip())
+        target_fasta_db_file    = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
         # Isolate each exon to a temporary file to be processed with SW
         try:
             ensembl_exons_file  = open(ensembl_exons_path, 'r')
@@ -147,11 +168,14 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         exon_seq                = ""
         exon_header             = ""
         exon_counter            = 0
+        exon_species_dir        = "{0}/{1}".format(crawler.get_SW_exon_path(protein_id), species.strip())
+        if not os.path.exists(exon_species_dir):
+            os.makedirs(exon_species_dir)
         for line in ensembl_exons_file.readlines():
             if line.startswith('>'):
                 if exon_seq is not "":
                     exon_counter    += 1
-                    output_file     = "{0}/{1}/exon{2}.swout".format(crawler.get_SW_exon_path(protein_id), species.strip(), exon_counter)
+                    output_file     = "{0}/exon{1}.swout".format(exon_species_dir, exon_counter)
                     
                     tmp             = open(tmp_file, 'w')
                     tmp.write("{0}\n{1}\n".format(exon_header, exon_seq))
@@ -188,13 +212,41 @@ def generate_SW_exon_alignments(protein_id, species_list = None):
         os.remove(".sw_stdout_supressed")
     except OSError:
         pass
-    alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
+
+    if failed_species_list: 
+        alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
+        return False
+    return True
+
+def generate_referenced_species_database(protein_id, referenced_species):
+    '''
+        Creates a database for a referenced species and protein, using formatdb
+        @param protein_id
+        @param referenced_species
+    ''' 
+    logger              = Logger.Instance()
+    alignment_logger    = logger.get_logger('alignment')
+    
+    command_generator   = CommandGenerator()
+    crawler             = DirectoryCrawler()
+    
+    source_exon_file    = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), referenced_species)
+    input_db_file       = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
+    sequence_type       = "Nucleotide"
+    
+    shutil.copyfile(source_exon_file, input_db_file)
+    
+    command             = command_generator.generate_formatdb_command(input_db_file, sequence_type)
+    command_return      = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    output              = command_return.stdout.read()
+    if output != "":
+        #LOGGING
+        alignment_logger.warning("{0}, {1}, REF SPECIES DB, {2}".format(protein_id, referenced_species.strip(), output.strip()))      
+        return False
+    return True
     
 def main ():
-    generate_blastn_alignments("ENSP00000311134")
-    generate_tblastn_alignments("ENSP00000311134")
-    generate_SW_gene_alignments("ENSP00000311134")
-    generate_SW_exon_alignments("ENSP00000311134")
+    generate_referenced_species_database("ENSP00000311134", "Homo_sapiens")
     
 if __name__ == '__main__':
     main()

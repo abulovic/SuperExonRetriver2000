@@ -38,7 +38,7 @@ def populate_sequence_exon_genewise(protein_id):
     status_species_list = _read_failed_species(exon_genewise_path)
     
     failed_species_list = []
-    for (species, data) in proteins_known.items():
+    for (species, data) in proteins_abinitio.items():
         if species.strip() not in status_species_list and status_species_list != []:
             continue
         protein_file    = "{0}/{1}.fa".format(directory_crawler.get_protein_path(protein_id), species)
@@ -108,7 +108,7 @@ def _analyse_wise_file(protein_id, wise_file, protein_file, gene_file, exon_file
                                    IUPAC.unambiguous_dna),
                                    id=str(exon_cnt), 
                                    description="exon length {0}|{1}|{2}".format(relative_upper_coord - relative_lower_coord, absolute_lower_coord, absolute_upper_coord))
-            SeqIO.write(record, exon_out, "fasta")
+            SeqIO.write([record], exon_out, "fasta")
     exon_out.close()
     return True
 

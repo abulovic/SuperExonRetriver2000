@@ -118,7 +118,7 @@ class CommandGenerator(object):
         else:
             cmd = "formatdb -i {0} -p F".format(input_db_file)
         if additional_flags:
-            cmd += " -a F -o F"
+            cmd += " -a F -o"
             
         return cmd
     
