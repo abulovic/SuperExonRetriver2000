@@ -142,6 +142,7 @@ def reset_action (protein_id, key):
         clear_directory(crawler.get_exon_ensembl_path(protein_id))
     elif key == 'GENEWISE_EXON_RETRIEVAL' : 
         clear_directory(crawler.get_exon_genewise_path(protein_id))
+        clear_directory(crawler.get_genewise_path(protein_id))
     elif key == 'REF_SP_DB_FORMATTING' : 
         clear_directory(crawler.get_database_path(protein_id))
     elif key == 'BLASTN_ALIGNMENT' : 
@@ -152,8 +153,6 @@ def reset_action (protein_id, key):
         clear_directory(crawler.get_SW_gene_path(protein_id))
     elif key == 'SW_EXON_ALIGNMENT' : 
         clear_directory(crawler.get_SW_exon_path(protein_id))
-    elif key == 'GENEWISE_EXON_RETRIEVAL' : 
-        clear_directory(crawler.get_genewise_path(protein_id))
 
 def reset_action_global(key):
     protein_list_raw = get_protein_list()
