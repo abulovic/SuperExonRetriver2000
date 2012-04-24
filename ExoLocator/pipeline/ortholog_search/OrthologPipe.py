@@ -57,7 +57,7 @@ def main():
         descr_file = open(descr_file_path, 'w')
         
         ref_species_pep =  dc.get_protein_path(protein_id) + "/" + reference_species + ".fasta"
-        fastacmd = acg.generate_fastacmd_protein_command(protein_id, "Homo_sapiens", "all", ref_species_pep)
+        fastacmd = acg.generate_fastacmd_protein_command(protein_id, reference_species, "all", ref_species_pep)
         
         p = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output = p.stdout.read()
@@ -66,7 +66,7 @@ def main():
              
         
         for species in species_list:
-            find_ortholog_by_RBH("Homo_sapiens", species, ref_species_pep, protein_id, descr_file, mutual_best_logger)
+            find_ortholog_by_RBH(reference_species, species, ref_species_pep, protein_id, descr_file, mutual_best_logger)
             
         descr_file.close()
         

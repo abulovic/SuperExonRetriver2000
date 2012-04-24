@@ -154,7 +154,7 @@ def _get_best_alignment (protein_id, blast_record):
     '''
     while i < len(blast_record.descriptions):
         
-        if (blast_record.descriptions[i].score == best_score):
+        if (blast_record.descriptions[i].score >= best_score):
             best_alignments.append(blast_record.descriptions[i].title)
         else:
             break
