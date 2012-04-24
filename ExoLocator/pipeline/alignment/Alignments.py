@@ -12,6 +12,8 @@ from subprocess                                   import Popen, PIPE, STDOUT
 from utilities.DescriptionParser                  import DescriptionParser
 import os
 import shutil
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 def generate_blastn_alignments(protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     '''
@@ -145,6 +147,7 @@ def generate_SW_exon_alignments(protein_id, species_list = None, referenced_spec
         (proteins_known, proteins_abinitio) = DescriptionParser().parse_descr_file(protein_id)
     except IOError, e:
         alignment_logger.error("{0}, , SW EXONS, {2}".format(protein_id, e))
+        return False
     
     if (not species_list):
         species_list    = alignment_generator.get_SW_exon_targets(protein_id)
@@ -217,6 +220,115 @@ def generate_SW_exon_alignments(protein_id, species_list = None, referenced_spec
         alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
         return False
     return True
+
+
+def _merge_exons_from_fasta(exon_fasta_file, species):
+    
+    merged_exons_seq=""
+    exon_locations = {}
+    start = 1
+    end = 1
+    for seq_record in SeqIO.parse(exon_fasta_file, "fasta"):
+        end += len(seq_record)-1
+        exon_locations[int(seq_record.id)] = (start, end)
+        start = end+1
+        end = start
+        merged_exons_seq += seq_record.seq
+
+    cdna_seq = SeqRecord(seq=merged_exons_seq, id=species, description="")
+    return (cdna_seq, exon_locations)
+    
+
+
+def _write_locations_to_file(locations_file_path, exon_locations_original, exon_locations_target):
+    
+    locations_file = open(locations_file_path, 'w')
+    
+    locations_file.write ('# format: R/T (reference / target speacies) exon_id start end')
+    for exon_num in range(1, len(exon_locations_original)+1):
+        (start,end) = exon_locations_original[exon_num]
+        locations_file.write ("R\t%d\t%d\t%d\n" % (exon_num, int(start), int(end)))
+    for exon_num in range(1, len(exon_locations_target)+1):
+        (start,end) = exon_locations_target[exon_num]
+        locations_file.write ("T\t%d\t%d\t%d\n" % (exon_num, int(start), int(end)))    
+        
+    locations_file.close()
+
+
+def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_species = "Homo_sapiens"):
+    
+    alignment_generator = AlignmentTargetGenerator()
+    crawler             = DirectoryCrawler()
+    command_generator   = CommandGenerator()
+    
+    logger              = Logger.Instance()
+    alignment_logger    = logger.get_logger('alignment')
+    
+    tmp_fasta_original_path = "tmp_original.fa"
+    tmp_fasta_target_path   = "tmp_target.fa"
+    
+    failed_species_list = []
+    
+    if (not species_list):
+        species_list    = alignment_generator.get_SW_exon_targets(protein_id)
+        
+    try:
+        (proteins_known, proteins_abinitio) = DescriptionParser().parse_descr_file(protein_id)
+    except IOError, e:
+        alignment_logger.error("{0}, , SW EXONS, {2}".format(protein_id, e))
+        return False
+        
+        
+    exon_original_fasta_file    = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), referenced_species)
+    (merged_sequence_original, exon_locations_original) = _merge_exons_from_fasta (exon_original_fasta_file, referenced_species)
+    # write merged sequence to file
+    tmp_fasta_original = open(tmp_fasta_original_path, 'w')
+    SeqIO.write(merged_sequence_original, tmp_fasta_original, "fasta")
+               
+    for species in species_list:
+        if species in proteins_known:
+            exon_target_fasta_file = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())   
+        else:
+            exon_target_fasta_file = "{0}/{1}.fa".format(crawler.get_exon_genewise_path(protein_id), species.strip())
+            
+        if not os.path.isfile(exon_target_fasta_file):    
+            alignment_logger.warning("{0}, {1}, SW EXONS, {2}".format(protein_id, species.strip(), "Target species exon file missing"))
+            failed_species_list.append(species.strip())
+            continue
+              
+        (merged_sequence_target, exon_locations_target) = _merge_exons_from_fasta (exon_target_fasta_file, species)   
+        # write merged sequence to file  
+        tmp_fasta_target = open(tmp_fasta_target_path, 'w')
+        SeqIO.write(merged_sequence_target, tmp_fasta_target, "fasta")
+        
+        swout_file_path = crawler.get_SW_exon_path(protein_id)
+        command         = command_generator.generate_SW_command(tmp_fasta_target_path, tmp_fasta_original_path, swout_file_path)
+        command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        output          = command_return.stdout.read()
+        if output != "":
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, SW EXON, {2}".format(protein_id, species.strip(), output.strip()))
+            failed_species_list.append(species.strip())    
+            continue
+        
+        locations_file_path = "{0}/{1}.location".format(crawler.get_SW_exon_path(protein_id))
+        _write_locations_to_file (locations_file_path, exon_locations_original, exon_locations_target)        
+    
+    try:    
+        os.remove(tmp_fasta_original_path)
+        os.remove(tmp_fasta_target_path)
+        os.remove(".sw_stdout_supressed")
+    except:
+        pass
+    
+    if failed_species_list: 
+        alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
+        return False
+    return True
+        
+    
+    
+    
 
 def generate_referenced_species_database(protein_id, referenced_species):
     '''

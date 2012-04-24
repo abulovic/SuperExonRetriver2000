@@ -92,7 +92,7 @@ def populate_SW_exon_alignments(protein_list):
         except KeyError:
             pass
         print "ALIGNING SW_EXON: {0}".format(protein_id)
-        if Alignments.generate_SW_exon_alignments(protein_id):
+        if Alignments.generate_SW_exon_alignments2(protein_id):
             FileUtilities.update_entry_in_status_file(protein_id, 'SW_EXON_ALIGNMENT', 'OK')
         else:
             FileUtilities.update_entry_in_status_file(protein_id, 'SW_EXON_ALIGNMENT', 'PARTIAL') 
