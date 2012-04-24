@@ -229,9 +229,11 @@ def _merge_exons_from_fasta(exon_fasta_file, species):
     exon_locations = {}
     start = 1
     end = 1
+    exon_id = 1
     for seq_record in SeqIO.parse(exon_fasta, "fasta"):
         end += len(seq_record)-1
-        exon_locations[int(seq_record.id)] = (start, end)
+        exon_locations[exon_id] = (start, end)
+        exon_id += 1
         start = end+1
         end = start
         merged_exons_seq += seq_record.seq
