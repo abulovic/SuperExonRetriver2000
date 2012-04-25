@@ -412,7 +412,12 @@ def generate_referenced_species_database(protein_id, referenced_species):
     input_db_file       = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
     sequence_type       = "Nucleotide"
     
-    shutil.copyfile(source_exon_file, input_db_file)
+    try:
+        shutil.copyfile(source_exon_file, input_db_file)
+    except IOError, e:
+        #LOGGING
+        alignment_logger.warning("{0}, {1}, REF SPECIES DB, {2}".format(protein_id, referenced_species.strip(), e))      
+        return False
     
     command             = command_generator.generate_formatdb_command(input_db_file, sequence_type)
     command_return      = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
