@@ -92,7 +92,7 @@ def populate_SW_exon_alignments(protein_list):
         except KeyError:
             pass
         print "ALIGNING SW_EXON: {0}".format(protein_id)
-        if Alignments.generate_SW_exon_alignments2(protein_id):
+        if Alignments.generate_SW_cDNA_exon_alignments(protein_id):
             FileUtilities.update_entry_in_status_file(protein_id, 'SW_EXON_ALIGNMENT', 'OK')
         else:
             FileUtilities.update_entry_in_status_file(protein_id, 'SW_EXON_ALIGNMENT', 'PARTIAL') 
@@ -106,9 +106,9 @@ def main ():
         protein_list.append(protein_tuple[0])
     
     populate_referenced_species_databases(protein_list, referenced_species)
-    populate_blastn_alignments(protein_list)
-    populate_tblastn_alignments(protein_list)
-    populate_SW_gene_alignments(protein_list)
+    #populate_blastn_alignments(protein_list)
+    #populate_tblastn_alignments(protein_list)
+    #populate_SW_gene_alignments(protein_list)
     populate_SW_exon_alignments(protein_list)
     
 if __name__ == '__main__':

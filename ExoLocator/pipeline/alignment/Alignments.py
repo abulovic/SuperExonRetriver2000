@@ -333,7 +333,67 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     return True
         
     
+def generate_SW_cDNA_exon_alignments (protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     
+    alignment_generator = AlignmentTargetGenerator()
+    crawler             = DirectoryCrawler()
+    command_generator   = CommandGenerator()
+    
+    logger              = Logger.Instance()
+    alignment_logger    = logger.get_logger('alignment')
+    
+    tmp_fasta_target_path   = "tmp_target.fa"
+    original_fasta_db_file    = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
+    
+    failed_species_list = []
+    
+    if (not species_list):
+        species_list    = alignment_generator.get_SW_exon_targets(protein_id)
+        
+    try:
+        (proteins_known, proteins_abinitio) = DescriptionParser().parse_descr_file(protein_id)
+    except IOError, e:
+        alignment_logger.error("{0}, , SW cDNA_EXONS, {2}".format(protein_id, e))
+        return False
+               
+    for species in species_list:
+        if species.strip() in proteins_known:
+            exon_target_fasta_file = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())   
+        else:
+            exon_target_fasta_file = "{0}/{1}.fa".format(crawler.get_exon_genewise_path(protein_id), species.strip())
+            
+        if not os.path.isfile(exon_target_fasta_file):    
+            alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), "Target species exon file missing"))
+            failed_species_list.append(species.strip())
+            continue
+              
+        (merged_sequence_target, exon_locations_target) = _merge_exons_from_fasta (exon_target_fasta_file, species)   
+        # write merged sequence to file  
+        tmp_fasta_target = open(tmp_fasta_target_path, 'w')
+        SeqIO.write([merged_sequence_target], tmp_fasta_target, "fasta")
+        tmp_fasta_target.close()
+        
+        swout_file_path = "{0}/{1}.swout".format(crawler.get_SW_exon_path(protein_id), species.strip())
+        command         = command_generator.generate_SW_command(tmp_fasta_target_path, original_fasta_db_file, swout_file_path)
+        print command
+        command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        output          = command_return.stdout.read()
+        if output != "":
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), output.strip()))
+            failed_species_list.append(species.strip())    
+            continue
+    
+    try:    
+        os.remove(tmp_fasta_target_path)
+        os.remove(".sw_stdout_supressed")
+    except:
+        pass
+    
+    if failed_species_list: 
+        alignment_generator.set_failed_SW_exon_targets(protein_id, failed_species_list)
+        return False
+    return True
     
 
 def generate_referenced_species_database(protein_id, referenced_species):
