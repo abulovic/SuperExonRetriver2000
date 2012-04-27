@@ -65,7 +65,6 @@ class DescriptionParser:
         return sorted(species_list)
 
     def parse_descr_file(self, protein_id):
-        
         '''
         Function for parsing the description file associated with the protein_id.
         Description file contains two different types of entries: for known protein and for abinitio.
@@ -105,6 +104,41 @@ class DescriptionParser:
                 (species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand) = match.groups()
                 proteins_abinitio_data[species_name] = (spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
         
+        descr_file.close()
+        
+        return proteins_known_data, proteins_abinitio_data
+    
+    def parse_description_file_general_info(self, protein_id):
+        '''
+        Similar as parse_description_file, but returns all the information. Required for generating a model structure.
+        known: (species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
+        abinitio: (species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
+        '''
+        proteins_known_data = []
+        proteins_abinitio_data = []
+        
+        descr_file_path = "{0}/{1}.descr".format(self.crawler.get_root_path(protein_id), protein_id)
+        
+        pattern_known = re.compile("(.*)\t(ENS.*)\t(.*)\t(.*)\t(.*):(.*):(.*):(.*):(.*):(.*)")
+        pattern_abinitio = re.compile("(.*)\t(GEN.*)\t(.*):(.*):(.*):(.*):(.*):(.*)")
+        
+        try:
+            descr_file = open(descr_file_path, 'r')
+        except IOError:
+            raise IOError("There is no description file present for protein: %s" % protein_id)
+        
+        for line in descr_file.readlines():
+            line = line.strip()
+            
+            match = re.match(pattern_known, line)
+            if match:
+                (species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand) = match.groups()
+                proteins_known_data.append((species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand))
+                
+            match = re.match(pattern_abinitio, line)    
+            if match:
+                (species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand) = match.groups()
+                proteins_abinitio_data.append((species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand))
         descr_file.close()
         
         return proteins_known_data, proteins_abinitio_data

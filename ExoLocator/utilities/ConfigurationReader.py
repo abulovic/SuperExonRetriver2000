@@ -90,10 +90,8 @@ class ConfigurationReader:
         
     
     def checkout_cfg_files (self):
-        
-        
         for cfg_file in os.listdir(self.cfg_dir):
-            if cfg_file not in self.cfg_files and cfg_file != "logging.cfg":
+            if cfg_file not in self.cfg_files and cfg_file != "logging.cfg" and cfg_file.endswith(".cfg"):
                 self.cfg_files.append(cfg_file)
                 self.load_cfg_file(self.cfg_dir + cfg_file)
                 

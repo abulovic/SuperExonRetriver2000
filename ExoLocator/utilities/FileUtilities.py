@@ -53,6 +53,23 @@ def get_protein_list ():
     
     return protein_list
 
+def get_status_file_keys():
+    status_file_keys_path = "{0}/cfg/status_file_keys.txt".format(get_project_root_dir())
+    status_file_keys      = open(status_file_keys_path, 'r')
+    keys                  = []
+    for line in status_file_keys.readlines():
+        keys.append(line.strip())
+    return keys
+
+def get_reference_species_dictionary():
+    reference_species_mapping_path  = "{0}/cfg/referenced_species_mapping.txt".format(get_project_root_dir())
+    reference_species_mapping       = open(reference_species_mapping_path, 'r')
+    ref_species                     = {}
+    for line in reference_species_mapping.readlines():
+        key_val = line.split("-")
+        ref_species[key_val[0]] = key_val[1].strip()
+    return ref_species
+
 def read_status_file (protein_id):
     '''
     @return: status_dict dictionary of mapped status entries to their values
@@ -164,7 +181,8 @@ def reset_action_global(key):
         reset_action(protein, key)
         
 def main():
-    reset_action_global('GENEWISE_EXON_RETRIEVAL')
+    print get_status_file_keys()
+    print get_reference_species_dictionary()
 
 if __name__ == '__main__':
     main()

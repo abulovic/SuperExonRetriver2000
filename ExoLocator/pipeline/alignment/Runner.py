@@ -106,9 +106,9 @@ def main ():
         protein_list.append(protein_tuple[0])
     
     populate_referenced_species_databases(protein_list, referenced_species)
-    #populate_blastn_alignments(protein_list)
-    #populate_tblastn_alignments(protein_list)
-    #populate_SW_gene_alignments(protein_list)
+    populate_blastn_alignments(protein_list)
+    populate_tblastn_alignments(protein_list)
+    populate_SW_gene_alignments(protein_list)
     populate_SW_exon_alignments(protein_list)
     
 if __name__ == '__main__':
