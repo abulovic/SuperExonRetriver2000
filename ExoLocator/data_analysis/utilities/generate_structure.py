@@ -88,10 +88,12 @@ def load_protein_configuration_batch(protein_id_list):
     '''
     ref_species_dict    = FileUtilities.get_reference_species_dictionary()
     
+    folders_loaded_cnt  = 0
     for protein_id in protein_id_list:
-        load_protein_configuration(protein_id, ref_species_dict)
+        if load_protein_configuration(protein_id, ref_species_dict) == True:
+            folders_loaded_cnt += 1
         
-        
+    return folders_loaded_cnt
     
 def check_status_file(protein_id):
     try:
@@ -112,7 +114,7 @@ def main ():
     for protein_tuple in protein_list_raw:
         protein_list.append(protein_tuple[0])
         
-    load_protein_configuration_batch(protein_list)
+    print load_protein_configuration_batch(protein_list)
     
     dmc = DataMapContainer.Instance()
     pc  = ProteinContainer.Instance()
