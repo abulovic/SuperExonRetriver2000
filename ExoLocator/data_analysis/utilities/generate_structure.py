@@ -93,13 +93,13 @@ def load_protein_configuration_batch(protein_id_list):
     alignment_logger    = logger.get_logger('containers')
     
     folders_loaded_cnt  = 0
-    try:
-        for protein_id in protein_id_list:
+    for protein_id in protein_id_list:
+        try:
             if load_protein_configuration(protein_id, ref_species_dict) == True:
                 folders_loaded_cnt += 1
-    except (KeyError, TypeError), e:
-        alignment_logger.warning("{0}, {1}".format(protein_id, e))
-            
+        except (KeyError, TypeError), e:
+            alignment_logger.warning("{0}, {1}".format(protein_id, e.args[0]))
+
     return folders_loaded_cnt
     
 def check_status_file(protein_id):
