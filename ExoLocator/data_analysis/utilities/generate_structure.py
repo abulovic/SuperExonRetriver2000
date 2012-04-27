@@ -76,14 +76,17 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
          strand) = species_data
         ab_initio = True
         
-        data_map_key = (protein_id, species_name)
-        data_map = DataMap(spec_protein_id, "", "", data_map_key, ab_initio)
-        #TODO: ERR handling!
-        data_map_container.add(data_map_key, data_map)
-        
-        protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
-        
-        protein_container.add(protein.protein_id, protein)
+        try:
+            data_map_key = (protein_id, species_name)
+            data_map = DataMap(spec_protein_id, "", "", data_map_key, ab_initio)
+            #TODO: ERR handling!
+            data_map_container.add(data_map_key, data_map)
+            
+            protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
+            
+            protein_container.add(protein.protein_id, protein)
+        except (KeyError, TypeError), e:
+            alignment_logger.warning("{0}, {1}, {2}".format(protein_id, species_name, e.args[0]))
     return True
     
     
