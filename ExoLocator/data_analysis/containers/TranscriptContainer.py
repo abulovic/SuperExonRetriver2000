@@ -19,10 +19,10 @@ class TranscriptContainer(object):
     
     def add(self, transcript_id, transcript):
         if type(transcript) is not Transcript:
-            raise TypeError
+            raise TypeError('Transcript, TypeError, {0}'.format(transcript_id))
         
         if self._transcript_container.has_key(transcript_id):
-            raise KeyError
+            raise KeyError('Transcript, KeyError, {0}'.format(transcript_id))
         
         self._transcript_container[transcript_id] = transcript
 

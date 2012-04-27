@@ -20,10 +20,10 @@ class ProteinContainer(object):
     
     def add(self, protein_id, protein):
         if type(protein) is not Protein:
-            raise TypeError
+            raise TypeError('Protein, TypeError, {0}'.format(protein_id))
         
         if self._protein_container.has_key(protein_id):
-            raise KeyError
+            raise KeyError('Protein, KeyError, {0}'.format(protein_id))
         
         self._protein_container[protein_id] = protein
 

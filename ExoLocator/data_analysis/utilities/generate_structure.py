@@ -4,6 +4,7 @@ Created on Apr 26, 2012
 @author: marioot
 '''
 from utilities                                      import FileUtilities
+from utilities.Logger                               import Logger
 from utilities.DescriptionParser                    import DescriptionParser
 from data_analysis.containers.DataMapContainer      import DataMapContainer
 from data_analysis.containers.ProteinContainer      import ProteinContainer
@@ -88,11 +89,17 @@ def load_protein_configuration_batch(protein_id_list):
     '''
     ref_species_dict    = FileUtilities.get_reference_species_dictionary()
     
+    logger              = Logger.Instance()
+    alignment_logger    = logger.get_logger('containers')
+    
     folders_loaded_cnt  = 0
-    for protein_id in protein_id_list:
-        if load_protein_configuration(protein_id, ref_species_dict) == True:
-            folders_loaded_cnt += 1
-        
+    try:
+        for protein_id in protein_id_list:
+            if load_protein_configuration(protein_id, ref_species_dict) == True:
+                folders_loaded_cnt += 1
+    except (KeyError, TypeError), e:
+        alignment_logger.warning("{0}, {1}".format(protein_id, e))
+            
     return folders_loaded_cnt
     
 def check_status_file(protein_id):

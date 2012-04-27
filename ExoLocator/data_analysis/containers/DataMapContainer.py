@@ -24,10 +24,10 @@ class DataMapContainer(object):
         @param key: (protein_id, species)
         '''
         if type(data_map) is not DataMap:
-            raise TypeError
+            raise TypeError('DataMap, TypeError, {0}, {1}'.format(key[0], key[1]))
         
         if self._data_map_container.has_key(key):
-            raise KeyError
+            raise KeyError('DataMap, KeyError, {0}, {1}'.format(key[0], key[1]))
         
         self._data_map_container[key] = data_map
 

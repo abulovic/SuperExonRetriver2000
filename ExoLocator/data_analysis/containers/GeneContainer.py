@@ -19,10 +19,10 @@ class GeneContainer(object):
     
     def add(self, gene_id, gene):
         if type(gene) is not Gene:
-            raise TypeError
+            raise TypeError('Gene, TypeError, {0}'.format(gene_id))
         
         if self._gene_container.has_key(gene_id):
-            raise KeyError
+            raise KeyError('Gene, KeyError, {0}'.format(gene_id))
         
         self._gene_container[gene_id] = gene
 
