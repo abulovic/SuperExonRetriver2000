@@ -27,6 +27,9 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
     if ref_species_dict is None:
         ref_species_dict    = FileUtilities.get_reference_species_dictionary()
     
+    logger              = Logger.Instance()
+    alignment_logger    = logger.get_logger('containers')
+    
     data_map_container  = DataMapContainer.Instance()
     protein_container   = ProteinContainer.Instance()
     gene_container      = GeneContainer.Instance()
@@ -46,19 +49,20 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
          seq_end, 
          strand) = species_data
         ab_initio = False
-        
-        data_map_key = (protein_id, species_name)
-        data_map     = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, ab_initio)
-        #TODO: ERR handling!
-        data_map_container.add(data_map_key, data_map)
-
-        protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
-        gene        = Gene(spec_gene_id, data_map_key, ref_species_dict[species_name])
-        transcript  = Transcript(spec_transcript_id, data_map_key, ref_species_dict[species_name])
-        
-        protein_container.add(protein.protein_id, protein)
-        gene_container.add(gene.gene_id, gene)
-        transcript_container.add(transcript.transcript_id, transcript)
+        try:
+            data_map_key = (protein_id, species_name)
+            data_map     = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, ab_initio)
+            data_map_container.add(data_map_key, data_map)
+            
+            protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
+            gene        = Gene(spec_gene_id, data_map_key, ref_species_dict[species_name])
+            transcript  = Transcript(spec_transcript_id, data_map_key, ref_species_dict[species_name])
+            
+            protein_container.add(protein.protein_id, protein)
+            gene_container.add(gene.gene_id, gene)
+            transcript_container.add(transcript.transcript_id, transcript)
+        except (KeyError, TypeError), e:
+            alignment_logger.warning("{0}, {1}, {2}".format(protein_id, species_name, e.args[0]))
     
     for species_data in abinitio_proteins:
         #create objects for abinitio proteins
@@ -89,17 +93,10 @@ def load_protein_configuration_batch(protein_id_list):
     '''
     ref_species_dict    = FileUtilities.get_reference_species_dictionary()
     
-    logger              = Logger.Instance()
-    alignment_logger    = logger.get_logger('containers')
-    
     folders_loaded_cnt  = 0
     for protein_id in protein_id_list:
-        try:
-            if load_protein_configuration(protein_id, ref_species_dict) == True:
-                folders_loaded_cnt += 1
-        except (KeyError, TypeError), e:
-            alignment_logger.warning("{0}, {1}".format(protein_id, e.args[0]))
-
+        if load_protein_configuration(protein_id, ref_species_dict) == True:
+            folders_loaded_cnt += 1
     return folders_loaded_cnt
     
 def check_status_file(protein_id):
