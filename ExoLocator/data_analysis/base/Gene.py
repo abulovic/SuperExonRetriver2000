@@ -9,8 +9,6 @@ class Gene(object):
     '''
     classdocs
     '''
-
-
     def __init__(self, gene_id, data_map_key, ref_species):
         '''
         Constructor

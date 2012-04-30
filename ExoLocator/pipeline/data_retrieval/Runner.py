@@ -102,11 +102,11 @@ def main ():
     for protein_tuple in protein_list_raw:
         protein_list.append(protein_tuple[0])
         
-    populate_genes(protein_list)
-    populate_expanded_genes(protein_list)
-    populate_proteins(protein_list)
+    #populate_genes(protein_list)
+    #populate_expanded_genes(protein_list)
+    #populate_proteins(protein_list)
     populate_ensembl_exons(protein_list)
-    populate_genewise_exons(protein_list)
+    #populate_genewise_exons(protein_list)
     
 if __name__ == '__main__':
     main()

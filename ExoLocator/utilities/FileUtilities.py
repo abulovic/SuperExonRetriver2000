@@ -181,8 +181,7 @@ def reset_action_global(key):
         reset_action(protein, key)
         
 def main():
-    print get_status_file_keys()
-    print get_reference_species_dictionary()
+    reset_action_global('ENSEMBL_EXON_RETRIEVAL')
 
 if __name__ == '__main__':
     main()

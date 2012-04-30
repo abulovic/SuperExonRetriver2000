@@ -58,22 +58,28 @@ def populate_sequence_exon_ensembl(protein_id):
         query_file.close()
         exon_file_name  = "{0}/{1}.fa".format(exon_ensembl_path, species)
         biomart_command = "perl %s %s > %s" % (perl_biomart_script, query_file_name, exon_file_name)
-        while (True):
-            Popen(biomart_command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-            time.sleep(1)
-            if (os.path.exists(exon_file_name)):
+        number_of_tries = 10
+        while (number_of_tries > 0):
+            number_of_tries -= 1
+            while (True):
+                Popen(biomart_command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+                time.sleep(1)
+                if (os.path.exists(exon_file_name)):
+                    break
+            #LOGGING
+            exon_file       = open(exon_file_name, 'r')
+            exon_file_line  = exon_file.readline()
+            exon_file.close()
+            
+            invalid_extension_pattern = re.compile("Query ERROR")
+            if re.search(invalid_extension_pattern, exon_file_line) is None:
                 break
-        #LOGGING
-        exon_file       = open(exon_file_name, 'r')
-        exon_file_line  = exon_file.readline()
-        exon_file.close()
-        
-        invalid_extension_pattern = re.compile("Query ERROR")
-        if re.search(invalid_extension_pattern, exon_file_line) is None:
-            continue
-        alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, 'ENSEMBL', species.strip(), exon_file_line.strip()))
-        os.remove(exon_file_name)
-        failed_species_list.append(species.strip())
+            os.remove(exon_file_name)
+            print "Trying again: %s"% number_of_tries
+        if number_of_tries == 0:
+            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, 'ENSEMBL', species.strip(), exon_file_line.strip()))
+            os.remove(exon_file_name)
+            failed_species_list.append(species.strip())
         
     try:
         os.remove(query_file_name)
