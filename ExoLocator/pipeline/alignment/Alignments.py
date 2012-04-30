@@ -369,26 +369,27 @@ def generate_SW_cDNA_exon_alignments (protein_id, species_list = None, reference
               
         (merged_sequence_target, exon_locations_target) = _merge_exons_from_fasta (exon_target_fasta_file, species)   
         # write merged sequence to file  
-        tmp_fasta_target = open(tmp_fasta_target_path, 'w')
-        SeqIO.write([merged_sequence_target], tmp_fasta_target, "fasta")
-        tmp_fasta_target.close()
+        try:
+            tmp_fasta_target = open(tmp_fasta_target_path, 'w')
+            SeqIO.write([merged_sequence_target], tmp_fasta_target, "fasta")
+            tmp_fasta_target.close()
+        except TypeError, e:
+            alignment_logger.error("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), e))
+            failed_species_list.append(species.strip())    
+            continue
         
         swout_file_path = "{0}/{1}.swout".format(crawler.get_SW_exon_path(protein_id), species.strip())
         command         = command_generator.generate_SW_command(tmp_fasta_target_path, original_fasta_db_file, swout_file_path)
         print command
         
-        try:
-            command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-            output          = command_return.stdout.read()
-            if output != "":
-                #LOGGING
-                alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), output.strip()))
-                failed_species_list.append(species.strip())    
-                continue
-        except TypeError, e:
-            alignment_logger.error("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), e))
+        command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        output          = command_return.stdout.read()
+        if output != "":
+            #LOGGING
+            alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species.strip())    
             continue
+
     try:    
         os.remove(tmp_fasta_target_path)
         os.remove(".sw_stdout_supressed")
