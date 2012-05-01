@@ -75,33 +75,33 @@ def main ():
     suspect_proteins_sets = []
     for protein_list in suspect_proteins:
         suspect_proteins_sets.append(set(protein_list))
-    print suspect_proteins_sets
+    #print suspect_proteins_sets
     
     final_sets = []
     intersection_hapened = True
     while (intersection_hapened):
         intersection_hapened = False
-        print suspect_proteins_sets
-        print final_sets
-        print "\n"
+        #print suspect_proteins_sets
+        #print final_sets
+        #print "\n"
         for set1 in suspect_proteins_sets:
             suspect_proteins_sets.remove(set1)
-            print "Removing %s"%set1
+            #print "Removing %s"%set1
             for set2 in suspect_proteins_sets:
                 if set1.intersection(set2) != set():
                     suspect_proteins_sets.remove(set2)
                     intersection_hapened = True
                     set1 = set1.union(set2)
-                    print "Found intersection: %s"%set2
-                    print "New union: %s"%set1
+                    #print "Found intersection: %s"%set2
+                    #print "New union: %s"%set1
                     break
             if intersection_hapened:
                 suspect_proteins_sets.append(set1)
                 break
             else:
-                print "Done: %s"%set1
+                #print "Done: %s"%set1
                 final_sets.append(set1)
-    print final_sets           
+    #print final_sets           
 
                 
     
