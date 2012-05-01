@@ -59,10 +59,10 @@ def main ():
     (protein_keys, gene_keys) = create_suspect_key_dict(get_csv_path())
 
     for key in protein_keys:
-        protein_keys[key].append(pc.get(key))
+        protein_keys[key].append(pc.get(key).ref_protein)
         
     for key in gene_keys:
-        gene_keys[key].append(gc.get(key))
+        gene_keys[key].append(gc.get(key).ref_protein)
    
     suspect_proteins = []
     for key in protein_keys:

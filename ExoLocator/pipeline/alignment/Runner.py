@@ -6,7 +6,7 @@ Created on Apr 20, 2012
 from utilities                  import FileUtilities
 from pipeline.alignment import Alignments
 import sys
-            
+
 def populate_referenced_species_databases(protein_list, referenced_species):
     for protein_id in protein_list:
         if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'FAILED':
