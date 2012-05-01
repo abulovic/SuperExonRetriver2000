@@ -14,6 +14,8 @@ from data_analysis.base.DataMap                     import DataMap
 from data_analysis.base.Protein                     import Protein
 from data_analysis.base.Gene                        import Gene
 from data_analysis.base.Transcript                  import Transcript
+from data_analysis.base.EnsemblExons import EnsemblExons
+from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
 
 
 def load_protein_configuration(protein_id, ref_species_dict = None):
@@ -34,6 +36,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
     protein_container   = ProteinContainer.Instance()
     gene_container      = GeneContainer.Instance()
     transcript_container= TranscriptContainer.Instance()
+    ens_exon_container  = EnsemblExonContainer.Instance()
     
     (known_proteins, abinitio_proteins) = DescriptionParser().parse_description_file_general_info(protein_id)
     
@@ -57,10 +60,18 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
             protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
             gene        = Gene(spec_gene_id, data_map_key, ref_species_dict[species_name])
             transcript  = Transcript(spec_transcript_id, data_map_key, ref_species_dict[species_name])
+            ens_exons   = EnsemblExons(data_map_key, ref_species_dict[species_name])
+            ens_exons.load_exons()
+            
+            print species_name, len(ens_exons.exons)
+            
+            for exon in ens_exons.exons:
+                ens_exon_container.add (exon.exon_id, exon)
             
             protein_container.add(protein.protein_id, protein)
             gene_container.add(gene.gene_id, gene)
             transcript_container.add(transcript.transcript_id, transcript)
+            
         except (KeyError, TypeError), e:
             alignment_logger.warning("{0}, {1}, {2}".format(protein_id, species_name, e.args[0]))
     
