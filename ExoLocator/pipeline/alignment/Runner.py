@@ -5,8 +5,8 @@ Created on Apr 20, 2012
 '''
 from utilities                  import FileUtilities
 from pipeline.alignment import Alignments
+import sys
 
-            
 def populate_referenced_species_databases(protein_list, referenced_species):
     for protein_id in protein_list:
         if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'FAILED':
@@ -105,11 +105,29 @@ def main ():
     for protein_tuple in protein_list_raw:
         protein_list.append(protein_tuple[0])
     
+    if(len(sys.argv) < 1):
+        print "Usage: {0} <blastn | tblastn | SW_gene | SW_exon | all> \n".format(sys.argv[0])
+        exit
+    mode = sys.argv[1]
+    
     populate_referenced_species_databases(protein_list, referenced_species)
-    populate_blastn_alignments(protein_list)
-    populate_tblastn_alignments(protein_list)
-    populate_SW_gene_alignments(protein_list)
-    populate_SW_exon_alignments(protein_list)
+    
+    if (mode == "blastn"):
+        populate_blastn_alignments(protein_list)
+    elif (mode == "tblastn"):
+        populate_tblastn_alignments(protein_list)
+    elif (mode == "SW_gene"):
+        populate_SW_gene_alignments(protein_list)
+    elif (mode == "SW_exon"):
+        populate_SW_exon_alignments(protein_list)
+    elif (mode == "all"):
+        populate_blastn_alignments(protein_list)
+        populate_tblastn_alignments(protein_list)
+        populate_SW_gene_alignments(protein_list)
+        populate_SW_exon_alignments(protein_list)
+    else:
+        print "Usage: {0} <blastn | tblastn | SW_gene | SW_exon | all> \n".format(sys.argv[0])
+        exit
     
 if __name__ == '__main__':
     main()

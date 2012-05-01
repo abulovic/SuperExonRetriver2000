@@ -181,7 +181,9 @@ def reset_action_global(key):
         reset_action(protein, key)
         
 def main():
-    reset_action_global('ENSEMBL_EXON_RETRIEVAL')
+    reset_action_global('REF_SP_DB_FORMATTING')
+    reset_action_global('BLASTN_ALIGNMENT')
+    reset_action_global('TBLASTN_ALIGNMENT')
 
 if __name__ == '__main__':
     main()
