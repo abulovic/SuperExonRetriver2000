@@ -23,5 +23,8 @@ class EnsemblExon(object):
         self.strand = int(strand)
         self.sequence = sequence
         
+    def set_exon_ordinal (self, ordinal):
+        self.ordinal = ordinal
+        
     
         

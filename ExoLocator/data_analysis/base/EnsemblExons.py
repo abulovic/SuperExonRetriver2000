@@ -44,6 +44,18 @@ class EnsemblExons(object):
             exon_list.append(exon)
         fasta.close()
         self.exons = exon_list
+        
+        # assign orinals to exons
+        ordinal = 1
+        if self.exons[0].strand == 1:
+            for exon in sorted (self.exons, key = lambda exon: exon.start ):
+                exon.set_exon_ordinal(ordinal)
+                ordinal += 1
+        else:
+            for exon in sorted (self.exons, key = lambda exon: exon.start, reverse = True):
+                exon.set_exon_ordinal(ordinal)
+                ordinal += 1
+        
         return exon_list
     
     def get_ordered_exons (self):
@@ -77,7 +89,7 @@ if __name__ == '__main__':
     print ee.get_exon_file_path()
     ee.load_exons()
     for exon in ee.get_ordered_exons():
-        print exon.start, exon.stop
+        print exon.start, exon.stop, exon.ordinal
     (cdna_seq, exon_locations) = ee.get_cDNA()
     print exon_locations
     print cdna_seq.seq

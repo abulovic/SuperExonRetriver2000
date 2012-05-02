@@ -26,3 +26,7 @@ class EnsemblExonContainer(object):
         
         self._ensembl_exon_container[exon_id] = exon
         
+    def get(self, exon_id):
+        
+        return self._ensembl_exon_container[exon_id]
+        

@@ -14,8 +14,11 @@ from data_analysis.base.DataMap                     import DataMap
 from data_analysis.base.Protein                     import Protein
 from data_analysis.base.Gene                        import Gene
 from data_analysis.base.Transcript                  import Transcript
-from data_analysis.base.EnsemblExons import EnsemblExons
-from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
+from data_analysis.base.EnsemblExons                import EnsemblExons
+from data_analysis.base.Exons						import Exons
+from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
+from data_analysis.containers.ExonContainer import ExonContainer
+
 
 
 def load_protein_configuration(protein_id, ref_species_dict = None):
@@ -63,8 +66,6 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
             ens_exons   = EnsemblExons(data_map_key, ref_species_dict[species_name])
             ens_exons.load_exons()
             
-            print species_name, len(ens_exons.exons)
-            
             for exon in ens_exons.exons:
                 ens_exon_container.add (exon.exon_id, exon)
             
@@ -99,8 +100,46 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         except (KeyError, TypeError), e:
             alignment_logger.warning("{0}, {1}, {2}".format(protein_id, species_name, e.args[0]))
     return True
+  
+
+def load_exon_configuration2 (ref_protein_id, ref_species_dict=None):
     
+    if not check_status_file(ref_protein_id):
+        return False
     
+    if not ref_species_dict:
+        ref_species_dict = FileUtilities.get_reference_species_dictionary()
+        
+    logger = Logger.Instance()
+    alignment_logger = logger.get_logger('containers')
+    
+    exon_container = ExonContainer.Instance()
+    
+    (known_proteins, abinitio_proteins) = DescriptionParser().parse_description_file_general_info(ref_protein_id)
+    for species_data in known_proteins:
+        (species_name,
+         spec_protein_id,
+         spec_gene_id,
+         spec_transcript_id,
+         location_type,
+         assembly,
+         location_id,
+         seq_begin,
+         seq_end,
+         strand) = species_data
+         
+        ref_species = ref_species_dict[species_name]
+        exons = Exons((ref_protein_id, species_name), ref_species, "blastn")
+        exon_dict = exons.load_exons()
+        if not exon_dict:
+            continue
+        exons.set_reference_exons()
+        
+        data_map_key = [ref_protein_id, species_name]
+        exon_container.add("blastn", data_map_key, exons)
+
+
+
 def load_protein_configuration_batch(protein_id_list):
     '''
     @param protein_id_list: list of protein id's
@@ -110,6 +149,17 @@ def load_protein_configuration_batch(protein_id_list):
     folders_loaded_cnt  = 0
     for protein_id in protein_id_list:
         if load_protein_configuration(protein_id, ref_species_dict) == True:
+            folders_loaded_cnt += 1
+    return folders_loaded_cnt
+
+
+def load_exon_configuration_batch(protein_id_list, ens_exon_container):
+    
+    ref_species_dict = FileUtilities.get_reference_species_dictionary()
+   
+    folders_loaded_cnt  = 0
+    for protein_id in protein_id_list:
+        if load_exon_configuration2(protein_id, ref_species_dict) == True:
             folders_loaded_cnt += 1
     return folders_loaded_cnt
     
@@ -126,18 +176,36 @@ def check_status_file(protein_id):
         return False
     return True
 
+
+
+
 def main ():
     protein_list_raw = FileUtilities.get_protein_list()
     protein_list = []
     for protein_tuple in protein_list_raw:
         protein_list.append(protein_tuple[0])
         
-    print load_protein_configuration_batch(protein_list)
+    ens_exon_container = load_protein_configuration_batch(protein_list)
+    if ens_exon_container:
+        load_exon_configuration_batch (protein_list, ens_exon_container)
     
     dmc = DataMapContainer.Instance()
     pc  = ProteinContainer.Instance()
     gc  = GeneContainer.Instance()
     tc  = TranscriptContainer.Instance()
+    eec = EnsemblExonContainer.Instance()
+    ec  = ExonContainer.Instance()
+    
+    for exons in ec._exon_container.values():
+        print "EXONS...", exons.exon_type, exons.species
+        for exon in exons.alignment_exons.values():
+            for ref_exon_id in exon.reference_exons:
+                al_values = exon.reference_exons[ref_exon_id]
+                print "  EXON ID: ", ref_exon_id
+                for al_value in al_values:
+                    print "\tALIGNMENT: ", al_value["start"], al_value["stop"], "ordinal:",
+                    ref_exon = al_value["ref_exon"]
+                    print ref_exon.ordinal
     
     pass
     
