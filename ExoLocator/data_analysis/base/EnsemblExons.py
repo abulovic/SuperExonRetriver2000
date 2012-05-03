@@ -24,7 +24,7 @@ class EnsemblExons(object):
         self.ref_protein    = data_map_key[0]
         self.species        = data_map_key[1]
         self.ref_species    = ref_species
-        self.exons          = []
+        self.exons          = {}
         
     def get_exon_file_path (self):
         
@@ -38,31 +38,33 @@ class EnsemblExons(object):
         for seq_record in SeqIO.parse(fasta, "fasta", unambiguous_dna):
             (start, stop, transcript_id, exon_id, strand) = seq_record.id.split('|')
             if (int(strand) == 1):
+                self.strand = 1
                 exon = EnsemblExon((self.ref_protein, self.species), exon_id, start, stop, strand, seq_record.seq)
             else:
+                self.strand = -1
                 exon = EnsemblExon((self.ref_protein, self.species), exon_id, stop, start, strand, seq_record.seq)
             exon_list.append(exon)
         fasta.close()
-        self.exons = exon_list
+        self.exons = dict([(exon.exon_id, exon) for exon in exon_list])
         
         # assign orinals to exons
         ordinal = 1
-        if self.exons[0].strand == 1:
-            for exon in sorted (self.exons, key = lambda exon: exon.start ):
+        if self.strand == 1:
+            for exon in sorted (self.exons.values(), key = lambda exon: exon.start ):
                 exon.set_exon_ordinal(ordinal)
                 ordinal += 1
         else:
-            for exon in sorted (self.exons, key = lambda exon: exon.start, reverse = True):
+            for exon in sorted (self.exons.values(), key = lambda exon: exon.start, reverse = True):
                 exon.set_exon_ordinal(ordinal)
                 ordinal += 1
         
         return exon_list
     
     def get_ordered_exons (self):
-        if self.exons[0].strand == 1:
-            return sorted (self.exons, key = lambda exon: exon.start )
+        if self.strand == 1:
+            return sorted (self.exons.values(), key = lambda exon: exon.start )
         else:
-            return sorted (self.exons, key = lambda exon: exon.start, reverse = True)
+            return sorted (self.exons.values(), key = lambda exon: exon.start, reverse = True)
         
     def get_cDNA (self):
         exons = self.get_ordered_exons()

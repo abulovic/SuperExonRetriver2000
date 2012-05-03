@@ -3,8 +3,13 @@ Created on Apr 30, 2012
 
 @author: intern
 '''
-from data_analysis.alignment.parsing.BlastParser import parse_blast_output
-from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
+from data_analysis.alignment.parsing.BlastParser    import parse_blast_output
+from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
+from data_analysis.alignment.parsing.SWParser       import parse_SW_output
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+from Bio.Alphabet.IUPAC import unambiguous_dna
+from Bio import SeqIO
 
 class Exons(object):
     '''
@@ -26,15 +31,30 @@ class Exons(object):
         self.id             = self._generate_id ()
         
     def load_exons (self):
-        exon_dict = parse_blast_output(self.ref_protein, self.species, self.exon_type)
+        if self.exon_type == "blastn" or self.exon_type == "tblastn":
+            exon_dict = parse_blast_output(self.ref_protein, self.species, self.exon_type)
+        elif self.exon_type.lower() == "sw_gene" or self.exon_type.lower() == "sw_exon":
+            exon_dict = parse_SW_output (self.ref_protein, self.species, self.exon_type)
+        else:
+            raise KeyError("No parsing option for exon_type %s" % self.exon_type)
         self.alignment_exons = exon_dict
         return exon_dict
+    
+    def export_to_fasta (self, file_name):
         
-    def set_reference_exons (self):
-        ens_exon_container = EnsemblExonContainer.Instance()
-        for ref_exon_id in self.alignment_exons:
-            if ens_exon_container.get(ref_exon_id):
-                self.alignment_exons[ref_exon_id].set_reference_exon(ens_exon_container.get(ref_exon_id))
+        seq_records = []
+        fasta_file = open(file_name, 'w')
+        
+        for ref_exon_id, al_exons in self.alignment_exons.items():
+            i = 1
+            for al_exon in al_exons:
+                record = SeqRecord(Seq(al_exon.alignment_info["sequence"], unambiguous_dna), 
+                                   id = "%s_%d"%(ref_exon_id, i), 
+                                   description="%d|%d"%(al_exon.alignment_info["query_start"], al_exon.alignment_info["query_end"]))
+                i += 1
+                seq_records.append(record)
+                
+        SeqIO.write(seq_records, fasta_file, "fasta")
             
         
     def _generate_id(self):

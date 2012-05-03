@@ -17,7 +17,10 @@ from data_analysis.base.Transcript                  import Transcript
 from data_analysis.base.EnsemblExons                import EnsemblExons
 from data_analysis.base.Exons						import Exons
 from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
-from data_analysis.containers.ExonContainer import ExonContainer
+from data_analysis.containers.ExonContainer         import ExonContainer
+from data_analysis.base.GenewiseExons               import GenewiseExons
+from data_analysis.analysis.AlignmentStatistics import produce_statistics_for_alignment,\
+    create_protein_statistics
 
 
 
@@ -66,7 +69,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
             ens_exons   = EnsemblExons(data_map_key, ref_species_dict[species_name])
             ens_exons.load_exons()
             
-            for exon in ens_exons.exons:
+            for exon in ens_exons.exons.values():
                 ens_exon_container.add (exon.exon_id, exon)
             
             protein_container.add(protein.protein_id, protein)
@@ -102,7 +105,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
     return True
   
 
-def load_exon_configuration2 (ref_protein_id, ref_species_dict=None):
+def load_exon_configuration (ref_protein_id, ref_species_dict, alignment_type):
     
     if not check_status_file(ref_protein_id):
         return False
@@ -129,14 +132,41 @@ def load_exon_configuration2 (ref_protein_id, ref_species_dict=None):
          strand) = species_data
          
         ref_species = ref_species_dict[species_name]
-        exons = Exons((ref_protein_id, species_name), ref_species, "blastn")
-        exon_dict = exons.load_exons()
-        if not exon_dict:
-            continue
-        exons.set_reference_exons()
+        if alignment_type != "genewise":
+            if alignment_type == "ensembl":
+                exons = EnsemblExons ((ref_protein_id, species_name), ref_species)
+                exon_dict = exons.load_exons()
+            else:
+                exons = Exons((ref_protein_id, species_name), ref_species, alignment_type)
+            exon_dict = exons.load_exons()
+            if not exon_dict:
+                continue
         
-        data_map_key = [ref_protein_id, species_name]
-        exon_container.add("blastn", data_map_key, exons)
+            data_map_key = [ref_protein_id, species_name]
+            exon_container.add(alignment_type, data_map_key, exons)
+        
+    for species_data in abinitio_proteins:
+        (species_name,
+         spec_protein_id,
+         location_type,
+         assembly,
+         location_id,
+         seq_begin,
+         seq_end,
+         strand) = species_data
+         
+        ref_species = ref_species_dict [species_name]
+        if alignment_type != "ensembl":
+            if alignment_type == "genewise":
+                exons = GenewiseExons ((ref_protein_id, species_name), ref_species)
+            else:
+                exons = Exons((ref_protein_id, species_name), ref_species, alignment_type)
+            exon_dict = exons.load_exons()
+            if not exon_dict:
+                continue
+        
+            data_map_key = [ref_protein_id, species_name]
+            exon_container.add(alignment_type, data_map_key, exons)
 
 
 
@@ -153,13 +183,14 @@ def load_protein_configuration_batch(protein_id_list):
     return folders_loaded_cnt
 
 
-def load_exon_configuration_batch(protein_id_list, ens_exon_container):
+def load_exon_configuration_batch(protein_id_list, alignment_type):
     
     ref_species_dict = FileUtilities.get_reference_species_dictionary()
+    ens_exon_container = EnsemblExonContainer.Instance()
    
     folders_loaded_cnt  = 0
     for protein_id in protein_id_list:
-        if load_exon_configuration2(protein_id, ref_species_dict) == True:
+        if load_exon_configuration(protein_id, ref_species_dict, alignment_type) == True:
             folders_loaded_cnt += 1
     return folders_loaded_cnt
     
@@ -187,7 +218,12 @@ def main ():
         
     ens_exon_container = load_protein_configuration_batch(protein_list)
     if ens_exon_container:
-        load_exon_configuration_batch (protein_list, ens_exon_container)
+        load_exon_configuration_batch (protein_list, "blastn")
+        load_exon_configuration_batch(protein_list, "tblastn")
+        load_exon_configuration_batch(protein_list, "sw_gene")
+        load_exon_configuration_batch(protein_list, "sw_exon")
+        load_exon_configuration_batch(protein_list, "ensembl")
+        load_exon_configuration_batch(protein_list, "genewise")
     
     dmc = DataMapContainer.Instance()
     pc  = ProteinContainer.Instance()
@@ -196,18 +232,11 @@ def main ():
     eec = EnsemblExonContainer.Instance()
     ec  = ExonContainer.Instance()
     
-    for exons in ec._exon_container.values():
-        print "EXONS...", exons.exon_type, exons.species
-        for exon in exons.alignment_exons.values():
-            for ref_exon_id in exon.reference_exons:
-                al_values = exon.reference_exons[ref_exon_id]
-                print "  EXON ID: ", ref_exon_id
-                for al_value in al_values:
-                    print "\tALIGNMENT: ", al_value["start"], al_value["stop"], "ordinal:",
-                    ref_exon = al_value["ref_exon"]
-                    print ref_exon.ordinal
-    
-    pass
-    
+    exon_key = ("ENSP00000341765", "Sorex_araneus", "sw_gene")
+    exons = ec.get(exon_key)
+    exons.export_to_fasta("/home/intern/test_fasta.fa")
+    create_protein_statistics("ENSP00000341765", "/home/intern/test_stats.csv")
+
+
 if __name__ == '__main__':
     main()
