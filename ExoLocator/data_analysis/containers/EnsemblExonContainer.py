@@ -27,6 +27,8 @@ class EnsemblExonContainer(object):
         self._ensembl_exon_container[exon_id] = exon
         
     def get(self, exon_id):
-        
-        return self._ensembl_exon_container[exon_id]
+        try:
+            return self._ensembl_exon_container[exon_id]
+        except KeyError:
+            raise KeyError("No ensembl exon id in container: %s" % exon_id)
         

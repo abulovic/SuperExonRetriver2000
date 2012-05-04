@@ -36,7 +36,7 @@ def parse_blast_output (ref_protein_id, species, blast):
     blastn_record = NCBIXML.read(file_handle)
     
     exon_dict = {}
-    exon_pattern = re.compile("(\d+)\|(\d+)\|(ENS\w+)\|(ENS\w+)\|([+-]1)")
+    exon_pattern = re.compile("(\d+)\|(\d+)\|(ENS\w+)\|(ENS\w+)\|([-]*1)")
     
     for alignment in blastn_record.alignments:
         (blast_info, exon_info) = alignment.title.split()

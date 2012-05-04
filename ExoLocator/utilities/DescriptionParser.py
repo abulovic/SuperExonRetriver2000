@@ -55,7 +55,7 @@ class DescriptionParser:
         Parses the description file for the protein_id, and retrieves the list of species for which has reciprocal best search
         found a valid protein.
         @param protein_id: protein_id for which protein ids of other species should be retrieved
-        @return: species_list - found by RBS
+        @return: species_list - found by RBH
         '''
         (proteins_known, proteins_abinitio) = self.parse_descr_file(protein_id)
         
@@ -63,6 +63,21 @@ class DescriptionParser:
         species_list.extend(proteins_abinitio.keys())
             
         return sorted(species_list)
+    
+    def get_strand_information (self, protein_id):
+        '''
+        Parses the description file for the protein_id and retrieves list of appropriate strands on which the proteins found by
+        RBH are found.
+        @param protein_id: protein_id for which protein ids of other species should be retrieved
+        @return: strands: dictionary (species:strand) - found by RBH
+        '''
+        strands = {}
+        (proteins_known, proteins_abinitio) = self.parse_descr_file(protein_id)
+        for species, (spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand) in proteins_known.items():
+            strands[species] = int(strand)
+        for species, (spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand) in proteins_abinitio.items():
+            strands[species] = int(strand)     
+        return strands
 
     def parse_descr_file(self, protein_id):
         '''

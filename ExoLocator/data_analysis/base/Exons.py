@@ -37,8 +37,33 @@ class Exons(object):
             exon_dict = parse_SW_output (self.ref_protein, self.species, self.exon_type)
         else:
             raise KeyError("No parsing option for exon_type %s" % self.exon_type)
-        self.alignment_exons = exon_dict
+        if not exon_dict:
+            self.alignment_exons = None
+        else:
+            self.alignment_exons = exon_dict
         return exon_dict
+    
+    def set_exon_ordinals (self):
+        '''
+        Assign ordinals to alignment exons.
+        This serves as an aid to correct ordering of exons and the 
+        discarding of false positives later employed by the
+        AlignmentStatistics
+        '''
+        ensembl_container = EnsemblExonContainer.Instance()
+        for ref_exon_id, al_exons in self.alignment_exons.items():
+            ref_exon = ensembl_container.get(ref_exon_id)
+            # see how many alignment exons are there, and then give them foating ordinals
+            num_of_exons = len(al_exons)
+            if num_of_exons == 1:
+                al_exons[0].set_ordinal(ref_exon.ordinal)
+            else:
+                tmp_ordinal = ref_exon.ordinal
+                for al_exon in sorted(al_exons, key = lambda al_exon : al_exon.alignment_info["query_start"]):
+                    al_exon.set_ordinal(tmp_ordinal)
+                    tmp_ordinal = float(tmp_ordinal) + 1./num_of_exons
+            
+        pass
     
     def export_to_fasta (self, file_name):
         

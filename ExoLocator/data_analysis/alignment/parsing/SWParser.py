@@ -35,7 +35,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     parsing_query_seq = True
     
     # patterns for matching
-    header_pattern      = re.compile ("Name: >(\d+)\|(\d+)\|(ENS\w+)\|(ENS\w+)\|([+-]1)")
+    header_pattern      = re.compile ("Name: >(\d+)\|(\d+)\|(ENS\w+)\|(ENS\w+)\|([-]*1)")
     #Intervals: 1207047 1207087 30 69 (+) strand 
     intervals_pattern   = re.compile ("Intervals:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+\([+-]\)\s+strand")
     #Identity: 31/41 (75.6%)
@@ -62,7 +62,6 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     
     for line in swout_file.readlines():
         line = line.strip()
-        
         header_match = re.match(header_pattern, line)
         if header_match:
             #create new exon and start a new one
@@ -88,7 +87,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
             
         intervals_match = re.match (intervals_pattern, line)
         if intervals_match:
-            (sbjct_start, sbjct_end, query_start, query_end) = intervals_match.groups()
+            (query_start, query_end, sbjct_start, sbjct_end) = intervals_match.groups()
             
         identity_match = re.match (identity_pattern, line)
         if identity_match:
@@ -109,13 +108,30 @@ def parse_SW_output (ref_protein_id, species, sw_type):
                 parsing_query_seq = False
             else:
                 parsing_query_seq = True
+                
+    exon.set_alignment_info(int(identities), 
+                            int(positives), 
+                            int(gaps), 
+                            int(sbjct_start), 
+                            int(sbjct_end), 
+                            int(query_start), 
+                            int(query_end), 
+                            int(length), 
+                            sequence)
+    if sequence:
+        if ref_exon_id in exon_dict:
+            exon_dict[ref_exon_id].append(exon)
+        else:
+            exon_dict[ref_exon_id] = [exon]
+                
+                
     return exon_dict
     
     
     
     
 if __name__ == '__main__':
-    exon_dict = parse_SW_output ("ENSP00000341765", "Ailuropoda_melanoleuca", "sw_gene")
+    exon_dict = parse_SW_output ("ENSP00000311134", "Ailuropoda_melanoleuca", "sw_gene")
     for ref_exon_id, exon_list in exon_dict.items():
         print ref_exon_id
         for al_exon in exon_list:

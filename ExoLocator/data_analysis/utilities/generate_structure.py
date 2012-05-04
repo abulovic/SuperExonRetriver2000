@@ -20,7 +20,7 @@ from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
 from data_analysis.containers.ExonContainer         import ExonContainer
 from data_analysis.base.GenewiseExons               import GenewiseExons
 from data_analysis.analysis.AlignmentStatistics import produce_statistics_for_alignment,\
-    create_protein_statistics
+    create_protein_statistics, remove_spurious_alignments
 
 
 
@@ -142,6 +142,8 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, alignment_type):
             if not exon_dict:
                 continue
         
+            if (alignment_type != "ensembl"):
+                exons.set_exon_ordinals()
             data_map_key = [ref_protein_id, species_name]
             exon_container.add(alignment_type, data_map_key, exons)
         
@@ -164,7 +166,9 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, alignment_type):
             exon_dict = exons.load_exons()
             if not exon_dict:
                 continue
-        
+            
+            if alignment_type != "genewise":
+                exons.set_exon_ordinals()
             data_map_key = [ref_protein_id, species_name]
             exon_container.add(alignment_type, data_map_key, exons)
 
@@ -218,12 +222,14 @@ def main ():
         
     ens_exon_container = load_protein_configuration_batch(protein_list)
     if ens_exon_container:
+        
+        load_exon_configuration_batch(protein_list, "ensembl")
+        load_exon_configuration_batch(protein_list, "genewise")
         load_exon_configuration_batch (protein_list, "blastn")
         load_exon_configuration_batch(protein_list, "tblastn")
         load_exon_configuration_batch(protein_list, "sw_gene")
         load_exon_configuration_batch(protein_list, "sw_exon")
-        load_exon_configuration_batch(protein_list, "ensembl")
-        load_exon_configuration_batch(protein_list, "genewise")
+        
     
     dmc = DataMapContainer.Instance()
     pc  = ProteinContainer.Instance()
@@ -232,10 +238,20 @@ def main ():
     eec = EnsemblExonContainer.Instance()
     ec  = ExonContainer.Instance()
     
-    exon_key = ("ENSP00000341765", "Sorex_araneus", "sw_gene")
-    exons = ec.get(exon_key)
-    exons.export_to_fasta("/home/intern/test_fasta.fa")
-    create_protein_statistics("ENSP00000341765", "/home/intern/test_stats.csv")
+    #exon_key = ("ENSP00000341765", "Sorex_araneus", "sw_gene")
+    #exons = ec.get(exon_key)
+    #exons.export_to_fasta("/home/intern/test_fasta.fa")
+    #create_protein_statistics("ENSP00000311134", "/home/intern/test_stats2.csv")
+    
+    exons = ec.get(("ENSP00000311134", "Ailuropoda_melanoleuca", "blastn"))
+    '''
+    for al_exons in exons.alignment_exons.values():
+        print "len", len(al_exons)
+        for al_exon in al_exons:
+            print al_exon.ordinal, al_exon.alignment_info["query_start"]
+            '''
+            
+    remove_spurious_alignments(("ENSP00000311134", "Sus_scrofa"), "blastn")
 
 
 if __name__ == '__main__':
