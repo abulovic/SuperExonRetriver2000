@@ -11,6 +11,9 @@ from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 
 from subprocess import Popen, PIPE, STDOUT
 import shutil
+from Bio import SeqIO, Alphabet
+from Bio.Alphabet.IUPAC import unambiguous_dna
+from utilities.Logger import Logger
 
 def get_project_root_dir ():
     '''
@@ -179,6 +182,33 @@ def reset_action_global(key):
         
     for protein in protein_list:
         reset_action(protein, key)
+        
+def load_fasta_single_record(file_path, sequence_type):
+    
+    logger = Logger.Instance()
+    data_loading_logger = logger.get_logger("data_loading")
+    
+    try:
+        fasta_file = open(file_path, 'r')
+    except IOError:
+        data_loading_logger.error("")
+        return None
+    
+    seq_record = SeqIO.read(fasta_file, "fasta")  
+    return seq_record
+
+def check_status_file(protein_id):
+    try:
+        status_file_keys = get_status_file_keys()
+        protein_status  = read_status_file(protein_id)
+        for key in status_file_keys:
+            if protein_status[key] == 'FAILED':
+                print "{0}: Loading protein data failed due to .status file!".format(protein_id)
+                return False
+    except KeyError:
+        print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
+        return False
+    return True
         
 def main():
     reset_action_global('REF_SP_DB_FORMATTING')

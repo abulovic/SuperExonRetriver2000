@@ -4,6 +4,7 @@ Created on Apr 25, 2012
 @author: marioot
 '''
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities import FileUtilities
 
 class Protein(object):
     '''
@@ -23,6 +24,18 @@ class Protein(object):
         
     def get_protein_file_path(self):
         return "{0}/{1}.fa".format(DirectoryCrawler().get_protein_path(self.ref_protein), self.species)
+    
+    def get_sequence_record (self):
+        '''
+        Tries to get the 'sequence' attribute.
+        If there is no such attribute, generate it by loading the appropriate fasta file.
+        '''
+        try:
+            return self.sequence
+        except AttributeError:
+            self.sequence = FileUtilities.load_fasta_single_record(self.get_protein_file_path(), "protein")
+            
+        return self.sequence
     
     
 def main ():

@@ -81,6 +81,17 @@ class Exons(object):
                 
         SeqIO.write(seq_records, fasta_file, "fasta")
             
+    
+    def get_flattened_exons (self):
+        '''
+        Creates a list with elements of type Exon, not of list containing possibly
+        multiple Exons as is the case with alignment_exons attribute
+        '''      
+        exon_list = []
+        for al_exons in self.alignment_exons:
+            exon_list.extend(al_exons)
+            
+        return exon_list
         
     def _generate_id(self):
         (spec1, spec2) = self.species.split("_")

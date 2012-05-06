@@ -10,6 +10,7 @@ from Bio import SeqIO
 from Bio.Alphabet.IUPAC import unambiguous_dna
 from data_analysis.base.EnsemblExon import EnsemblExon
 from Bio.SeqRecord import SeqRecord
+from utilities.Logger import Logger
 
 class EnsemblExons(object):
     '''
@@ -32,8 +33,17 @@ class EnsemblExons(object):
         return "{0}/{1}.fa".format(dc.get_exon_ensembl_path(self.ref_protein), self.species)
     
     def load_exons (self):
+        
+        logger = Logger.Instance()
+        containers_logger = logger.get_logger('containers')
+        
         fasta_path = self.get_exon_file_path()
-        fasta = open(fasta_path, 'r')
+        try:
+            fasta = open(fasta_path, 'r')
+        except IOError:
+            containers_logger.error("%s,%s,%s" % (self.ref_protein, self.species, "Loading ensembl exons failed."))
+            return None
+         
         exon_list = []
         for seq_record in SeqIO.parse(fasta, "fasta", unambiguous_dna):
             (start, stop, transcript_id, exon_id, strand) = seq_record.id.split('|')
@@ -59,7 +69,7 @@ class EnsemblExons(object):
                 ordinal += 1
         
         return exon_list
-    
+        
     def get_ordered_exons (self):
         if self.strand == 1:
             return sorted (self.exons.values(), key = lambda exon: exon.start )

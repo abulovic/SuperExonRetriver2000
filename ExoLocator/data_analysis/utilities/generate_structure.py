@@ -19,8 +19,13 @@ from data_analysis.base.Exons						import Exons
 from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
 from data_analysis.containers.ExonContainer         import ExonContainer
 from data_analysis.base.GenewiseExons               import GenewiseExons
-from data_analysis.analysis.AlignmentStatistics import produce_statistics_for_alignment,\
-    create_protein_statistics, remove_spurious_alignments
+from data_analysis.analysis.AlignmentStatistics     import create_protein_statistics,\
+    produce_statistics_for_alignment
+from data_analysis.analysis.TranscriptionMachinery import transcribe_aligned_exons
+from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch
+from utilities.FileUtilities import check_status_file
+from utilities.ConfigurationReader import ConfigurationReader
 
 
 
@@ -198,23 +203,15 @@ def load_exon_configuration_batch(protein_id_list, alignment_type):
             folders_loaded_cnt += 1
     return folders_loaded_cnt
     
-def check_status_file(protein_id):
-    try:
-        status_file_keys = FileUtilities.get_status_file_keys()
-        protein_status  = FileUtilities.read_status_file(protein_id)
-        for key in status_file_keys:
-            if protein_status[key] == 'FAILED':
-                print "{0}: Loading protein data failed due to .status file!".format(protein_id)
-                return False
-    except KeyError:
-        print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
-        return False
-    return True
+
 
 
 
 
 def main ():
+    
+    cr = ConfigurationReader.Instance()
+    
     protein_list_raw = FileUtilities.get_protein_list()
     protein_list = []
     for protein_tuple in protein_list_raw:
@@ -230,6 +227,11 @@ def main ():
         load_exon_configuration_batch(protein_list, "sw_gene")
         load_exon_configuration_batch(protein_list, "sw_exon")
         
+    algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
+    annotate_spurious_alignments_batch(protein_list, algorithms)
+    #transcribe_aligned_exons (protein_list, algorithms)
+    
+        
     
     dmc = DataMapContainer.Instance()
     pc  = ProteinContainer.Instance()
@@ -238,21 +240,13 @@ def main ():
     eec = EnsemblExonContainer.Instance()
     ec  = ExonContainer.Instance()
     
-    #exon_key = ("ENSP00000341765", "Sorex_araneus", "sw_gene")
-    #exons = ec.get(exon_key)
-    #exons.export_to_fasta("/home/intern/test_fasta.fa")
-    #create_protein_statistics("ENSP00000311134", "/home/intern/test_stats2.csv")
-    
-    exons = ec.get(("ENSP00000311134", "Ailuropoda_melanoleuca", "blastn"))
+    produce_statistics_for_alignment( ("ENSP00000365108", "Homo_sapiens"), "sw_exon")    
     '''
-    for al_exons in exons.alignment_exons.values():
-        print "len", len(al_exons)
-        for al_exon in al_exons:
-            print al_exon.ordinal, al_exon.alignment_info["query_start"]
+    for protein_id in protein_list:
+        if check_status_file(protein_id):
+            statistics_file_path = "%s/%s/stats.csv" % ( cr.get_value("root", "session_dir"), protein_id)
+            create_protein_statistics(protein_id, statistics_file_path)
             '''
-            
-    remove_spurious_alignments(("ENSP00000311134", "Sus_scrofa"), "blastn")
-
-
+    
 if __name__ == '__main__':
     main()

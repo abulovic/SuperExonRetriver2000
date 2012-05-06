@@ -37,8 +37,12 @@ class GenewiseExons(object):
         if os.path.isfile(exon_file_path):
             container_logger.error ("{0},{1},genewise,no fasta file for genewise exons.".format(self.ref_protein_id, self.species))
             return False
+        try:
+            exon_file = open(exon_file_path, 'r')
+        except IOError:
+            container_logger.error("%s,%s,%s" % (self.ref_protein_id, self.species, "No genewise exon file."))
+            return None
         
-        exon_file = open(exon_file_path, 'r')
         seq_records = SeqIO.parse(exon_file, "fasta", unambiguous_dna)
         
         for seq_record in seq_records:
@@ -48,4 +52,6 @@ class GenewiseExons(object):
             
             exon = GenewiseExon((self.ref_protein_id, self.species), num, start, stop, seq_record.seq)
             self.exons[num] = exon
+            
+        return self.exons
         
