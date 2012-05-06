@@ -131,7 +131,10 @@ def annotate_spurious_alignments(exons_key):
         else:
             for al_exon in alignment_exons.alignment_exons[exon.ref_exon_id]:
                 if al_exon.alignment_info["query_start"] == exon.alignment_info["query_start"]:
-                    al_exon.set_viability(False)
+                    if alignment_type == "sw_exon":
+                        al_exon.set_viability(True)
+                    else:
+                        al_exon.set_viability(False)
                     
                     
 def annotate_spurious_alignments_batch (protein_list, algorithms):
