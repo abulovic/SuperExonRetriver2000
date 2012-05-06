@@ -15,7 +15,7 @@ class Exon(object):
         self.exon_type = exon_type
         self.ref_exon_id = ref_exon_id
         
-    def set_alignment_info (self, identities, positives, gaps, sbjct_start, sbjct_end, query_start, query_end, length, sequence):
+    def set_alignment_info (self, identities, positives, gaps, sbjct_start, sbjct_end, query_start, query_end, length, sbjct_seq, query_seq):
         self.alignment_info = {"identities"  : int(identities), 
                                "positives"   : int(positives), 
                                "gaps"        : int(gaps), 
@@ -24,7 +24,8 @@ class Exon(object):
                                "query_start" : int(query_start),
                                "query_end"   : int(query_end),
                                "length"      : int(length),
-                               "sequence"    : sequence}
+                               "sbjct_seq"   : sbjct_seq,
+                               "query_seq"   : query_seq}
         
     def get_fitness (self):
         '''
