@@ -28,12 +28,16 @@ def parse_blast_output (ref_protein_id, species, blast):
         
     if not os.path.isfile(blast_file):
         containers_logger.error ("{0}, {1}, {2}, no blastout file".format(ref_protein_id, species, blast))
-        return False
+        return None
         
     file_handle = open(blast_file, 'r')
     
     # parse blastn output  
-    blastn_record = NCBIXML.read(file_handle)
+    try:
+        blastn_record = NCBIXML.read(file_handle)
+    except ValueError:
+        containers_logger.error("%s,%s,%s,No hits found" % (ref_protein_id, species, blast))
+        return None
     
     exon_dict = {}
     exon_pattern = re.compile("(\d+)\|(\d+)\|(ENS\w+)\|(ENS\w+)\|([-]*1)")
@@ -42,22 +46,33 @@ def parse_blast_output (ref_protein_id, species, blast):
         (blast_info, exon_info) = alignment.title.split()
         pattern_match = re.match(exon_pattern, exon_info)
         ref_exon_id = pattern_match.groups()[3]
+        
+        # limit alignments to 10 hsps
+        
+        num_of_hsps = 0
+        
         for hsp in alignment.hsps:
+            # limit!
+            if num_of_hsps == 5:
+                break
+            num_of_hsps += 1
+            
             exon = Exon(blast, ref_exon_id)
             if type(hsp.gaps) is int:
                 gaps = hsp.gaps
             elif type(hsp.gaps) is tuple:
                 if not hsp.gaps[0]:
                     gaps = 0
-            exon.set_alignment_info (hsp.identities, 
-                                                  hsp.positives, 
-                                                  gaps, 
-                                                  hsp.sbjct_start, 
-                                                  hsp.sbjct_start + len(hsp.sbjct) -1,
-                                                  hsp.query_start,
-                                                  hsp.query_start + len(hsp.sbjct) -1,
-                                                  len(hsp.sbjct),
-                                                  hsp.sbjct)
+            exon.set_alignment_info ( hsp.identities, 
+                                      hsp.positives, 
+                                      gaps, 
+                                      hsp.sbjct_start, 
+                                      hsp.sbjct_start + len(hsp.sbjct) -1,
+                                      hsp.query_start,
+                                      hsp.query_start + len(hsp.sbjct) -1,
+                                      len(hsp.sbjct),
+                                      hsp.sbjct,
+                                      hsp.query)
             if not ref_exon_id in exon_dict:
                 exon_dict[ref_exon_id] = [exon]
             else:
@@ -69,7 +84,7 @@ def parse_blast_output (ref_protein_id, species, blast):
 
 
 def main():
-    exon_dict = parse_blast_output ("ENSP00000341765", "Ailuropoda_melanoleuca", "blastn")
+    exon_dict = parse_blast_output ("ENSP00000372410", "Monodelphis_domestica", "blastn")
     for (ref_exon_id, exon) in exon_dict.items():
         print ref_exon_id
         print "NUM OF ALIGNMENTS: %d" % len(exon.reference_exons[ref_exon_id])

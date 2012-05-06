@@ -57,7 +57,8 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     query_start     = 0
     query_end       = 0
     length          = 0
-    sequence        = ""
+    query_sequence  = ""
+    sbjct_sequence  = ""
     exon = Exon(sw_type, "")
     
     for line in swout_file.readlines():
@@ -74,7 +75,8 @@ def parse_SW_output (ref_protein_id, species, sw_type):
                                         int(query_start), 
                                         int(query_end), 
                                         int(length), 
-                                        sequence)
+                                        sbjct_sequence,
+                                        query_sequence)
                 if ref_exon_id in exon_dict:
                     exon_dict[ref_exon_id].append(exon)
                 else:
@@ -104,9 +106,10 @@ def parse_SW_output (ref_protein_id, species, sw_type):
         sequence_match = re.match (sequence_pattern, line)
         if sequence_match:
             if parsing_query_seq:
-                sequence += sequence_match.groups()[1].strip()
+                query_sequence += sequence_match.groups()[1].strip()
                 parsing_query_seq = False
             else:
+                sbjct_sequence += sequence_match.groups()[1].strip()
                 parsing_query_seq = True
                 
     exon.set_alignment_info(int(identities), 
@@ -117,8 +120,9 @@ def parse_SW_output (ref_protein_id, species, sw_type):
                             int(query_start), 
                             int(query_end), 
                             int(length), 
-                            sequence)
-    if sequence:
+                            sbjct_sequence,
+                            query_sequence)
+    if query_sequence:
         if ref_exon_id in exon_dict:
             exon_dict[ref_exon_id].append(exon)
         else:
@@ -131,7 +135,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     
     
 if __name__ == '__main__':
-    exon_dict = parse_SW_output ("ENSP00000311134", "Ailuropoda_melanoleuca", "sw_gene")
+    exon_dict = parse_SW_output ("ENSP00000365108", "Homo_sapiens", "sw_exon")
     for ref_exon_id, exon_list in exon_dict.items():
         print ref_exon_id
         for al_exon in exon_list:
