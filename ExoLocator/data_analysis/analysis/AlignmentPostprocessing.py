@@ -147,9 +147,92 @@ def annotate_spurious_alignments_batch (protein_list, algorithms):
         
             for alg in algorithms:
                 
-                print "Annotating spurious alignments for %s, %s, %s" % (protein_id, species, alg)
                 exon_key = (protein_id, species, alg)
                 annotate_spurious_alignments(exon_key)
+                
+
+def remove_overlapping_alignments (exons_key):
+    (ref_protein_id, 
+     species, 
+     alignment_type)            = exons_key
+    printin = False
+    if printin: 
+        print "Removing blastn overlaps (%s,%s,%s)..." % (ref_protein_id, species, alignment_type)
+
+    if not check_status_file(ref_protein_id):
+        return None
+    
+    exon_container              = ExonContainer.Instance()
+    reference_species_dict      = FileUtilities.get_reference_species_dictionary()
+    
+    # load logging utilities
+    logger                      = Logger.Instance()
+    containers_logger           = logger.get_logger("containers")
+    
+    # get the reference exons: (ref_prot_id, ref_species, ensembl)
+    reference_exons     = exon_container.get((ref_protein_id, 
+                                              reference_species_dict[species], 
+                                              "ensembl"))
+    # try to get the exons which are the product of specified alignment
+    try:
+        alignment_exons = exon_container.get(exons_key)
+    except KeyError:
+        containers_logger.error ("{0},{1},{2}".format(ref_protein_id, species, alignment_type))
+        return None
+    
+    for ref_exon_id in alignment_exons.alignment_exons:
+        al_exons = alignment_exons.alignment_exons[ref_exon_id]
+        if printin:
+            print ref_exon_id
+        toplevel_start = 0
+        toplevel_stop = 0
+        #for al_exon in sorted(al_exons, key = lambda al_exon: al_exon.get_fitness(), reverse = True):
+        for al_exon in al_exons:
+            
+            exon_start = al_exon.alignment_info["sbjct_start"]
+            exon_stop = exon_start + al_exon.alignment_info["length"]
+            
+            if not toplevel_start:
+                # if toplevel locations haven't been set, set them
+                toplevel_start = exon_start
+                toplevel_stop = exon_stop
+                toplevel_exon = al_exon
+                al_exon.set_viability(True)
+                if printin:
+                    print "First exon: %d - %d" % (exon_start, exon_stop)
+                
+            elif exon_start < toplevel_start and exon_stop > toplevel_stop:
+                toplevel_exon.set_viability(False)
+                toplevel_exon = al_exon
+                toplevel_start = exon_start
+                toplevel_stop = exon_stop
+                al_exon.set_viability(True)
+                if printin:
+                    print "  New toplevel: %d - %d" % (exon_start, exon_stop)
+                
+            else:
+                # what this wonderful if checks if one of the following cases:
+                # if the exon is contained within the toplevel exon
+                #          |----------------------|
+                #               |------|
+                # or the start is to the left of the toplevel, but they are still overlapping
+                #      |----------|
+                # or the end is to the right of the toplevel, but they are still overlapping
+                #                        |--------------|
+                if (exon_start >=toplevel_start and exon_stop <= toplevel_stop) or \
+                (exon_start <= toplevel_start and (exon_stop >= toplevel_start and exon_stop <= toplevel_stop)) or \
+                ((exon_start >= toplevel_start and exon_start <= toplevel_stop) and exon_stop >= toplevel_stop):
+                    if printin:
+                        print "   Bad exon: %d - %d" % (exon_start, exon_stop)
+                    al_exon.set_viability(False)
+                else:
+                    if exon_start < toplevel_start:
+                        toplevel_start = exon_start
+                    if exon_stop > toplevel_stop:
+                        toplevel_stop = exon_stop
+                    if printin:
+                        print "  Good exon: %d - %d" % (exon_start, exon_stop)
+
             
                     
                     

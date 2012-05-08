@@ -17,6 +17,7 @@ def parse_blast_output (ref_protein_id, species, blast):
     Returns a dictionary. Key is reference species exon_id, and 
     the value is list of corresponding alignments
     '''
+    
     logger              = Logger.Instance()
     containers_logger   = logger.get_logger('containers')
     dc                  = DirectoryCrawler()
@@ -53,6 +54,10 @@ def parse_blast_output (ref_protein_id, species, blast):
         
         for hsp in alignment.hsps:
             # limit!
+            if blast == "blastn":
+                (query_frame, hit_frame) = hsp.frame
+                if query_frame == -1 or hit_frame == -1:
+                    continue 
             if num_of_hsps == 5:
                 break
             num_of_hsps += 1
@@ -84,15 +89,13 @@ def parse_blast_output (ref_protein_id, species, blast):
 
 
 def main():
-    exon_dict = parse_blast_output ("ENSP00000372410", "Monodelphis_domestica", "blastn")
-    for (ref_exon_id, exon) in exon_dict.items():
+    exon_dict = parse_blast_output ("ENSP00000331363", "Callithrix_jacchus", "blastn")
+    for (ref_exon_id, al_exons) in exon_dict.items():
         print ref_exon_id
-        print "NUM OF ALIGNMENTS: %d" % len(exon.reference_exons[ref_exon_id])
-        for alignment_info in exon.reference_exons[ref_exon_id]:
-            print "\tAlignment coord: %d-%d" % (alignment_info["start"], alignment_info["stop"])
-            print "\tAlignment ids:   %d/%d" % (alignment_info["identities"], alignment_info["ref_exon_len"])
-            print "\tAlignment seq:   %s" % alignment_info["sequence"]
-            print
+        for al_exon in al_exons:
+            print al_exon.alignment_info["identities"]
+            print al_exon.alignment_info["length"]
+        
         
 
 if __name__ == '__main__':

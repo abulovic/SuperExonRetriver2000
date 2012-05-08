@@ -9,6 +9,7 @@ from utilities import FileUtilities
 from utilities.DescriptionParser import DescriptionParser
 import csv
 from utilities.Logger import Logger
+from data_analysis.analysis.AlignmentPostprocessing import remove_overlapping_alignments
 
 
 
@@ -26,7 +27,6 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
     (ref_protein_id, species) = exons_key
     
     exon_container          = ExonContainer.Instance()
-    ensembl_exon_containter = EnsemblExonContainer.Instance()
     reference_species_dict  = FileUtilities.get_reference_species_dictionary()
 
     logger = Logger.Instance()
@@ -38,8 +38,8 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
     except KeyError:
         containers_logger.error ("{0},{1},{2}".format(ref_protein_id, species, alignment_type))
         return None
-    print len(alignment_exons.alignment_exons)
     perc_list = []
+    remove_overlapping_alignments((ref_protein_id, species, alignment_type))
     for ref_exon in reference_exons.get_ordered_exons():
         ref_exon_id = ref_exon.exon_id
         if ref_exon_id not in alignment_exons.alignment_exons:
@@ -51,7 +51,10 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
             #print ref_exon_id, "length: %d" % len(ref_exon.sequence)
             for al_exon in al_exons:
                 if al_exon.viability:
-                    internal_stat += float(al_exon.alignment_info["length"] - al_exon.alignment_info["gaps"]) / len(ref_exon.sequence)
+                    internal_stat += float(al_exon.alignment_info["identities"]) / len(ref_exon.sequence)
+                    if internal_stat > 1:
+                        print "Coverage cannot be larger than 1 (%s,%s,%s)" % (ref_protein_id, species, alignment_type)
+                        raise ValueError ("Coverage cannot be larger than 1 (%s,%s,%s)" % (ref_protein_id, species, alignment_type))
                 #print "\t%1.2f" % ( float(al_exon.alignment_info["length"] - al_exon.alignment_info["gaps"]) / len(ref_exon.sequence))
             perc_list.append(internal_stat)
     return perc_list
