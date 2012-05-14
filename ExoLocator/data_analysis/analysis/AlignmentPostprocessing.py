@@ -80,6 +80,8 @@ def annotate_spurious_alignments(exons_key):
      species, 
      alignment_type)            = exons_key
      
+    print "Annotating spurious alignments %s,%s,%s" % (ref_protein_id, species, alignment_type)
+     
 
     if not check_status_file(ref_protein_id):
         return None

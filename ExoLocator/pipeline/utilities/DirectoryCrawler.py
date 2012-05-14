@@ -76,6 +76,7 @@ class DirectoryCrawler(object):
         
         # reference species database absolute path
         self.database_abs       = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.database)
+
         
         # alignment outputs absolute paths
         self.alignment_root_abs = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.alignment_root)
@@ -215,7 +216,7 @@ class DirectoryCrawler(object):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.database)
         else:
             return self.database_abs
-    
+
     def get_misc_path (self, protein_id = None):
         pass
     
@@ -294,6 +295,7 @@ class DirectoryCrawler(object):
         tmp_dir = self.get_genewise_path(working_id) 
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
+
         
     def _generate_absolute_path (self, p_self, p_extern):
         '''

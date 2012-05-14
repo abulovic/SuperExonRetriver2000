@@ -261,8 +261,16 @@ def main ():
     algorithms = ["sw_gene"]        
     for protein_id in protein_list :
         
+        
+        
+        
         if not check_status_file(protein_id):
             continue
+        if exon_number[protein_id] > 15:
+            data_logger.info("%s,%s" % (protein_id, "Number of exons large, skipping for now."))
+            continue
+        stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
+        create_protein_statistics(protein_id, stat_file)
         species_list = DescriptionParser().get_species(protein_id)
         print species_list
         #species_list = ["Cavia_porcellus"]
