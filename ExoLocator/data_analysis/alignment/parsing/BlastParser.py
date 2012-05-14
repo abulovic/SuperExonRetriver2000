@@ -47,6 +47,8 @@ def parse_blast_output (ref_protein_id, species, blast):
         (blast_info, exon_info) = alignment.title.split()
         pattern_match = re.match(exon_pattern, exon_info)
         ref_exon_id = pattern_match.groups()[3]
+        exon_start = int (pattern_match.groups()[0])
+        exon_end = int(pattern_match.groups()[1])
         
         # limit alignments to 10 hsps
         
@@ -82,6 +84,10 @@ def parse_blast_output (ref_protein_id, species, blast):
                 exon_dict[ref_exon_id] = [exon]
             else:
                 exon_dict[ref_exon_id].append(exon)
+                
+            # means we covered the whole exon
+            if len(hsp.sbjct) == abs(exon_end-exon_start)+1 and len(hsp.sbjct) == hsp.identities:
+                break
         
     file_handle.close()
     return exon_dict
