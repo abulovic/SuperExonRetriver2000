@@ -45,7 +45,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     #Gaps: 1/41 (2.4%)
     gaps_pattern        = re.compile ("Gaps:\s+(\d+)/\d+.*")
     # sequence pattern
-    sequence_pattern    = re.compile ("\s*(\d+)\s+([ATCG-]+)\s+(\d+).*")
+    sequence_pattern    = re.compile ("\s*(\d+)\s+([ATCGN-]+)\s+(\d+).*")
     
     exon_dict = {}
     ref_exon_id     = ""
@@ -62,6 +62,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     exon = Exon(sw_type, "")
     
     for line in swout_file.readlines():
+        
         line = line.strip()
         header_match = re.match(header_pattern, line)
         if header_match:
@@ -85,7 +86,9 @@ def parse_SW_output (ref_protein_id, species, sw_type):
             
             ref_exon_id = header_match.groups()[3]
             exon = Exon(sw_type, ref_exon_id)
-            sequence = ""
+            parsing_query_seq = True
+            query_sequence = ""
+            sbjct_sequence = ""
             
         intervals_match = re.match (intervals_pattern, line)
         if intervals_match:
@@ -105,11 +108,12 @@ def parse_SW_output (ref_protein_id, species, sw_type):
             
         sequence_match = re.match (sequence_pattern, line)
         if sequence_match:
+            sequence_to_append = sequence_match.groups()[1].strip()
             if parsing_query_seq:
-                query_sequence += sequence_match.groups()[1].strip()
+                query_sequence += sequence_to_append
                 parsing_query_seq = False
             else:
-                sbjct_sequence += sequence_match.groups()[1].strip()
+                sbjct_sequence += sequence_to_append
                 parsing_query_seq = True
                 
     exon.set_alignment_info(int(identities), 
@@ -135,11 +139,14 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     
     
 if __name__ == '__main__':
-    exon_dict = parse_SW_output ("ENSP00000365108", "Homo_sapiens", "sw_exon")
+    exon_dict = parse_SW_output ("ENSP00000311134", "Ochotona_princeps", "sw_gene")
     for ref_exon_id, exon_list in exon_dict.items():
         print ref_exon_id
         for al_exon in exon_list:
             print "\tSbjct_start:  %d" % al_exon.alignment_info["sbjct_start"]
             print "\tQuery_start:  %d" % al_exon.alignment_info["query_start"]
             print "\tAlign_length: %d" % al_exon.alignment_info["length"]
+            print "\tSbjct seq:    %s" % al_exon.alignment_info["sbjct_seq"]
+            print "\tQuery seq:    %s" % al_exon.alignment_info["query_seq"]
+            
             print

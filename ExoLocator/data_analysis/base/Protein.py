@@ -18,12 +18,12 @@ class Protein(object):
         WARNING: possibility of multiple ref_proteins, this case is not handled!
         '''
         self.protein_id  = protein_id
-        self.ref_protein = data_map_key[0]
+        self.ref_protein_id = data_map_key[0]
         self.species     = data_map_key[1]
         self.ref_species = ref_species
         
     def get_protein_file_path(self):
-        return "{0}/{1}.fa".format(DirectoryCrawler().get_protein_path(self.ref_protein), self.species)
+        return "{0}/{1}.fa".format(DirectoryCrawler().get_protein_path(self.ref_protein_id), self.species)
     
     def get_sequence_record (self):
         '''

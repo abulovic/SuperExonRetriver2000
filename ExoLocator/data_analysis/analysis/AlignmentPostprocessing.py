@@ -79,6 +79,7 @@ def annotate_spurious_alignments(exons_key):
     (ref_protein_id, 
      species, 
      alignment_type)            = exons_key
+     
 
     if not check_status_file(ref_protein_id):
         return None
@@ -134,7 +135,10 @@ def annotate_spurious_alignments(exons_key):
                     if alignment_type == "sw_exon":
                         al_exon.set_viability(True)
                     else:
+                        #print "Exon %f not viable: (%s,%s,%s)" % (al_exon.ordinal, ref_protein_id, species, alignment_type)
                         al_exon.set_viability(False)
+                        
+    exon_container.update(exons_key, alignment_exons)
                     
                     
 def annotate_spurious_alignments_batch (protein_list, algorithms):
@@ -148,8 +152,22 @@ def annotate_spurious_alignments_batch (protein_list, algorithms):
             for alg in algorithms:
                 
                 exon_key = (protein_id, species, alg)
+                #remove_overlapping_alignments(exon_key)
                 annotate_spurious_alignments(exon_key)
                 
+
+def remove_overlapping_alignments_batch (protein_list, algorithms):
+    for protein_id in protein_list :
+        species_list = DescriptionParser().get_species(protein_id)
+        
+        for species in species_list:
+        
+            for alg in algorithms:
+                
+                exon_key = (protein_id, species, alg)
+                #remove_overlapping_alignments(exon_key)
+                remove_overlapping_alignments(exon_key)
+    
 
 def remove_overlapping_alignments (exons_key):
     (ref_protein_id, 
@@ -192,6 +210,11 @@ def remove_overlapping_alignments (exons_key):
             exon_start = al_exon.alignment_info["sbjct_start"]
             exon_stop = exon_start + al_exon.alignment_info["length"]
             
+            if not al_exon.viability:
+                if printin:
+                    print "Exon %d not viable" % al_exon.ordinal
+                continue
+            
             if not toplevel_start:
                 # if toplevel locations haven't been set, set them
                 toplevel_start = exon_start
@@ -232,6 +255,8 @@ def remove_overlapping_alignments (exons_key):
                         toplevel_stop = exon_stop
                     if printin:
                         print "  Good exon: %d - %d" % (exon_start, exon_stop)
+                        
+    exon_container.update(exons_key, alignment_exons)
 
             
                     

@@ -39,6 +39,9 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
         containers_logger.error ("{0},{1},{2}".format(ref_protein_id, species, alignment_type))
         return None
     perc_list = []
+    
+    # TODO
+    
     remove_overlapping_alignments((ref_protein_id, species, alignment_type))
     for ref_exon in reference_exons.get_ordered_exons():
         ref_exon_id = ref_exon.exon_id
@@ -51,10 +54,12 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
             #print ref_exon_id, "length: %d" % len(ref_exon.sequence)
             for al_exon in al_exons:
                 if al_exon.viability:
+                    #print al_exon.alignment_info["sbjct_start"], al_exon.alignment_info["sbjct_end"]
                     internal_stat += float(al_exon.alignment_info["identities"]) / len(ref_exon.sequence)
                     if internal_stat > 1:
                         print "Coverage cannot be larger than 1 (%s,%s,%s)" % (ref_protein_id, species, alignment_type)
-                        raise ValueError ("Coverage cannot be larger than 1 (%s,%s,%s)" % (ref_protein_id, species, alignment_type))
+                        print al_exon.alignment_info["sbjct_start"], len(ref_exon.sequence)
+                        raise ValueError ("Coverage cannot be larger than 1 (%s,%s,%s,%s)" % (ref_protein_id, species, alignment_type,ref_exon_id))
                 #print "\t%1.2f" % ( float(al_exon.alignment_info["length"] - al_exon.alignment_info["gaps"]) / len(ref_exon.sequence))
             perc_list.append(internal_stat)
     return perc_list

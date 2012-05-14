@@ -3,6 +3,7 @@ Created on Apr 26, 2012
 
 @author: marioot
 '''
+import os
 from utilities                                      import FileUtilities
 from utilities.Logger                               import Logger
 from utilities.DescriptionParser                    import DescriptionParser
@@ -19,13 +20,19 @@ from data_analysis.base.Exons						import Exons
 from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
 from data_analysis.containers.ExonContainer         import ExonContainer
 from data_analysis.base.GenewiseExons               import GenewiseExons
-from data_analysis.analysis.AlignmentStatistics     import create_protein_statistics,\
-    produce_statistics_for_alignment
-from data_analysis.analysis.TranscriptionMachinery import transcribe_aligned_exons
+from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch,\
+    annotate_spurious_alignments, remove_overlapping_alignments_batch
+from utilities.FileUtilities                        import check_status_file
+from utilities.ConfigurationReader                  import ConfigurationReader
+from data_analysis.analysis.AlignmentStatistics     import create_protein_statistics
+from data_analysis.analysis.Exon_translation import Exon_translation
+from data_analysis.analysis.TranscriptionMachinery import transcribe_exons,\
+   chop_off_start_utr, chop_off_end_utr
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch
-from utilities.FileUtilities import check_status_file
-from utilities.ConfigurationReader import ConfigurationReader
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
 
 
 
@@ -65,7 +72,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         ab_initio = False
         try:
             data_map_key = (protein_id, species_name)
-            data_map     = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, ab_initio)
+            data_map     = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, strand, seq_begin, seq_end, ab_initio)
             data_map_container.add(data_map_key, data_map)
             
             protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
@@ -98,7 +105,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         
         try:
             data_map_key = (protein_id, species_name)
-            data_map = DataMap(spec_protein_id, "", "", data_map_key, ab_initio)
+            data_map = DataMap(spec_protein_id, "", "", data_map_key, strand, seq_begin, seq_end, ab_initio)
             #TODO: ERR handling!
             data_map_container.add(data_map_key, data_map)
             
@@ -211,11 +218,16 @@ def load_exon_configuration_batch(protein_id_list, alignment_type):
 def main ():
     
     cr = ConfigurationReader.Instance()
+    dc = DirectoryCrawler()
+    acg = AlignmentCommandGenerator()
     
     protein_list_raw = FileUtilities.get_protein_list()
     protein_list = []
+    exon_number = {}
     for protein_tuple in protein_list_raw:
         protein_list.append(protein_tuple[0])
+        exon_number[protein_tuple[0]] = int(protein_tuple[1])
+        dc.generate_directory_tree(protein_tuple[0])
         
     ens_exon_container = load_protein_configuration_batch(protein_list)
     if ens_exon_container:
@@ -229,7 +241,10 @@ def main ():
         
     algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
     annotate_spurious_alignments_batch(protein_list, algorithms)
+    remove_overlapping_alignments_batch(protein_list, algorithms)
+    #annotate_spurious_alignments(("ENSP00000311134", "Sus_scrofa", "sw_gene"))
     #transcribe_aligned_exons (protein_list, algorithms)
+    
     
         
     
@@ -240,13 +255,174 @@ def main ():
     eec = EnsemblExonContainer.Instance()
     ec  = ExonContainer.Instance()
     
-    produce_statistics_for_alignment( ("ENSP00000365108", "Homo_sapiens"), "sw_exon")    
+
+            
+           
+    #data_map = dmc.get(("ENSP00000340983", "Ailuropoda_melanoleuca"))
     '''
-    for protein_id in protein_list:
-        if check_status_file(protein_id):
-            statistics_file_path = "%s/%s/stats.csv" % ( cr.get_value("root", "session_dir"), protein_id)
-            create_protein_statistics(protein_id, statistics_file_path)
-            '''
+    exons = ec.get(exon_key)
+    exons_for_transcription = []
+    for al_exon in exons.get_ordered_exons():
+        al_exon = al_exon[0]
+        ref_exon = eec.get(al_exon.ref_exon_id)
+        trans_exon = Exon_translation(al_exon.ordinal, 
+                                      ref_exon.length, 
+                                      al_exon.alignment_info["query_seq"], 
+                                      al_exon.alignment_info["sbjct_seq"])
+        trans_exon.set_intervals(al_exon.alignment_info["query_start"], 
+                                 al_exon.alignment_info["query_end"], 
+                                 al_exon.alignment_info["sbjct_start"], 
+                                 al_exon.alignment_info["sbjct_end"])
+        trans_exon.set_identity(al_exon.alignment_info["identities"], al_exon.alignment_info["length"])
+        trans_exon.set_viablity(al_exon.viability)
+        print "TRANS", trans_exon.id, trans_exon.viability
+        if trans_exon.id == exon_number [prot_id] and trans_exon.viability:
+            print "LAST EXON!!!!"
+            trans_exon = chop_off_end_utr (al_exon.ref_exon_id, trans_exon, target_prot_seq)
+            #print "target:", trans_exon.target
+            #print "query:", trans_exon.query
+        if trans_exon.id == 1 and trans_exon.viability:
+            trans_exon = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq)
+            #print trans_exon.target.replace("-", "")
+            #print trans_exon.query.replace("-","")
+        
+        exons_for_transcription.append(trans_exon)
+        
+        
+        
+    
+    print "Target prot:", target_prot_seq
+    resulting_protein_seq = transcribe_exons(exons_for_transcription, target_prot_seq)
+    print "Query prot: ", resulting_protein_seq       
+            
+    
+    #exon_key =   ("ENSP00000340983","Ailuropoda_melanoleuca","sw_gene")      
+    #remove_overlapping_alignments(exon_key)
+    
+    '''
+    algorithms = ["sw_gene"]        
+    for protein_id in protein_list :
+        
+        if not check_status_file(protein_id):
+            continue
+        species_list = DescriptionParser().get_species(protein_id)
+        print species_list
+        #species_list = ["Cavia_porcellus"]
+        #species_list = ["Homo_sapiens"]
+        for species in species_list:
+            
+            for alg in algorithms:
+                
+                exon_key = (protein_id, species, alg)
+                target_prot = pc.get(protein_id)
+                target_prot_seq = target_prot.get_sequence_record().seq
+                
+                print protein_id, species
+                
+                try:
+                    exons = ec.get(exon_key)
+                except KeyError:
+                    print "NONONO"
+                    continue
+                exons_for_transcription = []
+                
+                test_next_exon = False
+                coding_dna_started = False
+                last_exon = False
+                for al_exon in exons.get_ordered_exons():
+                    al_exon = al_exon[0]
+                    ref_exon = eec.get(al_exon.ref_exon_id)
+                    trans_exon = Exon_translation(al_exon.ordinal, 
+                                                  ref_exon.length, 
+                                                  al_exon.alignment_info["query_seq"], 
+                                                  al_exon.alignment_info["sbjct_seq"])
+                    trans_exon.set_intervals(al_exon.alignment_info["query_start"], 
+                                             al_exon.alignment_info["query_end"], 
+                                             al_exon.alignment_info["sbjct_start"], 
+                                             al_exon.alignment_info["sbjct_end"])
+                    trans_exon.set_identity(al_exon.alignment_info["identities"], al_exon.alignment_info["length"])
+                    trans_exon.set_viablity(al_exon.viability)
+                    
+                    # if the first exon was not viable, there is still
+                    # a chance that the whole exon does not get translated
+                    # so try the next one
+                    '''
+                    if trans_exon.id == 1 and not trans_exon.viability:
+                        test_next_exon = True
+                    
+                    if trans_exon.id == 1 and trans_exon.viability:
+                        trans_exon = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number[protein_id])
+                        # if it's marked as not viable, there is a chance
+                        # that the next exon has a UTR
+                        if not trans_exon.viability:
+                            test_next_exon = True
+                            coding_dna_started = False
+                        else:
+                            coding_dna_started = True
+                            test_next_exon = False
+                    
+                    # if there is only one exon, no need to do the 
+                    # first chopping off again, just proceed to the 
+                    # last UTR chop off      
+                      
+                    if exon_number[protein_id] != 1:
+                    
+                        if test_next_exon and trans_exon.viability and trans_exon.id != 1:
+                            trans_exon = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number[protein_id])
+                            
+                            if not trans_exon.viability:
+                                test_next_exon = True
+                            else:
+                                test_next_exon = False
+                    
+                    if coding_dna_started:
+                        trans_exon = chop_off_end_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq) 
+                    
+                       
+                    if trans_exon.id == exon_number [protein_id] and trans_exon.viability:
+                        #print "LAST EXON!!!!"
+                        trans_exon = chop_off_end_utr (al_exon.ref_exon_id, trans_exon, target_prot_seq)
+                        #print "target:", trans_exon.target
+                        #print "query:", trans_exon.query
+                    '''   
+                    if last_exon:
+                        trans_exon.viability = False
+                        
+                    if trans_exon.viability:
+                        (trans_exon, last_exon) = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number[protein_id])
+                        trans_exon = chop_off_end_utr (al_exon.ref_exon_id, trans_exon, target_prot_seq)
+                    
+                    exons_for_transcription.append(trans_exon)
+                    
+                    
+                sequences_for_fasta = [target_prot.get_sequence_record()]    
+                    
+                
+                print "Target prot:", target_prot_seq
+                resulting_protein_seq = transcribe_exons(exons_for_transcription, target_prot_seq)
+                print "Query prot: ", resulting_protein_seq
+                seq_to_write = SeqRecord(Seq(resulting_protein_seq), species, description = "")
+                fasta = "%s/%s.fa" % (dc.get_assembled_protein_path(protein_id), species)
+                fasta_file = open(fasta, "w")
+                SeqIO.write(seq_to_write, fasta_file, "fasta")
+                fasta_file.close()
+                data_map = dmc.get((protein_id, species))
+                species_protein = pc.get(data_map.protein_id)
+                print "Ensem prot: ", species_protein.get_sequence_record().seq, "\n"
+                
+                sequences_for_fasta.append(seq_to_write)
+                ensembl_protein = species_protein.get_sequence_record()
+                sequences_for_fasta.append(ensembl_protein)
+                
+                msa_fasta = "%s/%s.fa" % (dc.get_mafft_path(protein_id), species)
+                msa_afa = "%s/%s.afa" % (dc.get_mafft_path(protein_id), species)
+                msa_fasta_file = open(msa_fasta, "w")
+                SeqIO.write(sequences_for_fasta, msa_fasta_file, "fasta")
+                msa_fasta_file.close()
+                
+                mafft_cmd = acg.generate_mafft_command(msa_fasta, msa_afa)
+                os.system(mafft_cmd)
+    
     
 if __name__ == '__main__':
     main()

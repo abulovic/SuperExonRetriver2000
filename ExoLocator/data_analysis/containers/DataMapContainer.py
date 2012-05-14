@@ -3,8 +3,8 @@ Created on Apr 26, 2012
 
 @author: marioot
 '''
-from utilities.ConfigurationReader import Singleton
-from data_analysis.base.DataMap import DataMap
+from utilities.ConfigurationReader  import Singleton
+from data_analysis.base.DataMap     import DataMap
 
 @Singleton
 class DataMapContainer(object):

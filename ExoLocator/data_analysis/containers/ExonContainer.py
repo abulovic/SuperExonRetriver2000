@@ -31,3 +31,6 @@ class ExonContainer(object):
         
     def get(self, exon_key):
         return self._exon_container[exon_key]
+    
+    def update (self, exon_key, exons):
+        self._exon_container[exon_key] = exons

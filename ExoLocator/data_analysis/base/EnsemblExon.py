@@ -8,8 +8,7 @@ class EnsemblExon(object):
     '''
     classdocs
     '''
-
-
+    
     def __init__(self, data_map_key, exon_id, start, stop, strand, sequence):
         '''
         Constructor
@@ -25,6 +24,9 @@ class EnsemblExon(object):
         
     def set_exon_ordinal (self, ordinal):
         self.ordinal = ordinal
+        
+    def set_frame (self, frame):
+        self.frame = frame
         
     
         

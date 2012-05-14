@@ -15,15 +15,15 @@ class Gene(object):
         Constructor
         '''
         self.gene_id     = gene_id
-        self.ref_protein = data_map_key[0]
+        self.ref_protein_id = data_map_key[0]
         self.species     = data_map_key[1]
         self.ref_species = ref_species
         
     def get_expanded_gene_file_path(self):
-        return "{0}/{1}.fa".format(DirectoryCrawler().get_expanded_gene_path(self.ref_protein), self.species)
+        return "{0}/{1}.fa".format(DirectoryCrawler().get_expanded_gene_path(self.ref_protein_id), self.species)
     
     def get_gene_file_path(self):
-        return "{0}/{1}.fa".format(DirectoryCrawler().get_gene_path(self.ref_protein), self.species)
+        return "{0}/{1}.fa".format(DirectoryCrawler().get_gene_path(self.ref_protein_id), self.species)
     
     def get_sequence_record (self, gene_type):
         '''

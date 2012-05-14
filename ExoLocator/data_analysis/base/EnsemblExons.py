@@ -11,6 +11,7 @@ from Bio.Alphabet.IUPAC import unambiguous_dna
 from data_analysis.base.EnsemblExon import EnsemblExon
 from Bio.SeqRecord import SeqRecord
 from utilities.Logger import Logger
+from data_analysis.containers.DataMapContainer import DataMapContainer
 
 class EnsemblExons(object):
     '''
@@ -22,7 +23,7 @@ class EnsemblExons(object):
         '''
         Constructor
         '''
-        self.ref_protein    = data_map_key[0]
+        self.ref_protein_id    = data_map_key[0]
         self.species        = data_map_key[1]
         self.ref_species    = ref_species
         self.exons          = {}
@@ -30,18 +31,22 @@ class EnsemblExons(object):
     def get_exon_file_path (self):
         
         dc = DirectoryCrawler()
-        return "{0}/{1}.fa".format(dc.get_exon_ensembl_path(self.ref_protein), self.species)
+        return "{0}/{1}.fa".format(dc.get_exon_ensembl_path(self.ref_protein_id), self.species)
     
     def load_exons (self):
         
+        data_map_container = DataMapContainer.Instance()
         logger = Logger.Instance()
         containers_logger = logger.get_logger('containers')
+        
+        data_map = data_map_container.get((self.ref_protein_id, self.species))
+        self.strand = data_map.strand
         
         fasta_path = self.get_exon_file_path()
         try:
             fasta = open(fasta_path, 'r')
         except IOError:
-            containers_logger.error("%s,%s,%s" % (self.ref_protein, self.species, "Loading ensembl exons failed."))
+            containers_logger.error("%s,%s,%s" % (self.ref_protein_id, self.species, "Loading ensembl exons failed."))
             return None
          
         exon_list = []
@@ -49,10 +54,10 @@ class EnsemblExons(object):
             (start, stop, transcript_id, exon_id, strand) = seq_record.id.split('|')
             if (int(strand) == 1):
                 self.strand = 1
-                exon = EnsemblExon((self.ref_protein, self.species), exon_id, start, stop, strand, seq_record.seq)
+                exon = EnsemblExon((self.ref_protein_id, self.species), exon_id, start, stop, strand, seq_record.seq)
             else:
                 self.strand = -1
-                exon = EnsemblExon((self.ref_protein, self.species), exon_id, stop, start, strand, seq_record.seq)
+                exon = EnsemblExon((self.ref_protein_id, self.species), exon_id, stop, start, strand, seq_record.seq)
             exon_list.append(exon)
         fasta.close()
         self.exons = dict([(exon.exon_id, exon) for exon in exon_list])

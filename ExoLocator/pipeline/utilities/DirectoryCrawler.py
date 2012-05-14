@@ -30,6 +30,7 @@ class DirectoryCrawler(object):
         self.protein        = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'protein'))
         self.exon_ensembl   = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exon_ens'))
         self.exon_genewise  = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'exon_wise'))
+        self.assembled_protein = "%s/%s" % (self.sequence_root, config_reader.get_value('sequence', 'assembled_protein'))
         
         # reference species database
         self.database       = "%s/%s" % (self.sequence_root, config_reader.get_value('database', 'db'))
@@ -40,6 +41,7 @@ class DirectoryCrawler(object):
         self.tblastn_output = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'tblastn'))
         self.SW_gene        = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'sw_gene'))
         self.SW_exon        = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'sw_exon'))
+        self.mafft          = "%s/%s" % (self.alignment_root, config_reader.get_value('alignment', 'mafft'))
         
         # annotation output
         self.annotation_root = config_reader.get_value('annotation', 'root')
@@ -70,6 +72,7 @@ class DirectoryCrawler(object):
         self.protein_abs        = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.protein)
         self.exon_ensembl_abs   = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.exon_ensembl)
         self.exon_genewise_abs  = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.exon_genewise)
+        self.assembled_protein_abs  = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.assembled_protein)
         
         # reference species database absolute path
         self.database_abs       = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.database)
@@ -80,6 +83,7 @@ class DirectoryCrawler(object):
         self.tblastn_output_abs = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.tblastn_output)
         self.SW_gene_abs        = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.SW_gene)
         self.SW_exon_abs        = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.SW_exon)
+        self.mafft_abs          = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.mafft)
         
         # annotation output absolute path
         self.annotation_root_abs = "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.annotation_root)
@@ -125,6 +129,11 @@ class DirectoryCrawler(object):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.protein)
         else:
             return self.protein_abs
+        
+    def get_assembled_protein_path (self, protein_id = None):
+        
+        if (self._generate_absolute_path(self.protein_id, protein_id)):
+            return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.assembled_protein)
     
     def get_exon_ensembl_path (self, protein_id = None):
         '''
@@ -179,6 +188,15 @@ class DirectoryCrawler(object):
             return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.SW_exon)
         else:
             return self.SW_exon_abs
+        
+    def get_mafft_path (self, protein_id = None):
+        '''
+        @param protein_id: if provided, retrieves absolute gene directory path, otherwise self.protein_id is used
+        '''
+        if (self._generate_absolute_path(self.protein_id, protein_id)):
+            return "{0}/{1}/{2}".format(self.sessions_dir, protein_id, self.mafft)
+        else:
+            return self.mafft_abs
     
     def get_genewise_path (self, protein_id = None):
         '''
@@ -237,6 +255,10 @@ class DirectoryCrawler(object):
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
             
+        tmp_dir = self.get_assembled_protein_path(working_id) 
+        if not os.path.isdir(tmp_dir):
+            os.makedirs(tmp_dir)
+            
         tmp_dir = self.get_exon_ensembl_path(working_id) 
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
@@ -265,6 +287,10 @@ class DirectoryCrawler(object):
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
             
+        tmp_dir = self.get_mafft_path(working_id) 
+        if not os.path.isdir(tmp_dir):
+            os.makedirs(tmp_dir)
+            
         tmp_dir = self.get_genewise_path(working_id) 
         if not os.path.isdir(tmp_dir):
             os.makedirs(tmp_dir)
@@ -283,9 +309,7 @@ class DirectoryCrawler(object):
     
 def main ():
     dc = DirectoryCrawler()
-    dc.set_protein_id("ENSP00000311134") 
-    print dc.protein_id
-    dc.generate_directory_tree()
+
     
 if __name__ == '__main__':
     main()

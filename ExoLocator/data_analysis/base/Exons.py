@@ -10,6 +10,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet.IUPAC import unambiguous_dna
 from Bio import SeqIO
+from data_analysis.containers.DataMapContainer import DataMapContainer
 
 class Exons(object):
     '''
@@ -24,7 +25,7 @@ class Exons(object):
         '''
         Constructor
         '''
-        self.ref_protein    = data_map_key[0]
+        self.ref_protein_id = data_map_key[0]
         self.species        = data_map_key[1]
         self.ref_species    = ref_species
         self.exon_type      = exon_type
@@ -32,9 +33,9 @@ class Exons(object):
         
     def load_exons (self):
         if self.exon_type == "blastn" or self.exon_type == "tblastn":
-            exon_dict = parse_blast_output(self.ref_protein, self.species, self.exon_type)
+            exon_dict = parse_blast_output(self.ref_protein_id, self.species, self.exon_type)
         elif self.exon_type.lower() == "sw_gene" or self.exon_type.lower() == "sw_exon":
-            exon_dict = parse_SW_output (self.ref_protein, self.species, self.exon_type)
+            exon_dict = parse_SW_output (self.ref_protein_id, self.species, self.exon_type)
         else:
             raise KeyError("No parsing option for exon_type %s" % self.exon_type)
         if not exon_dict:
@@ -64,6 +65,18 @@ class Exons(object):
                     tmp_ordinal = float(tmp_ordinal) + 1./num_of_exons
             
         pass
+    
+    def get_ordered_exons (self):
+        
+        self.set_exon_ordinals()            
+        ordered_exons = sorted(self.alignment_exons.values(), 
+                              key = lambda al_exons: al_exons[0].ordinal)
+        
+        return ordered_exons
+            
+        
+        
+        
     
     def export_to_fasta (self, file_name):
         
@@ -96,7 +109,7 @@ class Exons(object):
     def _generate_id(self):
         (spec1, spec2) = self.species.split("_")
         spec_name = "%s%s" % (spec1[0:2], spec2[0:2])
-        return "%s_%s_%s" % (self.species, self.ref_protein, self.exon_type)
+        return "%s_%s_%s" % (self.species, self.ref_protein_id, self.exon_type)
      
     
         
