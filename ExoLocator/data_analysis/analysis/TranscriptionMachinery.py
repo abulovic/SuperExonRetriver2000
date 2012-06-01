@@ -11,6 +11,9 @@ from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
 from timeit import itertools
 import re, sys, math
 from data_analysis.containers.ProteinContainer import ProteinContainer
+from utilities.DescriptionParser import DescriptionParser
+from data_analysis.containers.DataMapContainer import DataMapContainer
+from utilities.FileUtilities import check_status_file
 
 '''
 Created on Mar 22, 2012
@@ -306,6 +309,11 @@ def find_ref_exon_translation(ref_exon_id, target_protein):
 
 
 def chop_off_start_utr (ref_exon_id, exon, target_protein, number_of_exons):
+    '''
+    Removes the untranslated region from the aligned exon
+    If the exon is also the last exon that gets translated, the last_exon marker is returned True
+    If the exon is not translated at all, it is marked as not viable
+    '''
     exon_dna = Seq(exon.target.replace("-", ""), IUPAC.ambiguous_dna)
     longest_translation = ""
     longest_translation_frame = -1
@@ -334,6 +342,8 @@ def chop_off_start_utr (ref_exon_id, exon, target_protein, number_of_exons):
     if first_exon_translation.find(cdna_translation) != -1:
         return (exon, last_exon)
     
+    if exon.id != 1 and not last_exon:
+        raise Exception ("Not first exon, and has UTR")
           
     location_on_target_prot = first_exon_translation.find(longest_translation)
     if location_on_target_prot == -1:
@@ -354,17 +364,18 @@ def chop_off_start_utr (ref_exon_id, exon, target_protein, number_of_exons):
         location_on_translated_pure_dna = exon_dna[longest_translation_frame:].translate().tostring().find(longest_translation)
         location_on_pure_dna_start = location_on_translated_pure_dna * 3 + longest_translation_frame
         location_on_pure_dna_stop  = (location_on_translated_pure_dna + len(longest_translation)) * 3 + longest_translation_frame 
+        # extract the pure coding dna
         coding_dna = exon_dna[location_on_pure_dna_start:location_on_pure_dna_stop]
-        # create regex to match the newly found region
         
+        # create regex to match the newly found region
         regex = ".*("
         for char in coding_dna:
             regex += "%s-*" % char
         regex = regex[0:len(regex)-2] + ").*"
         pattern = re.compile(regex)
         pattern_match = re.match(pattern, exon.target)
-        actual_cdna = pattern_match.groups()[0]
         
+        actual_cdna = pattern_match.groups()[0]
         actual_start = exon.target.find (actual_cdna)
         #print "CDNA 1ST:", actual_cdna
         #actual_stop = actual_start + len(actual_cdna)
@@ -377,7 +388,10 @@ def chop_off_start_utr (ref_exon_id, exon, target_protein, number_of_exons):
         
     return (exon, last_exon)
 
-def chop_off_end_utr (ref_exon_id, exon, target_prot_seq):
+def chop_off_end_utr (ref_exon_id, exon, target_prot_seq, number_of_exons, protein_id):
+    '''
+    Removes the ending untranslated region from the exon
+    '''
 
     # first, find the actual translation    
     actual_translation = find_ref_exon_translation(ref_exon_id, target_prot_seq)
@@ -412,6 +426,8 @@ def chop_off_end_utr (ref_exon_id, exon, target_prot_seq):
         exon.viability = False
         
     else:
+        if exon.id != number_of_exons:
+            raise Exception ("Protein %s has UTR" % (protein_id))
         # chop off the final part:
         location_of_actual_translation_start = actual_translation.find(longest_translation)
         # we accidentally found some part of the protein in the untranslated region:
@@ -440,8 +456,51 @@ def chop_off_end_utr (ref_exon_id, exon, target_prot_seq):
       
     return exon
         
+   
+def translate_ensembl_exons(protein_list):
     
+    ec = ExonContainer.Instance()
+    pc = ProteinContainer.Instance()
+    dmc = DataMapContainer.Instance()
     
+    for protein_id in protein_list:
+        
+        if not check_status_file(protein_id):
+            continue
+        
+        species_list = DescriptionParser().get_species(protein_id)
+        for species in species_list:
+            
+            data_map = dmc.get((protein_id, species))
+            species_protein = pc.get(data_map.protein_id)
+            species_protein_seq = species_protein.get_sequence_record() 
+            
+            exon_key = (protein_id, species, "ensembl")
+            try:
+                exons = ec.get(exon_key)
+            except Exception:
+                continue
+            (cdna, locations) = exons.get_cDNA()
+            translation_len = 0
+            longest_trans_frame = -1
+            for frame in range(0,3): 
+                translated_protein = cdna[frame:].seq.translate()
+                common_translation = LongestCommonSubstring(translated_protein, species_protein_seq.seq)
+                if len(common_translation) > translation_len:
+                    longest_common_translation = common_translation
+                    translation_len = len(common_translation)
+                    longest_trans_frame = frame
+                
+            if str(longest_common_translation) == str(species_protein_seq.seq):
+                print "OK"
+            else:
+                print "not OK"
+                print "Original:   " + species_protein_seq.seq
+                print "Translated: " + longest_common_translation 
+            
+                    
+                
+                
 
 #Kao command line argument mu se predaje path do SW outfilea
 

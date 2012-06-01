@@ -12,6 +12,8 @@ from data_analysis.base.EnsemblExon import EnsemblExon
 from Bio.SeqRecord import SeqRecord
 from utilities.Logger import Logger
 from data_analysis.containers.DataMapContainer import DataMapContainer
+from Bio.Seq import Seq
+from Bio.Alphabet import IUPAC
 
 class EnsemblExons(object):
     '''
@@ -83,7 +85,7 @@ class EnsemblExons(object):
         
     def get_cDNA (self):
         exons = self.get_ordered_exons()
-        merged_exons_seq = ""
+        merged_exons_seq = Seq("", IUPAC.ambiguous_dna)
         exon_locations = {}
         start = 1
         end = 1

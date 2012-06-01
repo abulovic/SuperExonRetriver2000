@@ -4,6 +4,8 @@ Created on Apr 26, 2012
 @author: marioot
 '''
 import os
+from itertools import chain
+from collections import defaultdict
 from utilities                                      import FileUtilities
 from utilities.Logger                               import Logger
 from utilities.DescriptionParser                    import DescriptionParser
@@ -27,12 +29,14 @@ from utilities.ConfigurationReader                  import ConfigurationReader
 from data_analysis.analysis.AlignmentStatistics     import create_protein_statistics
 from data_analysis.analysis.Exon_translation import Exon_translation
 from data_analysis.analysis.TranscriptionMachinery import transcribe_exons,\
-   chop_off_start_utr, chop_off_end_utr
+   chop_off_start_utr, chop_off_end_utr, translate_ensembl_exons
 from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
+from data_analysis.containers.TranslatedProteinContainer import TranslatedProteinContainer
+from data_analysis.base.TranslatedProtein import TranslatedProtein
 
 
 
@@ -188,6 +192,7 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, alignment_type):
 
 def load_protein_configuration_batch(protein_id_list):
     '''
+    Loads data from .descr files from all the proteins in the protein list
     @param protein_id_list: list of protein id's
     '''
     ref_species_dict    = FileUtilities.get_reference_species_dictionary()
@@ -211,25 +216,18 @@ def load_exon_configuration_batch(protein_id_list, alignment_type):
     return folders_loaded_cnt
     
 
-
-
-
-
-def main ():
-    
-    cr = ConfigurationReader.Instance()
+def fill_all_containers ():
+    '''
+    Fills all the containers with correspondent data.
+    The containers are: data maps, proteins, genes, transcripts, ensembl exons, and all the alignment exons
+    '''
     dc = DirectoryCrawler()
-    acg = AlignmentCommandGenerator()
-    logger = Logger.Instance()
-    data_logger = logger.get_logger("data_loading")
     
     protein_list_raw = FileUtilities.get_protein_list()
-    protein_list = []
-    exon_number = {}
-    for protein_tuple in protein_list_raw:
-        protein_list.append(protein_tuple[0])
-        exon_number[protein_tuple[0]] = int(protein_tuple[1])
-        dc.generate_directory_tree(protein_tuple[0])
+    # flatten the raw protein list and take every second element, which is a protein id
+    protein_list = list(chain.from_iterable(protein_list_raw))[0::2]
+    for protein_id in protein_list:
+        dc.generate_directory_tree(protein_id)
         
     ens_exon_container = load_protein_configuration_batch(protein_list)
     if ens_exon_container:
@@ -240,44 +238,49 @@ def main ():
         load_exon_configuration_batch(protein_list, "tblastn")
         load_exon_configuration_batch(protein_list, "sw_gene")
         load_exon_configuration_batch(protein_list, "sw_exon")
-        
-    algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
-    annotate_spurious_alignments_batch(protein_list, algorithms)
-    remove_overlapping_alignments_batch(protein_list, algorithms)
-    #annotate_spurious_alignments(("ENSP00000311134", "Sus_scrofa", "sw_gene"))
-    #transcribe_aligned_exons (protein_list, algorithms)
+
+
+def translate_alignment_exons(protein_list, exon_number):
+    '''
+    Translates all the proteins for which there is SW to gene alignment
+    '''
     
+    acg         = AlignmentCommandGenerator()
+    logger      = Logger.Instance()
+    dc          = DirectoryCrawler()
+    translation_logger = logger.get_logger("translator")
     
-        
-    
-    dmc = DataMapContainer.Instance()
-    pc  = ProteinContainer.Instance()
-    gc  = GeneContainer.Instance()
-    tc  = TranscriptContainer.Instance()
     eec = EnsemblExonContainer.Instance()
     ec  = ExonContainer.Instance()
+    pc  = ProteinContainer.Instance()
+    dmc = DataMapContainer.Instance()
+    tp  = TranslatedProteinContainer.Instance()
     
 
-    algorithms = ["sw_gene"]        
+    algorithms = ["sw_gene"]  
+          
     for protein_id in protein_list :
-        
-        
-        
-        
+  
         if not check_status_file(protein_id):
+            translation_logger.error("%s,%s" % (protein_id, "protein not valid"))
             continue
         if exon_number[protein_id] > 15:
-            data_logger.info("%s,%s" % (protein_id, "Number of exons large, skipping for now."))
+            translation_logger.info("%s,%s" % (protein_id, "Number of exons large, skipping for now."))
             continue
         stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
         create_protein_statistics(protein_id, stat_file)
         species_list = DescriptionParser().get_species(protein_id)
-        print species_list
-        #species_list = ["Cavia_porcellus"]
-        #species_list = ["Homo_sapiens"]
+
         for species in species_list:
             
             for alg in algorithms:
+                
+                fasta = "%s/%s.fa" % (dc.get_assembled_protein_path(protein_id), species)
+                if os.path.isfile(fasta):
+                    # protein already assembled
+                    translated_protein = TranslatedProtein(protein_id, species)
+                    tp.add(protein_id, species, translated_protein)
+                    continue
                 
                 try:
                     exon_key = (protein_id, species, alg)
@@ -289,13 +292,11 @@ def main ():
                     try:
                         exons = ec.get(exon_key)
                     except KeyError:
-                        print "NONONO"
+                        translation_logger.error("%s,%s,%s" % (protein_id, species, "No exons available"))
                         continue
                     exons_for_transcription = []
-                    
-                    test_next_exon = False
-                    coding_dna_started = False
-                    last_exon = False
+
+                    last_translated_exon = False
                     for al_exon in exons.get_ordered_exons():
                         al_exon = al_exon[0]
                         ref_exon = eec.get(al_exon.ref_exon_id)
@@ -310,16 +311,17 @@ def main ():
                         trans_exon.set_identity(al_exon.alignment_info["identities"], al_exon.alignment_info["length"])
                         trans_exon.set_viablity(al_exon.viability)
     
-                        if last_exon:
+                        # if we've already bumped into exon with UTR on its end, all the other exons are not viable
+                        if last_translated_exon:
                             trans_exon.viability = False
                             
                         if trans_exon.viability:
-                            (trans_exon, last_exon) = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number[protein_id])
-                            trans_exon = chop_off_end_utr (al_exon.ref_exon_id, trans_exon, target_prot_seq)
+                            (trans_exon, last_translated_exon) = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number[protein_id])
+                            trans_exon = chop_off_end_utr (al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number[protein_id], protein_id)
                         
                         exons_for_transcription.append(trans_exon)
                         
-                        
+                     
                     sequences_for_fasta = [target_prot.get_sequence_record()]    
                         
                     
@@ -327,11 +329,15 @@ def main ():
                     resulting_protein_seq = transcribe_exons(exons_for_transcription, target_prot_seq)
                     print "Query prot: ", resulting_protein_seq
                     seq_to_write = SeqRecord(Seq(resulting_protein_seq), species, description = "")
-                    fasta = "%s/%s.fa" % (dc.get_assembled_protein_path(protein_id), species)
                     fasta_file = open(fasta, "w")
                     SeqIO.write(seq_to_write, fasta_file, "fasta")
                     fasta_file.close()
                     data_map = dmc.get((protein_id, species))
+                    
+                    # add the translated protein to its respective container
+                    translated_protein = TranslatedProtein(protein_id, species)
+                    tp.add(protein_id, species, translated_protein)
+                    
                     species_protein = pc.get(data_map.protein_id)
                     print "Ensem prot: ", species_protein.get_sequence_record().seq, "\n"
                     
@@ -348,8 +354,40 @@ def main ():
                     mafft_cmd = acg.generate_mafft_command(msa_fasta, msa_afa)
                     os.system(mafft_cmd)
                     
+                    
                 except Exception, e:
-                    data_logger.error("%s,%s,%s" % (protein_id, species, e))
+                    translation_logger.error("%s,%s,%s" % (protein_id, species, e))
+
+
+
+                
+                
+
+
+def main ():
+    
+    # fill all the data containers
+    fill_all_containers()
+    
+    protein_list_raw = FileUtilities.get_protein_list()
+    exon_number = {}
+    for prot_id, exon_num in protein_list_raw:
+        exon_number[prot_id] = int(exon_num)
+    protein_list = list(chain.from_iterable(protein_list_raw))[0::2]
+    
+    # list of alignment algorithms    
+    algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
+    # POSTPROCESSING
+    annotate_spurious_alignments_batch(protein_list, algorithms)
+    remove_overlapping_alignments_batch(protein_list, algorithms)
+    
+    # translate the alignment produced exons and populate the TranslatedProteinContainer
+    translate_alignment_exons(protein_list, exon_number)
+   
+    tp = TranslatedProteinContainer.Instance()
+    print tp.get("ENSP00000366061", "Ailuropoda_melanoleuca").get_sequence_record()
+
+    translate_ensembl_exons(protein_list)
     
     
 if __name__ == '__main__':
