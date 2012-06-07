@@ -289,7 +289,9 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     except IOError, e:
         alignment_logger.error("{0}, , SW cDNA_EXONS, {2}".format(protein_id, e))
         return False
-               
+             
+    if not species_list:
+        return False  
     for species in species_list:
         
         if species.strip() in proteins_known:
@@ -299,7 +301,9 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
         
         try:
             exons = exon_container.get((protein_id, species, exon_type))
+            
         except KeyError:
+            print "{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), "Target species exon file missing")
             alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), "Target species exon file missing"))
             failed_species_list.append(species.strip())
             continue

@@ -68,10 +68,13 @@ class AlignmentTargetGenerator(object):
         @param path: returns the list of species in the .status file, if the file doesn't exist, it returns the list parsed from protein
                      description file.
         '''
+        print path
         if (os.path.isfile("{0}/.status".format(path))):
-            return open('{0}/.status'.format(path), 'r').readlines()
+            species_list = open('{0}/.status'.format(path), 'r').readlines()
+            for species in species_list:
+                species = species.strip()
         else:
-            return self.description_parser.get_species(protein_id)
+            species_list = self.description_parser.get_species(protein_id)
     
     def _write_failed_species_to_status(self, failed_species_list, path):
         '''
