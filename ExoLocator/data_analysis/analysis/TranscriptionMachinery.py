@@ -14,6 +14,8 @@ from data_analysis.containers.ProteinContainer import ProteinContainer
 from utilities.DescriptionParser import DescriptionParser
 from data_analysis.containers.DataMapContainer import DataMapContainer
 from utilities.FileUtilities import check_status_file
+from data_analysis.base.EnsemblExons import EnsemblExons
+from data_analysis.utilities.ExonUtils import LongestCommonSubstring
 
 '''
 Created on Mar 22, 2012
@@ -23,19 +25,7 @@ Created on Mar 22, 2012
 # to our future selves: we truly and honestly apologize. And again.
 ignored_nucleotide_count = 0
 
-def LongestCommonSubstring(S1, S2):
-    M = [[0]*(1+len(S2)) for i in xrange(1+len(S1))]
-    longest, x_longest = 0, 0
-    for x in xrange(1,1+len(S1)):
-        for y in xrange(1,1+len(S2)):
-            if S1[x-1] == S2[y-1]:
-                M[x][y] = M[x-1][y-1] + 1
-                if M[x][y]>longest:
-                    longest = M[x][y]
-                    x_longest  = x
-            else:
-                M[x][y] = 0
-    return S1[x_longest-longest: x_longest]
+
 
 
 def get_exon(exons, exon_id):
@@ -115,6 +105,7 @@ def translate_dna(coding_dna, frame):
 def transcribe_exons(exons, target_prot):
     query_prot      = ""
     viable_exons    = []
+    exon_translations = []
     for exon in exons:
         if exon.viability:
             viable_exons.append(exon.id)
@@ -126,11 +117,13 @@ def transcribe_exons(exons, target_prot):
     #                    viable_exons)
     for exon in exons:
         if exon.viability:
-            query_prot += analyse_SW_alignment(exon.query, 
+            exon_to_protein = analyse_SW_alignment(exon.query, 
                                                exon.target, 
                                                target_prot)
+            query_prot += exon_to_protein
+            exon_translations.append((exon.id, exon_to_protein))
             #print query_prot
-    return query_prot
+    return query_prot, exon_translations
 
 def get_to_next_valid_position(dna, position):
     while dna[position] is '-':
@@ -491,14 +484,16 @@ def translate_ensembl_exons(protein_list):
                     translation_len = len(common_translation)
                     longest_trans_frame = frame
                 
-            if str(longest_common_translation) == str(species_protein_seq.seq):
-                print "OK"
-            else:
+            if not str(longest_common_translation) == str(species_protein_seq.seq):
                 print "not OK"
                 print "Original:   " + species_protein_seq.seq
                 print "Translated: " + longest_common_translation 
             
-                    
+       
+
+                
+            
+    
                 
                 
 

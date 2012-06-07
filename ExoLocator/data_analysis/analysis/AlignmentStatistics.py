@@ -10,12 +10,13 @@ from utilities.DescriptionParser import DescriptionParser
 import csv
 from utilities.Logger import Logger
 from data_analysis.analysis.AlignmentPostprocessing import remove_overlapping_alignments
+from data_analysis.utilities.ExonUtils import remove_UTR_ensembl_exons
 
 
 
 
 
-def produce_statistics_for_alignment (exons_key, alignment_type):
+def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons):
     '''
     Produces the straight-forward statistics for the alignment.
     For each alignment, it only calculates the coverage percentage. 
@@ -32,7 +33,7 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
     logger = Logger.Instance()
     containers_logger = logger.get_logger("containers")
     
-    reference_exons = exon_container.get((ref_protein_id, reference_species_dict[species], "ensembl"))
+    #reference_exons = exon_container.get((ref_protein_id, reference_species_dict[species], "ensembl"))
     try:
         alignment_exons = exon_container.get((ref_protein_id, species, alignment_type))
     except KeyError:
@@ -43,7 +44,7 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
     # TODO
     
     remove_overlapping_alignments((ref_protein_id, species, alignment_type))
-    for ref_exon in reference_exons.get_ordered_exons():
+    for ref_exon in reference_exons:
         ref_exon_id = ref_exon.exon_id
         if ref_exon_id not in alignment_exons.alignment_exons:
             perc_list.append(0)
@@ -66,6 +67,10 @@ def produce_statistics_for_alignment (exons_key, alignment_type):
                 
 
 def create_protein_statistics (protein_id, statistics_file):
+    '''
+    Creates protein statistics for a protein
+    It works only on exons which get translated to protein. The UTR regions are cropped.
+    '''
     
     print "Creating protein statistics for %s, writing to %s" % (protein_id, statistics_file)
     species_list = DescriptionParser().get_species(protein_id)
@@ -75,8 +80,9 @@ def create_protein_statistics (protein_id, statistics_file):
     
     header_row = ["Species name", "Alignment"]
     
-    reference_exons = exon_container.get((protein_id, "Homo_sapiens", "ensembl"))
-    for ref_exon in reference_exons.get_ordered_exons():
+    reference_exons_old = exon_container.get((protein_id, "Homo_sapiens", "ensembl"))
+    reference_exons = remove_UTR_ensembl_exons(protein_id, "Homo_sapiens", reference_exons_old.get_ordered_exons())
+    for ref_exon in reference_exons:
         header_row.append(ref_exon.exon_id)
 
     csv_writer = csv.writer(open(statistics_file, 'wb'), delimiter=",")
@@ -86,7 +92,7 @@ def create_protein_statistics (protein_id, statistics_file):
     for species in species_list :
         for al in alignments:
             new_row = [species, al]
-            stats = produce_statistics_for_alignment((protein_id, species), al)
+            stats = produce_statistics_for_alignment((protein_id, species), al, reference_exons)
             if stats:
                 new_row.extend (stats)
             else:

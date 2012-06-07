@@ -9,6 +9,8 @@ from utilities.Logger import Logger
 from Bio import SeqIO
 from Bio.Alphabet.IUPAC import unambiguous_dna
 from data_analysis.base.GenewiseExon import GenewiseExon
+from Bio.Alphabet import IUPAC
+from Bio.Seq import Seq
 
 class GenewiseExons(object):
     '''
@@ -54,4 +56,11 @@ class GenewiseExons(object):
             self.exons[num] = exon
             
         return self.exons
+    
+    def get_coding_cDNA (self):
+        
+        cDNA = Seq("", IUPAC.ambiguous_dna)
+        for exon in self.exons:
+            cDNA += exon.sequence
+        return cDNA
         

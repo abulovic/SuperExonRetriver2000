@@ -14,6 +14,8 @@ from utilities.Logger import Logger
 from data_analysis.containers.DataMapContainer import DataMapContainer
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from utilities.FileUtilities import get_reference_species_dictionary
+from data_analysis.utilities.ExonUtils import remove_UTR_ensembl_exons
 
 class EnsemblExons(object):
     '''
@@ -21,12 +23,15 @@ class EnsemblExons(object):
     '''
 
 
-    def __init__(self, data_map_key, ref_species):
+    def __init__(self, data_map_key, ref_species=None):
         '''
         Constructor
         '''
         self.ref_protein_id    = data_map_key[0]
         self.species        = data_map_key[1]
+        if not ref_species:
+            spec_dict = get_reference_species_dictionary()
+            ref_species = spec_dict[data_map_key[1]]
         self.ref_species    = ref_species
         self.exons          = {}
         
@@ -99,6 +104,20 @@ class EnsemblExons(object):
             merged_exons_seq += exon.sequence
         cdna_seq = SeqRecord(seq=merged_exons_seq, id=self.species, description="")
         return (cdna_seq, exon_locations)
+    
+    def get_coding_cDNA(self):
+        '''
+        Gets the cDNA without the UTR regions
+        '''
+        dmc = DataMapContainer.Instance()
+        dm_key = dmc.get((self.ref_protein_id, self.species))
+        new_exons = remove_UTR_ensembl_exons(self.ref_protein_id, self.species, self.get_ordered_exons())
+        
+        coding_cDNA = Seq("", IUPAC.ambiguous_dna)
+        for exon in new_exons:
+            coding_cDNA += exon.sequence
+            
+        return coding_cDNA
         
         
         

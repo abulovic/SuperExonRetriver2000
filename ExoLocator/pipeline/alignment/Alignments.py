@@ -14,6 +14,7 @@ import os
 import shutil
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from data_analysis.containers.ExonContainer import ExonContainer
 
 def generate_blastn_alignments(protein_id, species_list = None, referenced_species = "Homo_sapiens"):
     '''
@@ -268,8 +269,10 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     logger              = Logger.Instance()
     alignment_logger    = logger.get_logger('alignment')
     
-    tmp_fasta_original_path = "tmp_original.fa"
+    exon_container      = ExonContainer.Instance()
+    
     tmp_fasta_target_path   = "tmp_target.fa"
+    original_fasta_db_file    = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
     
     failed_species_list = []
     
@@ -279,49 +282,50 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     try:
         (proteins_known, proteins_abinitio) = DescriptionParser().parse_descr_file(protein_id)
     except IOError, e:
-        alignment_logger.error("{0}, , SW EXONS, {2}".format(protein_id, e))
+        alignment_logger.error("{0}, , SW cDNA_EXONS, {2}".format(protein_id, e))
         return False
-        
-        
-    exon_original_fasta_file    = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), referenced_species)
-    (merged_sequence_original, exon_locations_original) = _merge_exons_from_fasta (exon_original_fasta_file, referenced_species)
-    # write merged sequence to file
-    tmp_fasta_original = open(tmp_fasta_original_path, 'w')
-    SeqIO.write([merged_sequence_original], tmp_fasta_original, "fasta")
-    tmp_fasta_original.close()
                
     for species in species_list:
+        
         if species.strip() in proteins_known:
-            exon_target_fasta_file = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), species.strip())   
+            exon_type = "ensembl"  
         else:
-            exon_target_fasta_file = "{0}/{1}.fa".format(crawler.get_exon_genewise_path(protein_id), species.strip())
-            
-        if not os.path.isfile(exon_target_fasta_file):    
-            alignment_logger.warning("{0}, {1}, SW EXONS, {2}".format(protein_id, species.strip(), "Target species exon file missing"))
+            exon_type = "genewise"
+        
+        try:
+            exons = exon_container.get((protein_id, species, exon_type))
+        except KeyError:
+            alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), "Target species exon file missing"))
             failed_species_list.append(species.strip())
             continue
-              
-        (merged_sequence_target, exon_locations_target) = _merge_exons_from_fasta (exon_target_fasta_file, species)   
+            
+        
+        cDNA = exons.get_coding_cDNA()
+        
+        
         # write merged sequence to file  
-        tmp_fasta_target = open(tmp_fasta_target_path, 'w')
-        SeqIO.write([merged_sequence_target], tmp_fasta_target, "fasta")
-        tmp_fasta_target.close()
+        try:
+            tmp_fasta_target = open(tmp_fasta_target_path, 'w')
+            SeqIO.write([cDNA], tmp_fasta_target, "fasta")
+            tmp_fasta_target.close()
+        except TypeError, e:
+            alignment_logger.error("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), e))
+            failed_species_list.append(species.strip())    
+            continue
         
         swout_file_path = "{0}/{1}.swout".format(crawler.get_SW_exon_path(protein_id), species.strip())
-        command         = command_generator.generate_SW_command(tmp_fasta_target_path, tmp_fasta_original_path, swout_file_path)
+        command         = command_generator.generate_SW_command(tmp_fasta_target_path, original_fasta_db_file, swout_file_path)
+        print command
+        
         command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         output          = command_return.stdout.read()
         if output != "":
             #LOGGING
-            alignment_logger.warning("{0}, {1}, SW EXON, {2}".format(protein_id, species.strip(), output.strip()))
+            alignment_logger.warning("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), output.strip()))
             failed_species_list.append(species.strip())    
             continue
-        
-        locations_file_path = "{0}/{1}.location".format(crawler.get_SW_exon_path(protein_id))
-        _write_locations_to_file (locations_file_path, exon_locations_original, exon_locations_target)        
-    
+
     try:    
-        os.remove(tmp_fasta_original_path)
         os.remove(tmp_fasta_target_path)
         os.remove(".sw_stdout_supressed")
     except:
