@@ -118,6 +118,24 @@ class EnsemblExons(object):
             coding_cDNA += exon.sequence
             
         return coding_cDNA
+    
+    def export_coding_exons_to_fasta (self, fasta_file):
+        
+        dmc = DataMapContainer.Instance()
+        data_map = dmc.get((self.ref_protein_id, self.species))
+        
+        new_exons = remove_UTR_ensembl_exons(self.ref_protein_id, self.species, self.get_ordered_exons())
+        exon_records = []
+        " >969067|969174|ENSAMET00000013141|ENSAMEE00000125733|1"
+        for exon in new_exons:
+            exon_id = "%d|%d|%s|%s|%d" % (exon.start, exon.stop, data_map.transcript_id, exon.exon_id, exon.strand)
+            record = SeqRecord(seq = exon.sequence, id = exon_id, description = "")
+            exon_records.append(record)
+            
+        SeqIO.write(exon_records, fasta_file, "fasta")
+        
+        
+            
         
         
         
