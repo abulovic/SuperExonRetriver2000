@@ -5,6 +5,8 @@ Created on Jun 7, 2012
 '''
 from data_analysis.containers.ProteinContainer import ProteinContainer
 from data_analysis.containers.DataMapContainer import DataMapContainer
+from Bio.Seq import Seq
+from Bio.Alphabet import IUPAC
 
 def LongestCommonSubstring(S1, S2):
     M = [[0]*(1+len(S2)) for i in xrange(1+len(S1))]
@@ -39,8 +41,8 @@ def remove_UTR_ensembl_exons (protein_id, species, exons):
     protein_sequence = str(prot.get_sequence_record().seq)
     
     for exon in exons:
-        exon_seq = exon.sequence
-        
+        exon_seq = Seq(str(exon.sequence), IUPAC.ambiguous_dna)
+
         exon_translated = False
         exon_start = False
         exon_stop = False

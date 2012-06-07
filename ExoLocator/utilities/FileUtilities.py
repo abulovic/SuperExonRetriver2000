@@ -209,6 +209,25 @@ def check_status_file(protein_id):
         print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
         return False
     return True
+
+def check_status_file_no_alignment(protein_id):
+    try:
+        status_file_keys = get_status_file_keys()
+        status_file_keys.remove("TBLASTN_ALIGNMENT")
+        status_file_keys.remove("BLASTN_ALIGNMENT")
+        status_file_keys.remove("SW_GENE_ALIGNMENT")
+        status_file_keys.remove("SW_EXON_ALIGNMENT")
+        
+        protein_status  = read_status_file(protein_id)
+        
+        for key in status_file_keys:
+            if protein_status[key] == 'FAILED':
+                print "{0}: Loading protein data failed due to .status file!".format(protein_id)
+                return False
+    except KeyError:
+        print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
+        return False
+    return True
         
 def main():
     reset_action_global('REF_SP_DB_FORMATTING')

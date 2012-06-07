@@ -6,6 +6,7 @@ Created on Apr 20, 2012
 from utilities                  import FileUtilities
 from pipeline.alignment import Alignments
 import sys
+from data_analysis.utilities.generate_structure import fill_all_containers
 
 def populate_referenced_species_databases(protein_list, referenced_species):
     for protein_id in protein_list:
@@ -104,6 +105,8 @@ def main ():
     protein_list = []
     for protein_tuple in protein_list_raw:
         protein_list.append(protein_tuple[0])
+    
+    fill_all_containers(False)
     
     if(len(sys.argv) < 1):
         print "Usage: {0} <blastn | tblastn | SW_gene | SW_exon | all> \n".format(sys.argv[0])

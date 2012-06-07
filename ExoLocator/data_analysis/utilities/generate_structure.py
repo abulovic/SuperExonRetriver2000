@@ -24,7 +24,8 @@ from data_analysis.containers.ExonContainer         import ExonContainer
 from data_analysis.base.GenewiseExons               import GenewiseExons
 from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch,\
     annotate_spurious_alignments, remove_overlapping_alignments_batch
-from utilities.FileUtilities                        import check_status_file
+from utilities.FileUtilities                        import check_status_file,\
+    check_status_file_no_alignment
 from utilities.ConfigurationReader                  import ConfigurationReader
 from data_analysis.analysis.AlignmentStatistics     import create_protein_statistics
 from data_analysis.analysis.Exon_translation import Exon_translation
@@ -45,7 +46,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
     Loads the data from a description file, and calls the containers generating functions to create basic objects.
     @param protein_id: id of a single protein
     '''
-    if not check_status_file(protein_id):
+    if not check_status_file_no_alignment(protein_id):
         return False
     
     if ref_species_dict is None:
@@ -123,8 +124,12 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
 
 def load_exon_configuration (ref_protein_id, ref_species_dict, alignment_type):
     
-    if not check_status_file(ref_protein_id):
-        return False
+    if alignment_type == "ensembl" or alignment_type == "genewise":
+        if not check_status_file_no_alignment(ref_protein_id):
+            return False
+    else:
+        if not check_status_file(ref_protein_id):
+            return False
     
     if not ref_species_dict:
         ref_species_dict = FileUtilities.get_reference_species_dictionary()
@@ -216,7 +221,7 @@ def load_exon_configuration_batch(protein_id_list, alignment_type):
     return folders_loaded_cnt
     
 
-def fill_all_containers ():
+def fill_all_containers (load_alignments):
     '''
     Fills all the containers with correspondent data.
     The containers are: data maps, proteins, genes, transcripts, ensembl exons, and all the alignment exons
@@ -231,13 +236,24 @@ def fill_all_containers ():
         
     ens_exon_container = load_protein_configuration_batch(protein_list)
     if ens_exon_container:
+        print "RADI"
         
         load_exon_configuration_batch(protein_list, "ensembl")
         load_exon_configuration_batch(protein_list, "genewise")
-        load_exon_configuration_batch (protein_list, "blastn")
-        load_exon_configuration_batch(protein_list, "tblastn")
-        load_exon_configuration_batch(protein_list, "sw_gene")
-        load_exon_configuration_batch(protein_list, "sw_exon")
+        if load_alignments:
+            load_exon_configuration_batch (protein_list, "blastn")
+            load_exon_configuration_batch(protein_list, "tblastn")
+            load_exon_configuration_batch(protein_list, "sw_gene")
+            load_exon_configuration_batch(protein_list, "sw_exon")
+        
+def create_statistics(protein_list):
+    
+    dc = DirectoryCrawler()
+    
+    for protein_id in protein_list:
+    
+        stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
+        create_protein_statistics(protein_id, stat_file)
 
 
 def translate_alignment_exons(protein_list, exon_number):
@@ -267,8 +283,7 @@ def translate_alignment_exons(protein_list, exon_number):
         if exon_number[protein_id] > 15:
             translation_logger.info("%s,%s" % (protein_id, "Number of exons large, skipping for now."))
             continue
-        stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
-        create_protein_statistics(protein_id, stat_file)
+        
         species_list = DescriptionParser().get_species(protein_id)
 
         for species in species_list:
@@ -326,8 +341,9 @@ def translate_alignment_exons(protein_list, exon_number):
                         
                     
                     print "Target prot:", target_prot_seq
-                    resulting_protein_seq = transcribe_exons(exons_for_transcription, target_prot_seq)
+                    (resulting_protein_seq, exon_translations) = transcribe_exons(exons_for_transcription, target_prot_seq)
                     print "Query prot: ", resulting_protein_seq
+                    print exon_translations
                     seq_to_write = SeqRecord(Seq(resulting_protein_seq), species, description = "")
                     fasta_file = open(fasta, "w")
                     SeqIO.write(seq_to_write, fasta_file, "fasta")
@@ -367,7 +383,7 @@ def translate_alignment_exons(protein_list, exon_number):
 def main ():
     
     # fill all the data containers
-    fill_all_containers()
+    fill_all_containers(True)
     
     protein_list_raw = FileUtilities.get_protein_list()
     exon_number = {}
@@ -383,9 +399,15 @@ def main ():
     
     # translate the alignment produced exons and populate the TranslatedProteinContainer
     translate_alignment_exons(protein_list, exon_number)
+    
+    ec = ExonContainer.Instance()
+    exons = ec.get(("ENSP00000253108", "Ailuropoda_melanoleuca", "ensembl"))
+    print exons.get_coding_cDNA()
+    
+    create_statistics(protein_list)
    
     tp = TranslatedProteinContainer.Instance()
-    print tp.get("ENSP00000366061", "Ailuropoda_melanoleuca").get_sequence_record()
+    #print tp.get("ENSP00000366061", "Ailuropoda_melanoleuca").get_sequence_record()
 
     translate_ensembl_exons(protein_list)
     

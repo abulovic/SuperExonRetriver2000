@@ -11,6 +11,7 @@ from Bio.Seq import Seq
 from Bio.Alphabet.IUPAC import unambiguous_dna
 from Bio import SeqIO
 from data_analysis.containers.DataMapContainer import DataMapContainer
+from Bio.Alphabet import IUPAC
 
 class Exons(object):
     '''
@@ -86,7 +87,7 @@ class Exons(object):
         for ref_exon_id, al_exons in self.alignment_exons.items():
             i = 1
             for al_exon in al_exons:
-                record = SeqRecord(Seq(al_exon.alignment_info["sequence"], unambiguous_dna), 
+                record = SeqRecord(Seq(al_exon.alignment_info["sequence"], IUPAC.ambiguous_dna), 
                                    id = "%s_%d"%(ref_exon_id, i), 
                                    description="%d|%d"%(al_exon.alignment_info["query_start"], al_exon.alignment_info["query_end"]))
                 i += 1

@@ -273,6 +273,7 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     
     tmp_fasta_target_path   = "tmp_target.fa"
     tmp_ref_exons_fasta_path = "tmp_exons.fa"
+    
     original_fasta_db_file    = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
     
     ref_exons = exon_container.get((protein_id, referenced_species, "ensembl"))
@@ -305,12 +306,13 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
             
         
         cDNA = exons.get_coding_cDNA()
+        cDNA_record = SeqRecord(cDNA, id = species, description="coding cDNA, no UTR")
         
         
         # write merged sequence to file  
         try:
             tmp_fasta_target = open(tmp_fasta_target_path, 'w')
-            SeqIO.write([cDNA], tmp_fasta_target, "fasta")
+            SeqIO.write([cDNA_record], tmp_fasta_target, "fasta")
             tmp_fasta_target.close()
         except TypeError, e:
             alignment_logger.error("{0}, {1}, SW cDNA_EXONS, {2}".format(protein_id, species.strip(), e))
