@@ -75,6 +75,7 @@ class AlignmentTargetGenerator(object):
                 species = species.strip()
         else:
             species_list = self.description_parser.get_species(protein_id)
+        return species_list
     
     def _write_failed_species_to_status(self, failed_species_list, path):
         '''

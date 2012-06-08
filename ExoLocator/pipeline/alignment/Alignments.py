@@ -272,12 +272,11 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     exon_container      = ExonContainer.Instance()
     
     tmp_fasta_target_path   = "tmp_target.fa"
-    tmp_ref_exons_fasta_path = "tmp_exons.fa"
     
     original_fasta_db_file    = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
     
-    ref_exons = exon_container.get((protein_id, referenced_species, "ensembl"))
-    ref_exons.export_coding_exons_to_fasta(tmp_ref_exons_fasta_path)
+    #ref_exons = exon_container.get((protein_id, referenced_species, "ensembl"))
+    #ref_exons.export_coding_exons_to_fasta(tmp_ref_exons_fasta_path)
     
     failed_species_list = []
     
@@ -325,7 +324,8 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
         
         swout_file_path = "{0}/{1}.swout".format(crawler.get_SW_exon_path(protein_id), species.strip())
         #command         = command_generator.generate_SW_command(tmp_fasta_target_path, original_fasta_db_file, swout_file_path)
-        command         = command_generator.generate_SW_command(tmp_fasta_target_path, tmp_ref_exons_fasta_path, swout_file_path)
+        ref_exons_fasta = crawler.get_database_path(protein_id)
+        command         = command_generator.generate_SW_command(tmp_fasta_target_path, ref_exons_fasta, swout_file_path)
         print command
         
         command_return  = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
@@ -430,7 +430,13 @@ def generate_referenced_species_database(protein_id, referenced_species):
     command_generator   = CommandGenerator()
     crawler             = DirectoryCrawler()
     
-    source_exon_file    = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), referenced_species)
+    exon_container      = ExonContainer.Instance()
+    
+    input_exons = exon_container.get((protein_id, referenced_species, "ensembl"))
+    source_exon_file = "%s.fa" % referenced_species
+    input_exons.export_coding_exons_to_fasta(source_exon_file)
+    
+    #source_exon_file    = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), referenced_species)
     input_db_file       = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
     sequence_type       = "Nucleotide"
     
