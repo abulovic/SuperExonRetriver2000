@@ -274,6 +274,7 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
     tmp_fasta_target_path   = "tmp_target.fa"
     
     original_fasta_db_file    = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
+    ref_exons_fasta = "%s/%s.fa" % (crawler.get_database_path(protein_id), referenced_species)
     
     #ref_exons = exon_container.get((protein_id, referenced_species, "ensembl"))
     #ref_exons.export_coding_exons_to_fasta(tmp_ref_exons_fasta_path)
@@ -324,7 +325,7 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
         
         swout_file_path = "{0}/{1}.swout".format(crawler.get_SW_exon_path(protein_id), species.strip())
         #command         = command_generator.generate_SW_command(tmp_fasta_target_path, original_fasta_db_file, swout_file_path)
-        ref_exons_fasta = crawler.get_database_path(protein_id)
+        
         command         = command_generator.generate_SW_command(tmp_fasta_target_path, ref_exons_fasta, swout_file_path)
         print command
         
@@ -338,7 +339,6 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
 
     try:    
         os.remove(tmp_fasta_target_path)
-        os.remove(tmp_ref_exons_fasta_path)
         os.remove(".sw_stdout_supressed")
     except:
         pass
