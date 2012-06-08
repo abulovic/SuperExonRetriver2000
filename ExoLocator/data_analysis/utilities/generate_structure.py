@@ -227,6 +227,7 @@ def fill_all_containers (load_alignments):
     The containers are: data maps, proteins, genes, transcripts, ensembl exons, and all the alignment exons
     '''
     dc = DirectoryCrawler()
+    ec = ExonContainer.Instance()
     
     protein_list_raw = FileUtilities.get_protein_list()
     # flatten the raw protein list and take every second element, which is a protein id
@@ -253,6 +254,8 @@ def create_statistics(protein_list):
     for protein_id in protein_list:
     
         stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
+        if not check_status_file(protein_id):
+            continue
         create_protein_statistics(protein_id, stat_file)
 
 
