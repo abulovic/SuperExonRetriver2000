@@ -118,14 +118,12 @@ class AlignmentCommandGenerator(object):
     def generate_genewise_command (self, protein_file, dna_file, output_file, additional_flags = True):
         pass
     
-    def generate_formatdb_command (self, input_db_file, sequence_type, additional_flags = True):
+    def generate_formatdb_command (self, input_db_file, sequence_type):
         
         if sequence_type == "protein" or sequence_type == "P":
             cmd = "formatdb -i {0} -p T".format(input_db_file)
         else:
             cmd = "formatdb -i {0} -p F".format(input_db_file)
-        if additional_flags:
-            cmd += " -a F -o F"
             
         return cmd
     
