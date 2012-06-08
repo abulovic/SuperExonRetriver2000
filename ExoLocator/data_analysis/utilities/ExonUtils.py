@@ -22,6 +22,48 @@ def LongestCommonSubstring(S1, S2):
                 M[x][y] = 0
     return S1[x_longest-longest: x_longest]
 
+def longest_border_substring (s1, s2):
+    l1 = len(s1)
+    l2 = len(s2)
+    
+    if l1 >= l2:
+        longer_str = s1
+        shorter_str = s2
+    else:
+        longer_str = s2
+        shorter_str = s1
+    
+    longest_substring = ""
+    
+    # provjeri pocetak
+    start_index = 0
+    end_index = len(shorter_str)
+    
+    while (True):
+        if start_index == len(shorter_str)-1:
+            break
+        substring = shorter_str [start_index:]
+        if longer_str.startswith(substring):
+            longest_substring = substring
+            break
+        start_index += 1
+    
+    # provjeri kraj
+    
+    while (True):
+        if end_index == 0:
+            break
+        substring = shorter_str[0:end_index]
+        if longer_str.endswith(substring):
+            if len(substring) > len(longest_substring):
+                longest_substring = substring
+            break
+        end_index -= 1
+        
+    return longest_substring
+        
+    
+
 def remove_UTR_ensembl_exons (protein_id, species, exons):
     
     '''
@@ -50,18 +92,29 @@ def remove_UTR_ensembl_exons (protein_id, species, exons):
         for frame in (0,1,2):
             translation = str(exon_seq[frame:].translate())
             longest_translation = LongestCommonSubstring(protein_sequence, translation)
+            edge_translation = longest_border_substring(protein_sequence, translation)
             # exon u sredini
             if longest_translation == translation:
                 exon_translated = True
                 break
-                
-            if protein_sequence.startswith(longest_translation) and translation.endswith(longest_translation):
+            
+            elif protein_sequence.startswith(longest_translation) and translation.endswith(longest_translation):
                 exon_start = True
                 break
        
-            if protein_sequence.endswith(longest_translation) and translation.startswith(longest_translation):
+            elif protein_sequence.endswith(longest_translation) and translation.startswith(longest_translation):
                 exon_stop = True
                 break
+    
+            elif protein_sequence.startswith(edge_translation) and translation.endswith(edge_translation):
+                exon_start = True
+                break
+       
+            elif protein_sequence.endswith(edge_translation) and translation.startswith(edge_translation):
+                exon_stop = True
+                break
+            
+            
             
         new_exon = exon
         
