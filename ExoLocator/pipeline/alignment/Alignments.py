@@ -433,19 +433,12 @@ def generate_referenced_species_database(protein_id, referenced_species):
     exon_container      = ExonContainer.Instance()
     
     input_exons = exon_container.get((protein_id, referenced_species, "ensembl"))
-    source_exon_file = "%s.fa" % referenced_species
-    input_exons.export_coding_exons_to_fasta(source_exon_file)
     
     #source_exon_file    = "{0}/{1}.fa".format(crawler.get_exon_ensembl_path(protein_id), referenced_species)
     input_db_file       = "{0}/{1}.fa".format(crawler.get_database_path(protein_id), referenced_species)
     sequence_type       = "Nucleotide"
     
-    try:
-        shutil.copyfile(source_exon_file, input_db_file)
-    except IOError, e:
-        #LOGGING
-        alignment_logger.warning("{0}, {1}, REF SPECIES DB, {2}".format(protein_id, referenced_species.strip(), e))      
-        return False
+    input_exons.export_coding_exons_to_fasta(input_db_file)
     
     command             = command_generator.generate_formatdb_command(input_db_file, sequence_type)
     command_return      = Popen(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
