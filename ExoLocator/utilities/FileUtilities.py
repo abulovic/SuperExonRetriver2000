@@ -217,6 +217,7 @@ def check_status_file_no_alignment(protein_id):
         status_file_keys.remove("BLASTN_ALIGNMENT")
         status_file_keys.remove("SW_GENE_ALIGNMENT")
         status_file_keys.remove("SW_EXON_ALIGNMENT")
+        status_file_keys.remove("REF_SP_DB_FORMATTING")
         
         protein_status  = read_status_file(protein_id)
         
