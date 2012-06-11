@@ -31,12 +31,10 @@ def _is_sorted(exon_ordinal_list, strand):
     '''
     Checks whether list of exon ordinals is sorted
     '''
-    for i in range (len(exon_ordinal_list)-1):
-        if exon_ordinal_list[i] > exon_ordinal_list[i+1] and strand == 1:
-            return False
-        if exon_ordinal_list[i] < exon_ordinal_list[i+1] and strand == -1:
-            return False
-    return True
+    sorted_list = sorted(exon_ordinal_list)
+    if list(exon_ordinal_list) == sorted_list:
+        return True
+    return False
 
 
 def _find_best_orderred_subset(alignment_exons, reference_exons, strand):
@@ -258,6 +256,11 @@ def remove_overlapping_alignments (exons_key):
                         print "  Good exon: %d - %d" % (exon_start, exon_stop)
                         
     exon_container.update(exons_key, alignment_exons)
+    
+    
+if __name__ == '__main__':
+    ec = ExonContainer.Instance()
+    
 
             
                     
