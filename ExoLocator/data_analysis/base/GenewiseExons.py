@@ -11,6 +11,7 @@ from Bio.Alphabet.IUPAC import unambiguous_dna
 from data_analysis.base.GenewiseExon import GenewiseExon
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 class GenewiseExons(object):
     '''
@@ -36,7 +37,7 @@ class GenewiseExons(object):
         exon_file_path = dc.get_exon_genewise_path(self.ref_protein_id)
         exon_file_path += "/%s.fa" % self.species
         
-        if os.path.isfile(exon_file_path):
+        if not os.path.isfile(exon_file_path):
             container_logger.error ("{0},{1},genewise,no fasta file for genewise exons.".format(self.ref_protein_id, self.species))
             return False
         try:
@@ -48,7 +49,7 @@ class GenewiseExons(object):
         seq_records = SeqIO.parse(exon_file, "fasta", unambiguous_dna)
         
         for seq_record in seq_records:
-            (num,ir1,ir2,data) = seq_record.split()
+            (num,ir1,ir2,data) = seq_record.description.split()
             num = int(num)
             (length, start, stop) = data.split('|')
             
