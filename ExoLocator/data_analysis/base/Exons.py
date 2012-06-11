@@ -63,7 +63,7 @@ class Exons(object):
                 tmp_ordinal = ref_exon.ordinal
                 for al_exon in sorted(al_exons, key = lambda al_exon : al_exon.alignment_info["query_start"]):
                     al_exon.set_ordinal(tmp_ordinal)
-                    tmp_ordinal = float(tmp_ordinal) + 1./num_of_exons
+                    tmp_ordinal = float(tmp_ordinal) + 0.1
             
         pass
     
