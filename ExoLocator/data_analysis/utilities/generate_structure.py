@@ -25,7 +25,7 @@ from data_analysis.base.GenewiseExons               import GenewiseExons
 from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch,\
     annotate_spurious_alignments, remove_overlapping_alignments_batch
 from utilities.FileUtilities                        import check_status_file,\
-    check_status_file_no_alignment
+    check_status_file_no_alignment, get_species_list
 from utilities.ConfigurationReader                  import ConfigurationReader
 from data_analysis.analysis.AlignmentStatistics     import create_protein_statistics
 from data_analysis.analysis.Exon_translation import Exon_translation
@@ -38,6 +38,7 @@ from Bio.SeqRecord import SeqRecord
 from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
 from data_analysis.containers.TranslatedProteinContainer import TranslatedProteinContainer
 from data_analysis.base.TranslatedProtein import TranslatedProtein
+from data_analysis.utilities.ExonUtils import remove_UTR_ensembl_exons
 
 
 
@@ -232,12 +233,13 @@ def fill_all_containers (load_alignments):
     protein_list_raw = FileUtilities.get_protein_list()
     # flatten the raw protein list and take every second element, which is a protein id
     protein_list = list(chain.from_iterable(protein_list_raw))[0::2]
+    algorithms = ["blastn", "tblastn", "sw_gene", ""]
     for protein_id in protein_list:
         dc.generate_directory_tree(protein_id)
         
+        
     ens_exon_container = load_protein_configuration_batch(protein_list)
     if ens_exon_container:
-        print "RADI"
         
         load_exon_configuration_batch(protein_list, "ensembl")
         load_exon_configuration_batch(protein_list, "genewise")
@@ -246,6 +248,8 @@ def fill_all_containers (load_alignments):
             load_exon_configuration_batch(protein_list, "tblastn")
             load_exon_configuration_batch(protein_list, "sw_gene")
             load_exon_configuration_batch(protein_list, "sw_exon")
+            annotate_spurious_alignments_batch(protein_list, algorithms)
+            remove_overlapping_alignments_batch(protein_list, algorithms)
         
 def create_statistics(protein_list):
     
@@ -388,6 +392,8 @@ def main ():
     # fill all the data containers
     fill_all_containers(True)
     
+    ec = ExonContainer.Instance()
+    
     protein_list_raw = FileUtilities.get_protein_list()
     exon_number = {}
     for prot_id, exon_num in protein_list_raw:
@@ -397,19 +403,39 @@ def main ():
     # list of alignment algorithms    
     algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
     # POSTPROCESSING
-    annotate_spurious_alignments_batch(protein_list, algorithms)
-    remove_overlapping_alignments_batch(protein_list, algorithms)
+    
+    
+    algorithms.append("genewise")
     
     # translate the alignment produced exons and populate the TranslatedProteinContainer
-    translate_alignment_exons(protein_list, exon_number)
+    #translate_alignment_exons(protein_list, exon_number)
     
     ec = ExonContainer.Instance()
-    exons = ec.get(("ENSP00000253108", "Ailuropoda_melanoleuca", "ensembl"))
+    for prot_id in protein_list:
+        for spec in get_species_list():
+            for alg in algorithms:
+                try:
+                    print alg, spec
+                    exons = ec.get((prot_id, spec, alg))
+                    print exons
+                    ordered = exons.get_ordered_exons()
+                    print alg
+                    for exon in ordered:
+                        print (exon.ordinal, exon.alignment_ordinal)
+                    
+                except Exception:
+                    pass
+        
+    exons = ec.get(("ENSP00000301585", "Ailuropoda_melanoleuca", "sw_gene"))
+
+    new_exons = remove_UTR_ensembl_exons("ENSP00000253108", "Homo_sapiens", exons)
+    print len(new_exons)
     print exons.get_coding_cDNA()
     
-    create_statistics(protein_list)
+    #create_statistics(protein_list)
    
     tp = TranslatedProteinContainer.Instance()
+    ec = ExonContainer.Instance()
     #print tp.get("ENSP00000366061", "Ailuropoda_melanoleuca").get_sequence_record()
 
     translate_ensembl_exons(protein_list)
