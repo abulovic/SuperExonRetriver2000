@@ -40,6 +40,7 @@ class Exon(object):
         '''
         self.viability = viability
         
-    def set_ordinal (self, ordinal):
+    def set_ordinal (self, ordinal, alignment_ordinal):
         self.ordinal = ordinal
+        self.alignment_ordinal = alignment_ordinal
         

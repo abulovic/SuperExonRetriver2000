@@ -23,7 +23,7 @@ def _calculate_total_score(valid_id_list, alignment_exons):
     '''
     score = 0.
     for exon in alignment_exons:
-        if exon.ordinal in valid_id_list:
+        if (exon.ordinal, exon.alignment_ordinal) in valid_id_list:
             score += exon.get_fitness()
     return score
 
@@ -47,7 +47,7 @@ def _find_best_orderred_subset(alignment_exons, reference_exons, strand):
     
     # add all the exon ordinals to a list of all ordinals
     for exon in alignment_exons:
-        full_array.append (exon.ordinal)
+        full_array.append ((exon.ordinal, exon.alignment_ordinal))
         
     
     for i in range (len(full_array)):
@@ -119,15 +119,14 @@ def annotate_spurious_alignments(exons_key):
     else:
         reverse_flag = True
 
-    correct_order_exons = _find_best_orderred_subset (sorted(exon_list, 
-                                                      key = lambda al_exon: (al_exon.alignment_info["query_start"]),
-                                                      reverse = reverse_flag), 
+    correct_order_exons = _find_best_orderred_subset (alignment_exons.get_ordered_exons(),
                                                       reference_exons,
                                                       strand)
     # set viability for all the exons
     # if exon is not in the correct order, set viability to False, True otherwise
     for exon in exon_list:
-        if exon.ordinal in correct_order_exons:
+        ordinal = (exon.ordinal, exon.alignment_ordinal)
+        if ordinal in correct_order_exons:
             for al_exon in alignment_exons.alignment_exons[exon.ref_exon_id]:
                 if al_exon.alignment_info["query_start"] == exon.alignment_info["query_start"]:
                     al_exon.set_viability(True)

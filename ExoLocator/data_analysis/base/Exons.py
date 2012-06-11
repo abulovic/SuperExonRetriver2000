@@ -8,7 +8,6 @@ from data_analysis.containers.EnsemblExonContainer  import EnsemblExonContainer
 from data_analysis.alignment.parsing.SWParser       import parse_SW_output
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-from Bio.Alphabet.IUPAC import unambiguous_dna
 from Bio import SeqIO
 from data_analysis.containers.DataMapContainer import DataMapContainer
 from Bio.Alphabet import IUPAC
@@ -56,14 +55,11 @@ class Exons(object):
         for ref_exon_id, al_exons in self.alignment_exons.items():
             ref_exon = ensembl_container.get(ref_exon_id)
             # see how many alignment exons are there, and then give them foating ordinals
-            num_of_exons = len(al_exons)
-            if num_of_exons == 1:
-                al_exons[0].set_ordinal(ref_exon.ordinal)
-            else:
-                tmp_ordinal = ref_exon.ordinal
-                for al_exon in sorted(al_exons, key = lambda al_exon : al_exon.alignment_info["query_start"]):
-                    al_exon.set_ordinal(tmp_ordinal)
-                    tmp_ordinal = float(tmp_ordinal) + 0.1
+            alignment_ordinal = 1
+
+            for al_exon in sorted(al_exons, key = lambda al_exon : al_exon.alignment_info["query_start"]):
+                al_exon.set_ordinal(ref_exon.ordinal, alignment_ordinal)
+                alignment_ordinal += 1
             
         pass
     
@@ -73,7 +69,13 @@ class Exons(object):
         ordered_exons = sorted(self.alignment_exons.values(), 
                               key = lambda al_exons: al_exons[0].ordinal)
         
+        flat_exons = self.get_flattened_exons()
+        
+        ordered_exons = sorted (flat_exons, key = lambda al_exon: (al_exon.ordinal, al_exon.alignment_ordinal)) 
+        
         return ordered_exons
+    
+        
             
         
         
@@ -102,8 +104,9 @@ class Exons(object):
         multiple Exons as is the case with alignment_exons attribute
         '''      
         exon_list = []
-        for al_exons in self.alignment_exons:
-            exon_list.extend(al_exons)
+        for al_exons in self.alignment_exons.values():
+            for al_exon in al_exons:
+                exon_list.append(al_exon)
             
         return exon_list
         
