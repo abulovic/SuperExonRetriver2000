@@ -233,7 +233,7 @@ def fill_all_containers (load_alignments):
     protein_list_raw = FileUtilities.get_protein_list()
     # flatten the raw protein list and take every second element, which is a protein id
     protein_list = list(chain.from_iterable(protein_list_raw))[0::2]
-    algorithms = ["blastn", "tblastn", "sw_gene", ""]
+    algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
     for protein_id in protein_list:
         dc.generate_directory_tree(protein_id)
         
@@ -417,11 +417,10 @@ def main ():
                 try:
                     print alg, spec
                     exons = ec.get((prot_id, spec, alg))
-                    print exons
                     ordered = exons.get_ordered_exons()
                     print alg
                     for exon in ordered:
-                        print (exon.ordinal, exon.alignment_ordinal)
+                        print (exon.ordinal, exon.alignment_ordinal), exon.viability
                     
                 except Exception:
                     pass

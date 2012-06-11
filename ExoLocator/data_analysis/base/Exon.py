@@ -8,12 +8,14 @@ class Exon(object):
     '''
     classdocs
     '''
-    def __init__(self, exon_type, ref_exon_id):
+    def __init__(self, exon_type, ref_exon_id, ref_protein_id, species):
         '''
         Constructor
         '''
         self.exon_type = exon_type
         self.ref_exon_id = ref_exon_id
+        self.ref_protein_id = ref_protein_id
+        self.species        = species
         
     def set_alignment_info (self, identities, positives, gaps, sbjct_start, sbjct_end, query_start, query_end, length, sbjct_seq, query_seq):
         self.alignment_info = {"identities"  : int(identities), 

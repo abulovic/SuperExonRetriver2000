@@ -59,7 +59,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     length          = 0
     query_sequence  = ""
     sbjct_sequence  = ""
-    exon = Exon(sw_type, "")
+    exon = Exon(sw_type, "", ref_protein_id, species)
     
     for line in swout_file.readlines():
         
@@ -85,7 +85,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
                  
             
             ref_exon_id = header_match.groups()[3]
-            exon = Exon(sw_type, ref_exon_id)
+            exon = Exon(sw_type, ref_exon_id, ref_protein_id, species)
             parsing_query_seq = True
             query_sequence = ""
             sbjct_sequence = ""

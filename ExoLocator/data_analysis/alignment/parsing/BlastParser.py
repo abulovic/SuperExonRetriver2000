@@ -64,7 +64,7 @@ def parse_blast_output (ref_protein_id, species, blast):
                 break
             num_of_hsps += 1
             
-            exon = Exon(blast, ref_exon_id)
+            exon = Exon(blast, ref_exon_id, ref_protein_id, species)
             if type(hsp.gaps) is int:
                 gaps = hsp.gaps
             elif type(hsp.gaps) is tuple:
