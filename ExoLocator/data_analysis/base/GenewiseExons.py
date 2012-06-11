@@ -58,6 +58,13 @@ class GenewiseExons(object):
             
         return self.exons
     
+    def get_ordered_exons (self):
+        ordered_exons = []
+        for ordinal in sorted(self.exons.keys()):
+            ordered_exons.append(self.exons[ordinal])
+        return ordered_exons
+        
+    
     def get_coding_cDNA (self):
         
         cDNA = Seq("", IUPAC.ambiguous_dna)
