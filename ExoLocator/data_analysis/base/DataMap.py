@@ -3,6 +3,7 @@ Created on Apr 26, 2012
 
 @author: marioot
 '''
+from utilities.ConfigurationReader import ConfigurationReader
 
 class DataMap(object):
     '''
@@ -25,6 +26,10 @@ class DataMap(object):
         self.strand = int(strand)
         self.start  = int (start)
         self.stop   = int(stop)
+        
+        
+    def get_expanded_start(self):
+        return max(1, int(self.start - int(ConfigurationReader.Instance().get_value('gene_expansion', 'expand'))))
         
     def get_blastn(self):
         pass
