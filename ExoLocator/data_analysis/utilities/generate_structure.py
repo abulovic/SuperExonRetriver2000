@@ -111,7 +111,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         
         try:
             data_map_key = (protein_id, species_name)
-            data_map = DataMap(spec_protein_id, "", "", data_map_key, strand, seq_begin, seq_end, ab_initio)
+            data_map = DataMap(spec_protein_id, "", "", data_map_key, location_type, location_id, strand, seq_begin, seq_end, ab_initio)
             #TODO: ERR handling!
             data_map_container.add(data_map_key, data_map)
             
