@@ -3,7 +3,7 @@ Created on Apr 25, 2012
 
 @author: marioot
 '''
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities import FileUtilities
 
 class Gene(object):

@@ -4,18 +4,19 @@ Created on Apr 13, 2012
 @author: marioot
 '''
 
+# Python imports
 import os
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-from utilities.DescriptionParser import DescriptionParser
+
+# utilities imports
+from utilities.DescriptionParser    import DescriptionParser
+from utilities.DirectoryCrawler     import DirectoryCrawler
+
 
 class AlignmentTargetGenerator(object):
     '''
-    classdocs
+    Class used to retrieve the list of all possible targets fro certain alignment
     '''
     def __init__(self):
-        '''
-        konstructor
-        '''
         self.crawler = DirectoryCrawler()
         self.description_parser = DescriptionParser()
     

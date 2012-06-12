@@ -4,16 +4,18 @@ Created on Apr 15, 2012
 @author: intern
 '''
 
-import re, sys, os
+# Python imports
+import re, sys, os, shutil
+from subprocess                     import Popen, PIPE, STDOUT
 
-from utilities.ConfigurationReader import ConfigurationReader
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+# BioPython imports
+from Bio                            import SeqIO
 
-from subprocess import Popen, PIPE, STDOUT
-import shutil
-from Bio import SeqIO, Alphabet
-from Bio.Alphabet.IUPAC import unambiguous_dna
-from utilities.Logger import Logger
+# utilities imports
+from utilities.ConfigurationReader  import ConfigurationReader
+from utilities.DirectoryCrawler     import DirectoryCrawler
+from utilities.Logger               import Logger
+
 
 def get_project_root_dir ():
     '''
@@ -57,6 +59,10 @@ def get_protein_list ():
     return protein_list
 
 def get_status_file_keys():
+    '''
+    Retrieves the list of all the valid status file keys.
+    The keys are defined in the status_file_keys.txt file in the cfg directory.
+    '''
     status_file_keys_path = "{0}/cfg/status_file_keys.txt".format(get_project_root_dir())
     status_file_keys      = open(status_file_keys_path, 'r')
     keys                  = []
@@ -65,6 +71,11 @@ def get_status_file_keys():
     return keys
 
 def get_reference_species_dictionary():
+    '''
+    Loads the reference species dictionary.
+    For each species, there is a reference species. These relations are
+    defined in the referenced_species_mapping.txt file in the cfg directory.
+    '''
     reference_species_mapping_path  = "{0}/cfg/referenced_species_mapping.txt".format(get_project_root_dir())
     reference_species_mapping       = open(reference_species_mapping_path, 'r')
     ref_species                     = {}
@@ -142,6 +153,9 @@ def execute_command_and_log (logger, command, arguments = None):
             logger.error(",,%s,%s" % (output, command))
 
 def clear_directory (path):
+    '''
+    Deletes the files in the directory tree
+    '''
     for root, dirs, files in os.walk(path):
         for f in files:
             os.unlink(os.path.join(root, f))
@@ -175,6 +189,10 @@ def reset_action (protein_id, key):
         clear_directory(crawler.get_SW_exon_path(protein_id))
 
 def reset_action_global(key):
+    '''
+    Resets a certain action (from the .status file) globally, for all the
+    proteins from the protein list
+    '''
     protein_list_raw = get_protein_list()
     protein_list = []
     for protein_tuple in protein_list_raw:
@@ -184,7 +202,9 @@ def reset_action_global(key):
         reset_action(protein, key)
         
 def load_fasta_single_record(file_path, sequence_type):
-    
+    '''
+    Reads the sequence from the fasta file containing only one record
+    '''
     logger = Logger.Instance()
     data_loading_logger = logger.get_logger("data_loading")
     
@@ -198,6 +218,9 @@ def load_fasta_single_record(file_path, sequence_type):
     return seq_record
 
 def check_status_file(protein_id):
+    '''
+    True if none of the keys in the .status file are FAILED
+    '''
     try:
         status_file_keys = get_status_file_keys()
         protein_status  = read_status_file(protein_id)
@@ -211,6 +234,11 @@ def check_status_file(protein_id):
     return True
 
 def check_status_file_no_alignment(protein_id):
+    '''
+    True if all the keys for actions which take place before
+    the alignment (ortholog search and data retrieval) are
+    not FAILED.
+    '''
     try:
         status_file_keys = get_status_file_keys()
         status_file_keys.remove("TBLASTN_ALIGNMENT")

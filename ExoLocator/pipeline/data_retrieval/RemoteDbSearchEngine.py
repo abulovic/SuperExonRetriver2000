@@ -1,14 +1,18 @@
 '''
 Created on Apr 15, 2012
 
-@author: intern
+@author: ana, mario
 '''
-from subprocess                          import Popen, PIPE, STDOUT
-from utilities.ConfigurationReader       import ConfigurationReader
-from utilities.DescriptionParser         import DescriptionParser
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+
+# Python imports
 import re, os, time
-from utilities.Logger import Logger
+from subprocess                          import Popen, PIPE, STDOUT
+
+# utilities imports
+from utilities.ConfigurationReader      import ConfigurationReader
+from utilities.DescriptionParser        import DescriptionParser
+from utilities.DirectoryCrawler         import DirectoryCrawler
+from utilities.Logger                   import Logger
 
 def populate_sequence_exon_ensembl(protein_id):
     '''
@@ -19,8 +23,11 @@ def populate_sequence_exon_ensembl(protein_id):
     '''
     logger              = Logger.Instance()
     alignment_logger    = logger.get_logger('data_retrieval')
-    perl_biomart_script = ConfigurationReader.Instance().get_value('data_retrieval', 'biomart_perl_script')
+    conf_reader         = ConfigurationReader.Instance()
+    
+    perl_biomart_script = conf_reader.get_value('data_retrieval', 'biomart_perl_script')
     exon_ensembl_path   = DirectoryCrawler().get_exon_ensembl_path(protein_id)
+    
     tmp_xml_file        = "Query.xml"
     template_XML        = '''<?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE Query>
@@ -125,7 +132,7 @@ def _query_name(species_name):
     return "{0}{1}".format(name_parts[0][0].lower(), name_parts[1])
 
 def main ():
-    populate_sequence_exon_ensembl("ENSP00000311134")
+    populate_sequence_exon_ensembl("ENSP00000221498")
 
 if __name__ == '__main__':
     main()

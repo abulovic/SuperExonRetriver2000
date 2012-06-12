@@ -3,18 +3,23 @@ Created on May 1, 2012
 
 @author: intern
 '''
+
+# Python imports
 import re, os
 
+# BioPython imports
 from Bio.Blast                              import NCBIXML
 
+# utilities imports
 from utilities.Logger                       import Logger
+
 from data_analysis.base.Exon                import Exon
-from pipeline.utilities.DirectoryCrawler    import DirectoryCrawler
+from utilities.DirectoryCrawler             import DirectoryCrawler
 
 
 def parse_blast_output (ref_protein_id, species, blast):
     '''
-    Returns a dictionary. Key is reference species exon_id, and 
+    @return: Dictionary where key is reference species exon_id, and 
     the value is list of corresponding alignments
     '''
     

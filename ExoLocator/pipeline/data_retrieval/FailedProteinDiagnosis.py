@@ -3,7 +3,11 @@ Created on Apr 23, 2012
 
 @author: intern
 '''
+
+# python imports
 import re
+
+# utilities imports
 from utilities.ConfigurationReader import ConfigurationReader
 
 def extract_failed_protein_description(output_file_name = None):

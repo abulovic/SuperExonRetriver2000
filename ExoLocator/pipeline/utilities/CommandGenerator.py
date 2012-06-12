@@ -4,13 +4,17 @@ Created on Apr 12, 2012
 @author: intern
 '''
 
-import ConfigParser
+# Python imports
 import os, re
-from utilities.ConfigurationReader import *
+
+# utilities imports
+from utilities.ConfigurationReader import ConfigurationReader
+
+
 
 class CommandGenerator(object):
     '''
-    Generates commands for utilities that are used (blast, sw, genewise, fastacmd, formatdb)
+    Generates commands for utilities that are used in the application (blast, sw, genewise, fastacmd, formatdb)
     '''
 
     def __init__(self):
@@ -59,6 +63,10 @@ class CommandGenerator(object):
                                    masked,
                                    strand = None, 
                                    sequence_start = None, sequence_stop = None):
+        '''
+        Generates the appropriate fastacmd command. Fastacmd is used for sequence retrieval from the fasta database
+        (generated using formatdb)
+        '''
         
         database = "-d %s" % self._generate_genedb_file_name(species_name, location_type, sequence_id, masked)
         

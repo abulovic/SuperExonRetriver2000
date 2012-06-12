@@ -1,22 +1,37 @@
 '''
 Created on Apr 16, 2012
 
-@author: intern
+@author: ana, mario
 '''
 
+# Python import
 import os
-from subprocess import Popen, PIPE, STDOUT
+from subprocess                                     import Popen, PIPE, STDOUT
 
-from utilities.FileUtilities import get_protein_list, get_species_list,\
-    read_status_file, update_entry_in_status_file
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+# script specific import
+from pipeline.ortholog_search.OrthologFinder        import find_ortholog_by_RBH
 
-from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
-from pipeline.ortholog_search.OrthologFinder import find_ortholog_by_RBH
-from utilities.Logger import Logger
-from utilities.DescriptionParser import DescriptionParser
+# utilities import
+from utilities.FileUtilities                        import get_protein_list, get_species_list,\
+                                                        read_status_file, update_entry_in_status_file
+from utilities.DescriptionParser                    import DescriptionParser
+from utilities.Logger                               import Logger
+from utilities.DirectoryCrawler                     import DirectoryCrawler
+
+# pipeline utilites import
+from pipeline.utilities.AlignmentCommandGenerator   import AlignmentCommandGenerator
+
+
+
 
 def main():
+    
+    '''
+    Retrieves the list of all the proteins from reference species.
+    For each ref species protein, it tries to find orthologues for all the species (from the species list)
+    and generates the description file accordingly. If the description file already exists, it checks
+    the status (OK/PARTIAL/FAILED).
+    '''
     
     reference_species = "Homo_sapiens"
     
@@ -35,10 +50,11 @@ def main():
         known_dict = {}
         abinitio_dict = {}
         print protein_id
+        
+        # generate all the directories for the protein
         dc.generate_directory_tree(protein_id)
         
         descr_file_path = dc.get_protein_description_file_path(protein_id)
-        print descr_file_path
         status_file_path = dc.get_mutual_best_status_file_path(protein_id)
         
         if (os.path.isfile(status_file_path) and os.path.getsize(status_file_path)):
@@ -54,8 +70,9 @@ def main():
             continue
         
         
+        # create the description file
         descr_file = open(descr_file_path, 'w')
-        
+        # reference protein file
         ref_species_pep =  dc.get_protein_path(protein_id) + "/" + reference_species + ".fasta"
         fastacmd = acg.generate_fastacmd_protein_command(protein_id, reference_species, "all", ref_species_pep)
         
@@ -64,9 +81,9 @@ def main():
         if output:
             mutual_best_logger.error("%s,fastacmd error" % protein_id)
              
-        
+        # find orthologues for all species
         for species in species_list:
-            find_ortholog_by_RBH(reference_species, species, ref_species_pep, protein_id, descr_file, mutual_best_logger)
+            find_ortholog_by_RBH (reference_species, species, ref_species_pep, protein_id, descr_file, mutual_best_logger)
             
         descr_file.close()
         
@@ -82,7 +99,7 @@ def main():
         else:
             update_entry_in_status_file(protein_id, "MUTUAL_BEST", "OK")
             
-            
+    print "Failed proteins: "        
     for failed_protein_id in failed_proteins:
         print failed_protein_id
 

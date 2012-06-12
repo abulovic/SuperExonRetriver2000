@@ -3,7 +3,11 @@ Created on Apr 12, 2012
 
 @author: intern
 '''
+
+# Python imports
 import os
+
+# utilities imports
 from utilities.ConfigurationReader import ConfigurationReader
 
 class DirectoryCrawler(object):
@@ -15,6 +19,7 @@ class DirectoryCrawler(object):
     def __init__(self, protein_id = None):
         '''
         Loads the configuration from pipeline configuration file
+        @param protein_id: If provided, all the absolute paths are generated
         '''
         config_reader = ConfigurationReader.Instance()
         

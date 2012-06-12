@@ -31,7 +31,7 @@ from data_analysis.analysis.AlignmentStatistics     import create_protein_statis
 from data_analysis.analysis.Exon_translation import Exon_translation
 from data_analysis.analysis.TranscriptionMachinery import transcribe_exons,\
    chop_off_start_utr, chop_off_end_utr, translate_ensembl_exons
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.DirectoryCrawler import DirectoryCrawler
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -78,7 +78,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         ab_initio = False
         try:
             data_map_key = (protein_id, species_name)
-            data_map     = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, strand, seq_begin, seq_end, ab_initio)
+            data_map     = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, location_type, location_id, strand, seq_begin, seq_end, ab_initio)
             data_map_container.add(data_map_key, data_map)
             
             protein     = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
@@ -247,9 +247,10 @@ def fill_all_containers (load_alignments):
             load_exon_configuration_batch (protein_list, "blastn")
             load_exon_configuration_batch(protein_list, "tblastn")
             load_exon_configuration_batch(protein_list, "sw_gene")
-            load_exon_configuration_batch(protein_list, "sw_exon")
+            load_exon_configuration_batch(protein_list, "sw_exon") 
             annotate_spurious_alignments_batch(protein_list, algorithms)
             remove_overlapping_alignments_batch(protein_list, algorithms)
+            
         
 def create_statistics(protein_list):
     

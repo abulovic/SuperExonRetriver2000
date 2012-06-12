@@ -4,9 +4,12 @@ Created on Apr 15, 2012
 @author: intern
 '''
 
-import logging.config
+# Python imports
 import sys, re
-from utilities.ConfigurationReader import Singleton
+import logging.config
+
+# utilities imports
+from utilities.Singleton import Singleton
 
 @Singleton
 class Logger(object):

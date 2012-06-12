@@ -1,81 +1,22 @@
 '''
 Created on Apr 15, 2012
 
-@author: intern
+@author: ana, mario
 '''
+
+# Python imports
+import re, os
 from subprocess                                     import Popen, PIPE, STDOUT
-from pipeline.utilities.AlignmentCommandGenerator   import AlignmentCommandGenerator
-from pipeline.utilities.DirectoryCrawler            import DirectoryCrawler
+
+# utilities imports
 from utilities.Logger                               import Logger
 from utilities.DescriptionParser                    import DescriptionParser
 from utilities.ConfigurationReader                  import ConfigurationReader
-import re, os
+from utilities.DirectoryCrawler                     import DirectoryCrawler
 
-def _populate_gene (protein_id, gene_path, region_expansion):
-    '''
-    Function that populates the respective path with genomic DNA.
-    Serves as both regular and expanded search.
-    '''
-    logger                      = Logger.Instance()
-    alignment_logger            = logger.get_logger('data_retrieval')
+# pipeline utilities imports
+from pipeline.utilities.AlignmentCommandGenerator   import AlignmentCommandGenerator
 
-    alignment_command_generator = AlignmentCommandGenerator()
-
-    logger_name                 = 'GENE'
-    if region_expansion > 0:
-        logger_name             = 'EXPANDED GENE'
-
-    try:
-        (genes_known, genes_abinitio) = DescriptionParser().get_gene_regions(protein_id)
-    except IOError, e:
-        alignment_logger.error("{0}, {1}, , {2}".format(protein_id, logger_name, e))
-        return False
-    
-    status_species_list = _read_failed_species(gene_path)
-    
-    failed_species_list = []
-    for species, gene_information in genes_known.items():
-        if species.strip() not in status_species_list and status_species_list != []:
-            continue
-        (location_type, assembly, location_id, seq_begin, seq_end, strand) = gene_information
-        (seq_begin, seq_end) = _expand_region(seq_begin, seq_end, region_expansion)
-        gene_fasta      = "{0}/{1}.fa".format(gene_path, species)
-        fastacmd        = alignment_command_generator.generate_fastacmd_gene_command(location_id, species, location_type, gene_fasta, 0, strand, seq_begin, seq_end)
-        command_return  = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-        output          = command_return.stdout.read()
-        if output != "":
-            #LOGGING
-            #Ignoring sequence location.
-            invalid_extension_pattern = re.compile("Ignoring sequence location.")
-            if re.search(invalid_extension_pattern, output) is not None:
-                continue
-            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, logger_name, species.strip(), output.strip()))
-            os.remove(gene_fasta)
-            failed_species_list.append(species.strip())
-             
-    for species, gene_information in genes_abinitio.items():
-        if species.strip() not in status_species_list and status_species_list != []:
-            continue
-        (location_type, assembly, location_id, seq_begin, seq_end, strand) = gene_information
-        (seq_begin, seq_end) = _expand_region(seq_begin, seq_end, region_expansion)
-        gene_fasta      = "{0}/{1}.fa".format(gene_path, species)
-        fastacmd        = alignment_command_generator.generate_fastacmd_gene_command(location_id, species, location_type, gene_fasta, 0, strand, seq_begin, seq_end)
-        command_return  = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-        output          = command_return.stdout.read()
-        if output != "":
-            #LOGGING
-            #Ignoring sequence location.
-            invalid_extension_pattern = re.compile("Ignoring sequence location.")
-            if re.search(invalid_extension_pattern, output) is not None:
-                continue
-            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, logger_name, species.strip(), output.strip()))
-            os.remove(gene_fasta)
-            failed_species_list.append(species)
-            
-    if failed_species_list:
-        _write_failed_species(gene_path, failed_species_list)
-        return False
-    return True
 
 def populate_sequence_expanded_gene (protein_id):
     '''
@@ -83,8 +24,9 @@ def populate_sequence_expanded_gene (protein_id):
     folder with fasta files of expanded DNA regions of all the species 
     registered by the Reciprocal Best Search.
     '''
+    cr = ConfigurationReader.Instance()
     expanded_gene_path  = DirectoryCrawler().get_expanded_gene_path(protein_id)
-    region_expansion    = int(ConfigurationReader.Instance().get_value('local_ensembl', 'expansion'))
+    region_expansion    = int(cr.get_value('local_ensembl', 'expansion'))
     return _populate_gene(protein_id, expanded_gene_path, region_expansion)
 
 def populate_sequence_gene(protein_id):
@@ -145,6 +87,74 @@ def populate_sequence_protein (protein_id):
             failed_species_list.append(species)
     if failed_species_list:
         _write_failed_species(protein_path, failed_species_list)
+        return False
+    return True
+
+
+def _populate_gene (protein_id, gene_path, region_expansion):
+    '''
+    Function that populates the respective path with genomic DNA in fasta format.
+    Serves as both regular and expanded search.
+    Writes the failed species list to the appropriate .status file.
+    '''
+    logger                      = Logger.Instance()
+    alignment_logger            = logger.get_logger('data_retrieval')
+
+    alignment_command_generator = AlignmentCommandGenerator()
+
+    logger_name                 = 'GENE'
+    if region_expansion > 0:
+        logger_name             = 'EXPANDED GENE'
+
+    try:
+        (genes_known, genes_abinitio) = DescriptionParser().get_gene_regions(protein_id)
+    except IOError, e:
+        alignment_logger.error("{0}, {1}, , {2}".format(protein_id, logger_name, e))
+        return False
+    
+    status_species_list = _read_failed_species(gene_path)
+    
+    failed_species_list = []
+    for species, gene_information in genes_known.items():
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
+        (location_type, assembly, location_id, seq_begin, seq_end, strand) = gene_information
+        (seq_begin, seq_end) = _expand_region(seq_begin, seq_end, region_expansion)
+        gene_fasta      = "{0}/{1}.fa".format(gene_path, species)
+        fastacmd        = alignment_command_generator.generate_fastacmd_gene_command(location_id, species, location_type, gene_fasta, 0, strand, seq_begin, seq_end)
+        command_return  = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        output          = command_return.stdout.read()
+        if output != "":
+            #LOGGING
+            #Ignoring sequence location.
+            invalid_extension_pattern = re.compile("Ignoring sequence location.")
+            if re.search(invalid_extension_pattern, output) is not None:
+                continue
+            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, logger_name, species.strip(), output.strip()))
+            os.remove(gene_fasta)
+            failed_species_list.append(species.strip())
+             
+    for species, gene_information in genes_abinitio.items():
+        if species.strip() not in status_species_list and status_species_list != []:
+            continue
+        (location_type, assembly, location_id, seq_begin, seq_end, strand) = gene_information
+        (seq_begin, seq_end) = _expand_region(seq_begin, seq_end, region_expansion)
+        gene_fasta      = "{0}/{1}.fa".format(gene_path, species)
+        fastacmd        = alignment_command_generator.generate_fastacmd_gene_command(location_id, species, location_type, gene_fasta, 0, strand, seq_begin, seq_end)
+        command_return  = Popen(fastacmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        output          = command_return.stdout.read()
+        if output != "":
+            #LOGGING
+            #Ignoring sequence location.
+            invalid_extension_pattern = re.compile("Ignoring sequence location.")
+            if re.search(invalid_extension_pattern, output) is not None:
+                continue
+            alignment_logger.warning("{0}, {1}, {2}, {3}".format(protein_id, logger_name, species.strip(), output.strip()))
+            os.remove(gene_fasta)
+            failed_species_list.append(species)
+            
+    if failed_species_list:
+        _write_failed_species(gene_path, failed_species_list)
         return False
     return True
 

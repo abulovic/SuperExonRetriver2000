@@ -7,6 +7,7 @@ from data_analysis.containers.ProteinContainer import ProteinContainer
 from data_analysis.containers.DataMapContainer import DataMapContainer
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from data_analysis.base.EnsemblExon import EnsemblExon
 
 def LongestCommonSubstring(S1, S2):
     M = [[0]*(1+len(S2)) for i in xrange(1+len(S1))]
@@ -75,61 +76,16 @@ def remove_UTR_ensembl_exons (protein_id, species, exons):
     dm_key = (protein_id, species)
     try:
         dm = dmc.get(dm_key)
-        prot = pc.get(dm.protein_id)
     except KeyError:
         return None
     
     new_exons =[]
-    protein_sequence = str(prot.get_sequence_record().seq)
     
     for exon in exons:
-        exon_seq = Seq(str(exon.sequence), IUPAC.ambiguous_dna)
-
-        exon_translated = False
-        exon_start = False
-        exon_stop = False
-        
-        for frame in (0,1,2):
-            translation = str(exon_seq[frame:].translate())
-            longest_translation = LongestCommonSubstring(protein_sequence, translation)
-            edge_translation = longest_border_substring(protein_sequence, translation)
-            # exon u sredini
-            if longest_translation == translation:
-                exon_translated = True
-                break
-            
-            elif protein_sequence.startswith(longest_translation) and translation.endswith(longest_translation):
-                exon_start = True
-                break
        
-            elif protein_sequence.endswith(longest_translation) and translation.startswith(longest_translation):
-                exon_stop = True
-                break
-    
-            elif protein_sequence.startswith(edge_translation) and translation.endswith(edge_translation):
-                exon_start = True
-                break
-       
-            elif protein_sequence.endswith(edge_translation) and translation.startswith(edge_translation):
-                exon_stop = True
-                break
-            
-            
-            
-        new_exon = exon
+        new_exon = EnsemblExon((exon.ref_protein_id, exon.species), exon.exon_id, exon.start, exon.stop, exon.strand, exon.sequence)
+        new_exon.set_exon_ordinal(exon.ordinal)
         
-        if exon_start:
-            new_exon.sequence = exon_seq[(len(translation) - len(longest_translation))*3 + frame:]
-            new_exon.start = exon.start + frame + len(longest_translation)*3
-        elif exon_translated:
-            new_exon.sequence = exon_seq
-        elif exon_stop:
-            new_exon.sequence = exon_seq[:frame+len(longest_translation)*3]
-            new_exon.stop = exon.start + frame + len(longest_translation)*3
-        else:
-            continue
-        
-        new_exons.append(new_exon)
     
     return new_exons
         

@@ -3,71 +3,20 @@ Created on Apr 15, 2012
 
 @author: intern
 '''
-
-
-
-class Singleton(object):
-    """
-    A non-thread-safe helper class to ease implementing singletons.
-    This should be used as a decorator -- not a metaclass -- to the
-    class that should be a singleton.
-
-    The decorated class can define one `__init__` function that
-    takes only the `self` argument. Other than that, there are
-    no restrictions that apply to the decorated class.
-
-    To get the singleton instance, use the `Instance` method. Trying
-    to use `__call__` will result in a `TypeError` being raised.
-
-    Limitations: The decorated class cannot be inherited from and the
-    type of the singleton instance cannot be checked with `isinstance`. 
-
-    """
-
-
-    def __init__(self, decorated):
-        self._decorated = decorated
-
-    def Instance(self):
-        """
-        Returns the singleton instance. Upon its first call, it creates a
-        new instance of the decorated class and calls its `__init__` method.
-        On all subsequent calls, the already created instance is returned.
-
-        """
-        try:
-            return self._instance
-        except AttributeError:
-            self._instance = self._decorated()
-            return self._instance
-
-    def __call__(self):
-        """
-        Call method that raises an exception in order to prevent creation
-        of multiple instances of the singleton. The `Instance` method should
-        be used instead.
-
-        """
-        raise TypeError(
-            'Singletons must be accessed through the `Instance` method.')
- 
-
-import ConfigParser 
+# Python imports
 import os, sys, re
+
+# utilities imports
+import ConfigParser 
+from utilities.Singleton import Singleton
+
        
 @Singleton
 class ConfigurationReader:
     '''
-    Loads configuration files from the cfg directory
+    Loads configuration files from the cfg directory in the Exolocator source directory
     '''
-    
-    def get_cfg_dir(self):
-        ex_path = sys.path[0]
-        m = re.match("(.*ExoLocator).*", ex_path)
-        proj_root_dir = m.groups()[0]
-        return proj_root_dir + "/cfg/"
-    
-    
+
     def __init__ (self):
         
         self.cfg_dir = self.get_cfg_dir()
@@ -76,9 +25,21 @@ class ConfigurationReader:
         self.cfg_params = {}
         self.checkout_cfg_files()
         
+    def get_cfg_dir(self):
+        '''
+        Find the absolute path to the configuration directory
+        '''
+        ex_path = sys.path[0]
+        m = re.match("(.*ExoLocator).*", ex_path)
+        proj_root_dir = m.groups()[0]
+        return proj_root_dir + "/cfg/"
+        
 
     def load_cfg_file(self, cfg_file_path):
-        
+        '''
+        Load a configuration file and add the
+        key, value pairs to the internal configuration dictionary
+        '''
         cf = ConfigParser.ConfigParser()
         cf.read(cfg_file_path)
         sections = cf.sections()
@@ -90,12 +51,19 @@ class ConfigurationReader:
         
     
     def checkout_cfg_files (self):
+        '''
+        Check if all the configuration files have been loaded
+        '''
         for cfg_file in os.listdir(self.cfg_dir):
             if cfg_file not in self.cfg_files and cfg_file != "logging.cfg" and cfg_file.endswith(".cfg"):
                 self.cfg_files.append(cfg_file)
                 self.load_cfg_file(self.cfg_dir + cfg_file)
                 
     def get_value (self, cfg_section, cfg_item):
+        '''
+        Try to get the configuration value. If value is not mapped in the internal
+        configuration dictionary, try to re-load the configuration directory
+        '''
         if cfg_section in self.cfg_params:
             section = self.cfg_params[cfg_section]
             if cfg_item in section:

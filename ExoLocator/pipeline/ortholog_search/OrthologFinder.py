@@ -1,25 +1,45 @@
 '''
 Created on Apr 16, 2012
 
-@author: intern
+@author: ana, mario
 '''
 
+# Python imports
 import os, re
+# BioPython imports
+from Bio.Blast                                      import NCBIXML
 
-from Bio.Blast import NCBIXML
+# utilities imports
+from utilities.FileUtilities                        import get_species_list, execute_command_and_log
+from utilities.DirectoryCrawler                     import DirectoryCrawler
 
-from utilities.ConfigurationReader import ConfigurationReader
-from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
-from utilities.FileUtilities import get_species_list, execute_command_and_log
+# pipeline utilities imports
+from pipeline.utilities.AlignmentCommandGenerator   import AlignmentCommandGenerator
+
+
 
 
 
 def find_ortholog_by_RBH (original_species, target_species, original_protein_fasta, original_protein_id, descr_file, mutual_best_logger = None):
-
-    #(species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
-    #(species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
     
+    '''
+    Searches for the protein orthologue of a reference species protein.
+    Writes the found orthologue data to the description file.
+    @param original_species:           latin name of the reference species
+    @param target_species:             latin name of  the target species
+    @param original_protein_fasta:     fasta file containing the reference species protein
+    @param original_protein_id:        reference species protein ensembl ID
+    @param descr_file:                 description file handle
+    @param mutual_best_logger:         mutual best logger (writes in a file)
+    
+    Available data for each protein:
+    - known / novel proteins:
+        (species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
+    - ab initio (genscan)
+        (species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
+    '''
+    
+    # first try to find the orthologue among the known/novel proteins:
     protein_info_known = _search_for_ortholog_in_database(original_species, target_species, 
                                                           original_protein_fasta, original_protein_id, 
                                                           "all", mutual_best_logger)
@@ -42,6 +62,7 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
                                                                               seq_end, 
                                                                               strand))
     else:
+        # now try to find the orthologue among the ab initio proteins
         mutual_best_logger.info("%s,%s, match not found in all - trying abinitio..." % (target_species.upper(), original_protein_id))
         print "%s, match not found in all - trying abinitio" % target_species.upper()
         
@@ -72,6 +93,11 @@ def find_ortholog_by_RBH (original_species, target_species, original_protein_fas
  
 def _search_for_ortholog_in_database(original_species, target_species, original_protein_fasta, original_protein_id, db_type, logger):
     '''
+    Takes the reference species protein and makes a BLASTp query on the target_species database.
+    Provided that there has been at least one hit, the best BLAST hit is queried against the
+    reference species protein database. If the best hit from the second query is the original protein,
+    then the protein data is returned. The queries as referred to as the forward and the backward
+    hit respectively.  
     @param db_type: all / abinitio
     '''
     acg = AlignmentCommandGenerator()
@@ -143,8 +169,15 @@ def _search_for_ortholog_in_database(original_species, target_species, original_
             return (protein_id, protein_type, location_type, assembly, location_id, seq_start, seq_end, strand, transcript_id)
     else:
         return None
+  
+  
     
 def _get_best_alignment (protein_id, blast_record):
+    '''
+    Auxiliary function - because of the presence of different haplotype 
+    proteins which can have the same BLAST score (or very similar), not
+    only the first BLAST hit is taken into account, but first few.
+    '''
     
     best_score = blast_record.descriptions[0].score
     best_alignments = [blast_record.descriptions[0].title]

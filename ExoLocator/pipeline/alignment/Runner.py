@@ -3,10 +3,18 @@ Created on Apr 20, 2012
 
 @author: marioot
 '''
-from utilities                  import FileUtilities
-from pipeline.alignment import Alignments
+# Python imports
 import sys
+
+# utilities imports
+from utilities                  import FileUtilities
+
+# pipeline imports
+from pipeline.alignment import Alignments
+
+# data_analysis utilities imports
 from data_analysis.utilities.generate_structure import fill_all_containers
+
 
 def populate_referenced_species_databases(protein_list, referenced_species):
     for protein_id in protein_list:
@@ -100,7 +108,7 @@ def populate_SW_exon_alignments(protein_list):
 
 def main ():
     referenced_species = "Homo_sapiens"
-    
+    # 'ENSP00000253108', 'Ailuropoda_melanoleuca', 'ensembl'
     protein_list_raw = FileUtilities.get_protein_list()
     protein_list = []
     for protein_tuple in protein_list_raw:

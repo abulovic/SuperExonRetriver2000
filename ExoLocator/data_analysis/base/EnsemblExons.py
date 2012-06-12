@@ -4,7 +4,7 @@ Created on Apr 30, 2012
 @author: intern
 '''
 
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.DirectoryCrawler import DirectoryCrawler
 
 from Bio import SeqIO
 from Bio.Alphabet.IUPAC import unambiguous_dna
@@ -141,14 +141,8 @@ class EnsemblExons(object):
         
     
 if __name__ == '__main__':
-    ee = EnsemblExons(("ENSP00000341765", "Ailuropoda_melanoleuca"), "Homo_sapiens")
-    print ee.get_exon_file_path()
-    ee.load_exons()
-    for exon in ee.get_ordered_exons():
-        print exon.start, exon.stop, exon.ordinal
-    (cdna_seq, exon_locations) = ee.get_cDNA()
-    print exon_locations
-    print cdna_seq.seq
+    pass
+    
     
         
         

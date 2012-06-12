@@ -4,7 +4,7 @@ Created on May 2, 2012
 @author: intern
 '''
 import os
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities.Logger import Logger
 from Bio import SeqIO
 from Bio.Alphabet.IUPAC import unambiguous_dna
@@ -62,6 +62,7 @@ class GenewiseExons(object):
         ordered_exons = []
         for ordinal in sorted(self.exons.keys()):
             ordered_exons.append(self.exons[ordinal])
+        print ordered_exons
         return ordered_exons
         
     

@@ -3,7 +3,7 @@ Created on May 31, 2012
 
 @author: intern
 '''
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities import FileUtilities
 
 class TranslatedProtein (object):

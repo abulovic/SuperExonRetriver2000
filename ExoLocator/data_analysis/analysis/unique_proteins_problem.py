@@ -105,7 +105,7 @@ def main ():
 
                 
     
-    output_file = open('/home/marioot/Desktop/wierd_protein_groups1.txt', 'w')
+    output_file = open('/home/intern/Desktop/wierd_protein_groups1.txt', 'w')
     for protein_list_set in final_sets:
         protein_list = list(protein_list_set)
         output_file.write("{0}\n".format(', '.join(protein_list)))

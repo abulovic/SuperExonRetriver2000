@@ -3,8 +3,13 @@ Created on Apr 18, 2012
 
 @author: marioot
 '''
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+
+# Python imports
 import re
+
+# utilities imports
+from utilities.DirectoryCrawler import DirectoryCrawler
+
 
 class DescriptionParser:
     '''
