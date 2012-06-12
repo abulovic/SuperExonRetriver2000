@@ -1,9 +1,0 @@
-protein_mututal_best_search:
-	ensembl_mutual_best.py:
-		-za query protein traži najbolji mutual best match za svaku vrstu (find_by_blasting)
-		-stvara LOG, .descr, .fasta, fwd.fasta, .mafft.afa, fwd.mafft.afa u /session_resource/ folderu
-	find_by_blasting.py:
-		-koristi ga ensembl_mutual_best.py
-		-traži najbolji match za query protein u bazi proteina jedne vrste (blast)
-	create_protein_folder.py:
-		-na temelju .descr filea vadi proteine dobivene ensembl_mutual_best.py u folder /session_resource/mutual_best_proteins/
