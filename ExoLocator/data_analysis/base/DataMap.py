@@ -31,6 +31,5 @@ class DataMap(object):
         
         
     def get_expanded_start(self):
-        
         conf_reader = ConfigurationReader.Instance()
         return max(1, int(self.start - int(conf_reader.get_value('gene_expansion', 'expand'))))

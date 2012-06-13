@@ -27,7 +27,12 @@ class DBManager(object):
         Constructor
         '''
         #use config in the future
-        self.db = MySQLdb.connect("localhost","root","","exolocator_db" )
+        conf_reader = ConfigurationReader.Instance()
+        database = conf_reader.get_value('database', 'database')
+        hostname = conf_reader.get_value('database', 'hostname')
+        username = conf_reader.get_value('database', 'username')
+        password = conf_reader.get_value('database', 'password')
+        self.db  = MySQLdb.connect(hostname, username, password, database)
 
     def update_gene_table(self, data_map_list):
         '''
@@ -39,12 +44,23 @@ class DBManager(object):
         #SQL: Inserts record into database. If the record exists, updates the target_ensembl_id.
         sql = """
                 INSERT INTO
-                  gene (gene.gene_id, gene.ref_protein_id, gene.species, gene.strand, gene.start, gene.stop, gene.exp_start, gene.ab_initio)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                  gene (gene.gene_id, 
+                          gene.ref_protein_id, 
+                          gene.species, 
+                          gene.location_type, 
+                          gene.location_id, 
+                          gene.strand, 
+                          gene.start, 
+                          gene.stop, 
+                          gene.exp_start, 
+                          gene.ab_initio)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                   gene.gene_id = VALUES (gene.gene_id), \
                   gene.ref_protein_id = VALUES (gene.ref_protein_id), \
                   gene.species = VALUES (gene.species), \
+                  gene.location_type = VALUES (gene.location_type), \
+                  gene.location_id = VALUES (gene.location_id), \
                   gene.strand = VALUES (gene.strand), \
                   gene.start = VALUES (gene.start), \
                   gene.stop = VALUES (gene.stop), \
@@ -54,8 +70,17 @@ class DBManager(object):
         #from protein list derive data:
         data = []
         for data_map in data_map_list:
-            data.append((data_map.gene_id, data_map.ref_protein_id, data_map.species, data_map.strand, data_map.start, data_map.stop, data_map.get_expanded_start(), data_map.ab_initio))
-
+            data.append((data_map.gene_id, 
+                         data_map.ref_protein_id, 
+                         data_map.species, 
+                         data_map.location_type, 
+                         data_map.location_id, 
+                         data_map.strand, 
+                         data_map.start, 
+                         data_map.stop, 
+                         data_map.get_expanded_start(), 
+                         data_map.ab_initio))
+        print len(data)
         try:
             cursor.executemany(sql, data)
             self.db.commit()
@@ -407,11 +432,11 @@ class DBManager(object):
         
 def main():
     dbm = DBManager.Instance()
-    generate_structure.fill_all_containers(True)
+    #generate_structure.fill_all_containers(True)
     
-    dbm.populate_gene_table()
+    #dbm.populate_gene_table()
     #dbm.populate_protein_table()
-    #dbm.populate_exon_table()
+    #dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
     #dbm.populate_ortholog_table()
     #print dbm.read_protein_table("ENSGGOP00000011584")
     #print dbm.read_exon_table("ENSCHOP00000012154")
