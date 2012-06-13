@@ -1,17 +1,17 @@
 '''
 Created on Apr 30, 2012
 
-@author: intern
+@author: ana
 '''
 
 class EnsemblExon(object):
     '''
-    classdocs
+    Class representing one ensembl exon.
     '''
     
     def __init__(self, data_map_key, exon_id, start, stop, strand, sequence):
         '''
-        Constructor
+        @param data_map_key: (ref_protein_id, species)
         '''
         self.ref_protein_id = data_map_key[0]
         self.species        = data_map_key[1]

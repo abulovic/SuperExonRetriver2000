@@ -1,31 +1,39 @@
 '''
 Created on Apr 30, 2012
 
-@author: intern
+@author: ana
 '''
 
-from utilities.DirectoryCrawler import DirectoryCrawler
+# Python imports
+import copy
 
-from Bio import SeqIO
+# BioPython imports
+from Bio                import SeqIO
+from Bio.Seq            import Seq
+from Bio.SeqRecord      import SeqRecord
+from Bio.Alphabet       import IUPAC
 from Bio.Alphabet.IUPAC import unambiguous_dna
-from data_analysis.base.EnsemblExon import EnsemblExon
-from Bio.SeqRecord import SeqRecord
-from utilities.Logger import Logger
-from data_analysis.containers.DataMapContainer import DataMapContainer
-from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
-from utilities.FileUtilities import get_reference_species_dictionary
-from data_analysis.utilities.ExonUtils import remove_UTR_ensembl_exons
+
+# utilities imports
+from utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.Logger           import Logger
+from utilities.FileUtilities    import get_reference_species_dictionary
+
+# data analysis imports
+from data_analysis.utilities.ExonUtils          import remove_UTR_ensembl_exons,\
+    LongestCommonSubstring
+from data_analysis.base.EnsemblExon             import EnsemblExon
+from data_analysis.containers.DataMapContainer  import DataMapContainer
+from data_analysis.containers.ProteinContainer import ProteinContainer
 
 class EnsemblExons(object):
     '''
-    classdocs
+    Class which contains all the ensembl exons for a certain protein.
     '''
-
 
     def __init__(self, data_map_key, ref_species=None):
         '''
-        Constructor
+        @param data_map_key: (ref_protein_id, species)
         '''
         self.ref_protein_id    = data_map_key[0]
         self.species        = data_map_key[1]
@@ -36,15 +44,21 @@ class EnsemblExons(object):
         self.exons          = {}
         
     def get_exon_file_path (self):
-        
+        '''
+        Retrieve the file with the ensembl exons in fasta format
+        '''
         dc = DirectoryCrawler()
         return "{0}/{1}.fa".format(dc.get_exon_ensembl_path(self.ref_protein_id), self.species)
     
     def load_exons (self):
-        
-        data_map_container = DataMapContainer.Instance()
-        logger = Logger.Instance()
-        containers_logger = logger.get_logger('containers')
+        '''
+        Load the exons from the fasta file and create
+        the dictionary mapping them by their Ensembl id.
+        Exons are given appropriate ordinals. 
+        '''
+        data_map_container      = DataMapContainer.Instance()
+        logger                  = Logger.Instance()
+        containers_logger       = logger.get_logger('containers')
         
         data_map = data_map_container.get((self.ref_protein_id, self.species))
         self.strand = data_map.strand
@@ -83,12 +97,19 @@ class EnsemblExons(object):
         return exon_list
         
     def get_ordered_exons (self):
+        '''
+        Retrieves the exons in the correct protein coding order
+        @return: list of ordered exons
+        '''
         if self.strand == 1:
             return sorted (self.exons.values(), key = lambda exon: exon.start )
         else:
             return sorted (self.exons.values(), key = lambda exon: exon.start, reverse = True)
         
     def get_cDNA (self):
+        '''
+        @return: merged exon sequences
+        '''
         exons = self.get_ordered_exons()
         merged_exons_seq = Seq("", IUPAC.ambiguous_dna)
         exon_locations = {}
@@ -107,26 +128,45 @@ class EnsemblExons(object):
     
     def get_coding_cDNA(self):
         '''
-        Gets the cDNA without the UTR regions
+        @return: the cDNA without the UTR regions
         '''
         dmc = DataMapContainer.Instance()
-        dm_key = dmc.get((self.ref_protein_id, self.species))
-        new_exons = remove_UTR_ensembl_exons(self.ref_protein_id, self.species, self.get_ordered_exons())
+        pc = ProteinContainer.Instance()
+        data_map = dmc.get((self.ref_protein_id, self.species))
         
-        coding_cDNA = Seq("", IUPAC.ambiguous_dna)
-        for exon in new_exons:
-            coding_cDNA += exon.sequence
+        protein = pc.get(data_map.protein_id)
+        protein_sequence = str(protein.get_sequence_record().seq)
+        
+        (cDNA_record, locs) = self.get_cDNA()
+        cDNA = cDNA_record.seq
+        longest_frame = -1
+        longest_translation = ""
+        for frame in (0,1,2):
+            translation = cDNA[frame:].translate()
+            longest_substring = LongestCommonSubstring (translation, protein_sequence)
+            if len(longest_substring) > len(longest_translation):
+                longest_translation = longest_substring
+                actual_translation = translation
+                longest_frame = frame
             
-        return coding_cDNA
+        prot_start = actual_translation.find(longest_translation)
+        cDNA_start = prot_start*3 + longest_frame
+        cDNA_end = (prot_start + len(longest_translation) + 1) * 3 + longest_frame
+        
+        return (cDNA[cDNA_start:cDNA_end], cDNA_start, cDNA_end)
+
     
     def export_coding_exons_to_fasta (self, fasta_file):
-        
+        '''
+        Exports the protein coding exons to .fasta file
+        @param fasta_file: the output fasta file
+        '''
         dmc = DataMapContainer.Instance()
         data_map = dmc.get((self.ref_protein_id, self.species))
         
         new_exons = remove_UTR_ensembl_exons(self.ref_protein_id, self.species, self.get_ordered_exons())
         exon_records = []
-        " >969067|969174|ENSAMET00000013141|ENSAMEE00000125733|1"
+        # >969067|969174|ENSAMET00000013141|ENSAMEE00000125733|1
         for exon in new_exons:
             exon_id = "%d|%d|%s|%s|%d" % (exon.start, exon.stop, data_map.transcript_id, exon.exon_id, exon.strand)
             record = SeqRecord(seq = exon.sequence, id = exon_id, description = "")
@@ -134,11 +174,55 @@ class EnsemblExons(object):
             
         SeqIO.write(exon_records, fasta_file, "fasta")
         
+    def get_coding_exons (self):
         
+        (coding_cDNA, cDNA_start, cDNA_end) = self.get_coding_cDNA()
+        
+        total_start = 0
+        total_end = 0
+        ordered_exons = self.get_ordered_exons()
+        coding_exons = []
+        
+        for exon in self.get_ordered_exons():
             
-        
-        
-        
+            total_start = total_end 
+            total_end += len(exon.sequence)
+
+            if total_end < cDNA_start:
+                continue
+            if total_start > cDNA_end:
+                continue
+            
+            if total_start >= cDNA_start and total_end <= cDNA_end:
+                coding_exon = copy.deepcopy(exon)
+                
+            if total_start < cDNA_start and total_end > cDNA_start and total_end < cDNA_end:
+                new_start = cDNA_start - total_start
+                coding_exon = copy.deepcopy(exon)
+                coding_exon.start = new_start
+                coding_exon.sequence = coding_exon.sequence[new_start:]
+                
+            if total_start < cDNA_end and total_end > cDNA_end and total_start > cDNA_start:
+                coding_exon = copy.deepcopy(exon)           
+                new_end = len(coding_exon.sequence) - (total_end - cDNA_end)
+                coding_exon.end = new_end
+                coding_exon.sequence = coding_exon.sequence[:new_end]
+                
+            if total_start < cDNA_start and total_end > cDNA_end:
+                coding_exon = copy.deepcopy(exon)
+                new_start = cDNA_start - total_start
+                new_end = len(coding_exon.sequence)- (total_end - cDNA_end)
+                coding_exon.start = new_start
+                coding_exon.stop = new_end
+                coding_exon.sequence = coding_exon.sequence[new_start:new_end]
+                
+            coding_exons.append(coding_exon)
+            
+        return coding_exons
+                
+
+
+
     
 if __name__ == '__main__':
     pass

@@ -8,11 +8,11 @@ from utilities import FileUtilities
 
 class Gene(object):
     '''
-    classdocs
+    Class representing one Ensembl gene.
     '''
     def __init__(self, gene_id, data_map_key, ref_species):
         '''
-        Constructor
+        @param data_map_key: (ref_protein_id, species)
         '''
         self.gene_id     = gene_id
         self.ref_protein_id = data_map_key[0]

@@ -6,13 +6,13 @@ Created on May 2, 2012
 
 class GenewiseExon(object):
     '''
-    classdocs
+    Class representing one exon as predicted by GeneWise
     '''
 
 
     def __init__(self, data_map_key, exon_ordinal, start, stop, sequence):
         '''
-        Constructor
+        @param data_map_key: (ref_protein_id, species)
         '''
         self.ref_protein_id = data_map_key[0]
         self.species        = data_map_key[1]

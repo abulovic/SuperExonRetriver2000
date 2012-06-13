@@ -3,25 +3,33 @@ Created on May 2, 2012
 
 @author: intern
 '''
+
+# Python imports
 import os
+
+# BioPython imports
+from Bio                import SeqIO
+from Bio.Seq            import Seq
+from Bio.Alphabet       import IUPAC
+from Bio.Alphabet.IUPAC import unambiguous_dna
+
+# utilities imports
 from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities.Logger import Logger
-from Bio import SeqIO
-from Bio.Alphabet.IUPAC import unambiguous_dna
+
+# data analysis imports
 from data_analysis.base.GenewiseExon import GenewiseExon
-from Bio.Alphabet import IUPAC
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
+
 
 class GenewiseExons(object):
     '''
-    classdocs
+    Class which contains all the genewise exons for a certain protein.
     '''
 
 
     def __init__(self, data_map_key, ref_species):
         '''
-        Constructor
+        @param data_map_key: (ref_protein_id, species)
         '''
         self.ref_protein_id = data_map_key[0]
         self.species        = data_map_key[1]

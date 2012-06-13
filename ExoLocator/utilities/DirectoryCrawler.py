@@ -1,7 +1,7 @@
 '''
 Created on Apr 12, 2012
 
-@author: intern
+@author: ana
 '''
 
 # Python imports
@@ -17,10 +17,10 @@ class DirectoryCrawler(object):
 
 
     def __init__(self, protein_id = None):
-        '''
+        """
         Loads the configuration from pipeline configuration file
         @param protein_id: If provided, all the absolute paths are generated
-        '''
+        """
         config_reader = ConfigurationReader.Instance()
         
         self.protein_id         = None

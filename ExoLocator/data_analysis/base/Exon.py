@@ -6,11 +6,14 @@ Created on Apr 25, 2012
 
 class Exon(object):
     '''
-    classdocs
+    Class representing one alignment exon. Take notice - alignment exon 
+    does not need to correspont fully to the ensembl exon, it might be
+    just a part of a whole exon.
     '''
     def __init__(self, exon_type, ref_exon_id, ref_protein_id, species):
         '''
-        Constructor
+        @param ref_exon_id: Ensembl ID of the exon which was aligned to the
+        species genomic DNA resulting in this exon
         '''
         self.exon_type = exon_type
         self.ref_exon_id = ref_exon_id
@@ -43,6 +46,9 @@ class Exon(object):
         self.viability = viability
         
     def set_ordinal (self, ordinal, alignment_ordinal):
+        '''
+        Set exon ordinal
+        '''
         self.ordinal = ordinal
         self.alignment_ordinal = alignment_ordinal
         
