@@ -15,6 +15,7 @@ from Bio                            import SeqIO
 from utilities.ConfigurationReader  import ConfigurationReader
 from utilities.DirectoryCrawler     import DirectoryCrawler
 from utilities.Logger               import Logger
+from utilities.DescriptionParser    import DescriptionParser
 
 
 def get_project_root_dir ():
@@ -26,7 +27,7 @@ def get_project_root_dir ():
     proj_root_dir = m.groups()[0]
     return proj_root_dir
 
-def get_species_list ():
+def get_default_species_list ():
     '''
     @return: speacies_list - list of species as available for the species.txt file in the root project directory.
     '''
@@ -223,6 +224,7 @@ def check_status_file(protein_id):
     '''
     try:
         status_file_keys = get_status_file_keys()
+        status_file_keys.remove("EXON_TRANSLATION")
         protein_status  = read_status_file(protein_id)
         for key in status_file_keys:
             if protein_status[key] == 'FAILED':
@@ -246,6 +248,7 @@ def check_status_file_no_alignment(protein_id):
         status_file_keys.remove("SW_GENE_ALIGNMENT")
         status_file_keys.remove("SW_EXON_ALIGNMENT")
         status_file_keys.remove("REF_SP_DB_FORMATTING")
+        status_file_keys.remove("EXON_TRANSLATION")
         
         protein_status  = read_status_file(protein_id)
         
@@ -257,6 +260,30 @@ def check_status_file_no_alignment(protein_id):
         print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
         return False
     return True
+
+def get_species_list(protein_id, path):
+    '''
+    @param path: returns the list of species in the .status file, if the file doesn't exist, it returns the list parsed from protein
+                 description file.
+    '''
+    desc_parser = DescriptionParser()
+    species_list = []
+    if (os.path.isfile("{0}/.status".format(path))):
+        for species in open('{0}/.status'.format(path), 'r').readlines():
+            species_list.append(species.strip())
+    else:
+        species_list = desc_parser.get_species(protein_id)
+    return species_list
+    
+def write_failed_species_to_status(failed_species_list, path):
+    '''
+    @param failed_species_list: writes the list of failed species to path/.status file
+    @param path: path to the current protein/operation file 
+    '''
+    status = open('{0}/.status'.format(path), 'w')
+    for species in failed_species_list:
+        status.write("{0}\n".format(species))
+    status.close()
         
 def main():
     reset_action_global('REF_SP_DB_FORMATTING')
