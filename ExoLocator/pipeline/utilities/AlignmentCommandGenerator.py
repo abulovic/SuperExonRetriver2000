@@ -166,9 +166,11 @@ class AlignmentCommandGenerator(object):
         file_name = "%s/%s/pep" % (self.ensembldb, species.lower())
         tmp_file=""
         for f in os.listdir(file_name):
-            if (f != "README"):
-                tmp_file = f 
-                break
+            # check if we've stumbled on the protein file
+            m = re.findall(".pep", f)
+            if not m:
+                continue
+            tmp_file = f
         m = re.findall ('(.*).pep', tmp_file)
         if (protein_type == "all"):
             file_name = "%s/%s.pep.all.fa" % (file_name, m[0])
