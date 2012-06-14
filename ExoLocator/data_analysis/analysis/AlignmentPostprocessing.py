@@ -4,14 +4,19 @@ Created on May 6, 2012
 @author: intern
 '''
 
+# Python imports
 from timeit import itertools
 
+# utilities imports
 from utilities                                      import FileUtilities
 from utilities.DescriptionParser                    import DescriptionParser
+from utilities.Logger                               import Logger
+from utilities.FileUtilities                        import check_status_file
 
+# data analysis imports
 from data_analysis.containers.ExonContainer         import ExonContainer
-from utilities.Logger import Logger
-from utilities.FileUtilities import check_status_file
+
+
 
 
 def _calculate_total_score(valid_id_list, alignment_exons):
@@ -27,7 +32,7 @@ def _calculate_total_score(valid_id_list, alignment_exons):
             score += exon.get_fitness()
     return score
 
-def _is_sorted(exon_ordinal_list, strand):
+def _is_sorted(exon_ordinal_list):
     '''
     Checks whether list of exon ordinals is sorted
     '''
@@ -37,7 +42,12 @@ def _is_sorted(exon_ordinal_list, strand):
     return False
 
 
-def _find_best_orderred_subset(alignment_exons, reference_exons, strand):
+def _find_best_orderred_subset(alignment_exons, reference_exons):
+    '''
+    Finds the best alignment exons subset with
+    respect to the score (which corresponds to the sum of fitness'
+    of the exons in the set
+    '''
     
     full_array          = []
     highest_score       = 0.
@@ -45,6 +55,10 @@ def _find_best_orderred_subset(alignment_exons, reference_exons, strand):
     
     # add all the exon ordinals to a list of all ordinals
     for exon in alignment_exons:
+        # if exon is already marked as not viable, just discard it
+        if hasattr(exon, "viability"):
+            if not exon.viability:
+                continue
         full_array.append ((exon.ordinal, exon.alignment_ordinal))
         
     
@@ -55,7 +69,7 @@ def _find_best_orderred_subset(alignment_exons, reference_exons, strand):
         all_combinations = itertools.combinations(full_array, len(full_array)-i)
         
         for comb in all_combinations:
-            if _is_sorted (comb, strand):
+            if _is_sorted (comb):
                 score = _calculate_total_score(comb, alignment_exons)
                 if score > highest_score:
                     highest_score = score
@@ -65,6 +79,25 @@ def _find_best_orderred_subset(alignment_exons, reference_exons, strand):
     
     
             
+def _set_viabilities(alignment_exons, correct_order_exons):
+    '''
+    Auxiliary function. Sets the viability to all the alignment exons.
+    If they are among the correctly ordered exons, they are marked
+    as viable, otherwise as not viable.
+    '''
+    for exon in alignment_exons.get_ordered_exons():
+        ordinal = (exon.ordinal, exon.alignment_ordinal)
+        if ordinal in correct_order_exons:
+            viability = True
+        else:
+            viability = True    
+        # find the particular alignment exon and set the viability
+        for al_exon in alignment_exons.alignment_exons[exon.ref_exon_id]:
+                if al_exon.alignment_info["query_start"] == exon.alignment_info["query_start"]:
+                    al_exon.set_viability(viability)
+                    
+    return alignment_exons
+
 def annotate_spurious_alignments(exons_key):
     '''
     Annotates all the alignments which are not in the correct order.
@@ -72,6 +105,8 @@ def annotate_spurious_alignments(exons_key):
     (Supporting the assumption that all exons are in the correct, sequential order)
     @param exons_key: (reference protein id, species)
     @param alignment_type: blastn, tblastn, sw_gene, sw_exon
+    @return: updated alignment exons, None if something is wrong with
+            the protein (meaning in the .status file)
     '''
     
     (ref_protein_id, 
@@ -80,7 +115,7 @@ def annotate_spurious_alignments(exons_key):
      
     print "Annotating spurious alignments %s,%s,%s" % (ref_protein_id, species, alignment_type)
      
-
+    # if something is wrong with the protein, return
     if not check_status_file(ref_protein_id):
         return None
      
@@ -92,52 +127,23 @@ def annotate_spurious_alignments(exons_key):
     containers_logger           = logger.get_logger("containers")
     
     # get the reference exons: (ref_prot_id, ref_species, ensembl)
-    reference_exons     = exon_container.get((ref_protein_id, 
+    reference_exons             = exon_container.get((ref_protein_id, 
                                               reference_species_dict[species], 
                                               "ensembl"))
     # try to get the exons which are the product of specified alignment
     try:
         alignment_exons = exon_container.get((ref_protein_id, species, alignment_type))
     except KeyError:
-        containers_logger.error ("{0},{1},{2}".format(ref_protein_id, species, alignment_type))
+        containers_logger.error ("{0},{1},{2},No exons available for alignment".format(ref_protein_id, species, alignment_type))
         return None
-    
-    exon_list = []
-    # flatten the exon list (there may be multiple exons for one reference exon)
-    for al_exons in alignment_exons.alignment_exons.values():
-        for al_exon in al_exons:
-            exon_list.append(al_exon)
-    
-    # dependant on the strand, calculate the ordering of exons
-    strands = DescriptionParser().get_strand_information(ref_protein_id)
-    strand  = strands[species]
-    
-    if strand == 1:
-        reverse_flag = False
-    else:
-        reverse_flag = True
 
-    correct_order_exons = _find_best_orderred_subset (alignment_exons.get_ordered_exons(),
-                                                      reference_exons,
-                                                      strand)
-    # set viability for all the exons
-    # if exon is not in the correct order, set viability to False, True otherwise
-    for exon in exon_list:
-        ordinal = (exon.ordinal, exon.alignment_ordinal)
-        if ordinal in correct_order_exons:
-            for al_exon in alignment_exons.alignment_exons[exon.ref_exon_id]:
-                if al_exon.alignment_info["query_start"] == exon.alignment_info["query_start"]:
-                    al_exon.set_viability(True)
-        else:
-            for al_exon in alignment_exons.alignment_exons[exon.ref_exon_id]:
-                if al_exon.alignment_info["query_start"] == exon.alignment_info["query_start"]:
-                    if alignment_type == "sw_exon":
-                        al_exon.set_viability(True)
-                    else:
-                        #print "Exon %f not viable: (%s,%s,%s)" % (al_exon.ordinal, ref_protein_id, species, alignment_type)
-                        al_exon.set_viability(False)
-                        
-    exon_container.update(exons_key, alignment_exons)
+    correct_order_exons     = _find_best_orderred_subset (alignment_exons.get_ordered_exons(),
+                                                      reference_exons)
+    updated_alignment_exons = _set_viabilities (alignment_exons, correct_order_exons)    
+    # update the exon container to hold the new alignment exons 
+    exon_container.update(exons_key, updated_alignment_exons)
+    
+    return updated_alignment_exons
                     
                     
 def annotate_spurious_alignments_batch (protein_list, algorithms):
@@ -151,7 +157,6 @@ def annotate_spurious_alignments_batch (protein_list, algorithms):
             for alg in algorithms:
                 
                 exon_key = (protein_id, species, alg)
-                #remove_overlapping_alignments(exon_key)
                 annotate_spurious_alignments(exon_key)
                 
 
@@ -164,7 +169,6 @@ def remove_overlapping_alignments_batch (protein_list, algorithms):
             for alg in algorithms:
                 
                 exon_key = (protein_id, species, alg)
-                #remove_overlapping_alignments(exon_key)
                 remove_overlapping_alignments(exon_key)
     
 
@@ -209,10 +213,11 @@ def remove_overlapping_alignments (exons_key):
             exon_start = al_exon.alignment_info["sbjct_start"]
             exon_stop = exon_start + al_exon.alignment_info["length"]
             
-            if not al_exon.viability:
-                if printin:
-                    print "Exon %d not viable" % al_exon.ordinal
-                continue
+            # if exon is already marked as not viable, just discard it
+            if hasattr(al_exon, "viability"):
+                if not al_exon.viability:
+                    continue
+                     
             
             if not toplevel_start:
                 # if toplevel locations haven't been set, set them
@@ -260,6 +265,8 @@ def remove_overlapping_alignments (exons_key):
     
 if __name__ == '__main__':
     ec = ExonContainer.Instance()
+
+    
     
 
             
