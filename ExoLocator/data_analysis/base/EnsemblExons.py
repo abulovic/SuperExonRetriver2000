@@ -164,7 +164,7 @@ class EnsemblExons(object):
         dmc = DataMapContainer.Instance()
         data_map = dmc.get((self.ref_protein_id, self.species))
         
-        new_exons = remove_UTR_ensembl_exons(self.ref_protein_id, self.species, self.get_ordered_exons())
+        new_exons = self.get_coding_exons()
         exon_records = []
         # >969067|969174|ENSAMET00000013141|ENSAMEE00000125733|1
         for exon in new_exons:
@@ -199,22 +199,24 @@ class EnsemblExons(object):
             if total_start < cDNA_start and total_end > cDNA_start and total_end < cDNA_end:
                 new_start = cDNA_start - total_start
                 coding_exon = copy.deepcopy(exon)
-                coding_exon.start = new_start
                 coding_exon.sequence = coding_exon.sequence[new_start:]
+                coding_exon.start += new_start
                 
             if total_start < cDNA_end and total_end > cDNA_end and total_start > cDNA_start:
                 coding_exon = copy.deepcopy(exon)           
                 new_end = len(coding_exon.sequence) - (total_end - cDNA_end)
                 coding_exon.end = new_end
                 coding_exon.sequence = coding_exon.sequence[:new_end]
+                coding_exon.end -= (total_end - cDNA_end)
                 
             if total_start < cDNA_start and total_end > cDNA_end:
                 coding_exon = copy.deepcopy(exon)
                 new_start = cDNA_start - total_start
                 new_end = len(coding_exon.sequence)- (total_end - cDNA_end)
-                coding_exon.start = new_start
-                coding_exon.stop = new_end
                 coding_exon.sequence = coding_exon.sequence[new_start:new_end]
+                coding_exon.start += new_start
+                coding_exon.stop -= (total_end - cDNA_end)
+                
                 
             coding_exons.append(coding_exon)
             
