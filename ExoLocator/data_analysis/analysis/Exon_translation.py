@@ -5,17 +5,23 @@ Created on Mar 27, 2012
 '''
 
 class Exon_translation:
-    def __init__(self, exon_id, length, query, target):
-        self.id         =   int(exon_id)
-        self.length     =   int(length)
-        self.query      =   query
-        self.target     =   target
-        self.start_nuc  =   ""
-        self.end_nuc    =   ""
-        self.score      =   0
-        self.no_of_matches      =   0
-        self.alignment_length   =   0
-        self.viability   =   True
+    '''
+    Auxiliary class for constructing the translation from exon to protein
+    '''
+    
+    def __init__ (self, referent_exon, alignment_exon):
+        self.id = alignment_exon.ordinal
+        self.length = referent_exon.length
+        self.query = alignment_exon.alignment_info["query_seq"]
+        self.target = alignment_exon.alignment_info["sbjct_seq"]
+        self.set_intervals(alignment_exon.alignment_info["query_start"], 
+                           alignment_exon.alignment_info["query_end"], 
+                           alignment_exon.alignment_info["sbjct_start"], 
+                           alignment_exon.alignment_info["sbjct_end"])
+        self.set_identity(alignment_exon.alignment_info["identities"], alignment_exon.alignment_info["length"])
+        self.set_viablity(alignment_exon.viability)
+        
+   
     def set_intervals(self, q_start, q_end, t_start, t_end):
         self.q_start    =   int(q_start)
         self.q_end      =   int(q_end)
@@ -36,7 +42,7 @@ class Exon_translation:
         return float(self.alignment_length * self.no_of_matches) / self.length
         
     def __lt__ (self, other):
-        if isinstance(other, Exon):
+        if isinstance(other, Exon_translation):
             if other.fitness() > self.fitness():
                 return True
             else:

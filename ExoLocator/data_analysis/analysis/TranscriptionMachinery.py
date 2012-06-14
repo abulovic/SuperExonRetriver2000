@@ -3,29 +3,166 @@ Created on Mar 22, 2012
 
 @author: marioot
 '''
-from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
-from data_analysis.containers.ExonContainer import ExonContainer
-from data_analysis.analysis.Exon_translation import Exon_translation
-from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
-from timeit import itertools
-import re, sys, math
-from data_analysis.containers.ProteinContainer import ProteinContainer
-from utilities.DescriptionParser import DescriptionParser
-from data_analysis.containers.DataMapContainer import DataMapContainer
-from utilities.FileUtilities import check_status_file
-from data_analysis.base.EnsemblExons import EnsemblExons
-from data_analysis.utilities.ExonUtils import LongestCommonSubstring
 
-'''
-Created on Mar 22, 2012
+# Python imports
+import re, sys, math, os
+from timeit                                         import itertools
 
-@author: marioot
-'''
+# BioPython imports
+from Bio.Seq                                        import Seq
+from Bio.Alphabet                                   import IUPAC
+from Bio                                            import SeqIO
+from Bio.SeqRecord                                  import SeqRecord
+
+# utilities imports
+from utilities.DescriptionParser                    import DescriptionParser
+from utilities.FileUtilities                        import check_status_file, get_species_list, write_failed_species_to_status
+from utilities.Logger                               import Logger
+from utilities.DirectoryCrawler                     import DirectoryCrawler
+
+# pipeline utilities imports
+from pipeline.utilities.AlignmentCommandGenerator   import AlignmentCommandGenerator
+
+# Data analysis imports
+from data_analysis.utilities.ExonUtils              import LongestCommonSubstring
+
+from data_analysis.analysis.Exon_translation        import Exon_translation
+
+from data_analysis.base.TranslatedProtein                   import TranslatedProtein
+from data_analysis.containers.TranslatedProteinContainer    import TranslatedProteinContainer
+from data_analysis.containers.ExonContainer                 import ExonContainer
+from data_analysis.containers.EnsemblExonContainer          import EnsemblExonContainer
+from data_analysis.containers.ProteinContainer              import ProteinContainer
+from data_analysis.containers.DataMapContainer              import DataMapContainer
+
+
+
 # to our future selves: we truly and honestly apologize. And again.
 ignored_nucleotide_count = 0
 
 
+def assemble_and_store_protein(protein_id, species, exons_for_transcription, target_prot_seq, assembled_protein_fasta):
+    '''
+    Assembles the protein from the sw_gene alignment, creates the fasta 
+    in the appropriate directory (sequence/assembled_protein)
+    
+    @param exons_for_transcription: exons that are suitable for transcription (correct order ecc)
+    @param target_prot_seq: sequence of the reference species protein
+    @param assembled_protein_fasta: path to the assembled protein fasta file
+    '''
+    
+    tpc                 = TranslatedProteinContainer.Instance()
+
+    # actual translation
+    (resulting_protein_seq, exon_translations) = transcribe_exons(exons_for_transcription, target_prot_seq)
+    
+    # write the protein to the appropriate fasta file
+    assembled_protein_seq = SeqRecord(Seq(resulting_protein_seq), species, description = "")
+    fasta_file = open(assembled_protein_fasta, "w")
+    SeqIO.write(assembled_protein_seq, fasta_file, "fasta")
+    fasta_file.close()
+    
+    translated_protein = TranslatedProtein(protein_id, species)
+    tpc.add(protein_id, species, translated_protein)
+    
+    
+
+
+def create_protein_alignment(protein_id, species):
+    '''
+    Generates the SW alignment of three protein sequences:
+    reference species protein, the assembled protein and the ensembl species protein
+    @param protein_id: referent protein id
+    @param species: species (latin)
+    '''
+    
+    sequences_for_fasta = []
+    
+    dc                  = DirectoryCrawler()
+    pc                  = ProteinContainer.Instance()
+    dmc                 = DataMapContainer.Instance()
+    acg                 = AlignmentCommandGenerator()
+    tpc                 = TranslatedProteinContainer.Instance()
+    
+    data_map            = dmc.get((protein_id, species))
+    
+    # get all the proteins
+    ref_protein         = pc.get(protein_id)
+    species_protein     = pc.get(data_map.protein_id)
+    assembled_protein   = tpc.get(protein_id, species)
+    
+    sequences_for_fasta.append(ref_protein.get_sequence_record())
+    sequences_for_fasta.append(assembled_protein.get_sequence_record())
+    sequences_for_fasta.append(species_protein.get_sequence_record())
+    
+    msa_fasta       = "%s/%s.fa" % (dc.get_mafft_path(protein_id), species)
+    msa_afa         = "%s/%s.afa" % (dc.get_mafft_path(protein_id), species)
+    msa_fasta_file  = open(msa_fasta, "w")
+    SeqIO.write(sequences_for_fasta, msa_fasta_file, "fasta")
+    msa_fasta_file.close()
+    
+    mafft_cmd = acg.generate_mafft_command(msa_fasta, msa_afa)
+    os.system(mafft_cmd)
+
+
+def translate_alignment_exons_for_protein(protein_id, exon_number):
+    '''
+    Translates all the proteins for which there is SW to gene alignment
+    '''
+    algorithm = "sw_gene"
+    
+    # instantiate all the utilities
+    logger              = Logger.Instance()
+    dc                  = DirectoryCrawler()
+    translation_logger  = logger.get_logger("translator")
+    
+    # instantiate all the containters
+    eec                 = EnsemblExonContainer.Instance()
+    ec                  = ExonContainer.Instance()
+    pc                  = ProteinContainer.Instance()    
+
+    failed_species          = []
+    assembled_protein_path  = dc.get_assembled_protein_path(protein_id)
+
+    # for all the species for which it is required to generate translated protein
+    for species in get_species_list(protein_id, assembled_protein_path):
+        
+        # get all you need for the processing
+        assembled_protein_fasta = "%s/%s.fa" % (dc.get_assembled_protein_path(protein_id), species)
+        exon_key                = (protein_id, species, algorithm)
+        target_prot             = pc.get(protein_id)
+        target_prot_seq         = target_prot.get_sequence_record().seq
+        
+        try:
+            exons = ec.get(exon_key)
+        except KeyError:
+            translation_logger.error("%s,%s,%s" % (protein_id, species, "No exons available"))
+            failed_species.append(species)
+            continue
+        exons_for_transcription = []
+
+        # THIS PART WILL NOT EXIST IN THE NEAR FUTURE
+        last_translated_exon = False
+        for al_exon in exons.get_ordered_exons():
+
+            ref_exon     = eec.get(al_exon.ref_exon_id)
+            trans_exon   = Exon_translation(ref_exon, al_exon)
+            # if we've already bumped into exon with UTR on its end, all the other exons are not viable
+            if last_translated_exon:
+                trans_exon.viability = False
+                
+            if trans_exon.viability:
+                (trans_exon, last_translated_exon)  = chop_off_start_utr(al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number)
+                trans_exon                          = chop_off_end_utr (al_exon.ref_exon_id, trans_exon, target_prot_seq, exon_number, protein_id)
+            
+            exons_for_transcription.append(trans_exon)
+        # up to here - this will get trashed
+        
+        assemble_and_store_protein (protein_id, species, exons_for_transcription, target_prot_seq, assembled_protein_fasta)
+        create_protein_alignment   (protein_id, species)
+                   
+    write_failed_species_to_status(failed_species, assembled_protein_path)
+    return failed_species
 
 
 def get_exon(exons, exon_id):
@@ -335,8 +472,8 @@ def chop_off_start_utr (ref_exon_id, exon, target_protein, number_of_exons):
     if first_exon_translation.find(cdna_translation) != -1:
         return (exon, last_exon)
     
-    if exon.id != 1 and not last_exon:
-        raise Exception ("Not first exon, and has UTR")
+    #if exon.id != 1 and not last_exon:
+    #    raise Exception ("Not first exon, and has UTR")
           
     location_on_target_prot = first_exon_translation.find(longest_translation)
     if location_on_target_prot == -1:
@@ -419,8 +556,8 @@ def chop_off_end_utr (ref_exon_id, exon, target_prot_seq, number_of_exons, prote
         exon.viability = False
         
     else:
-        if exon.id != number_of_exons:
-            raise Exception ("Protein %s has UTR" % (protein_id))
+        #if exon.id != number_of_exons:
+        #    raise Exception ("Protein %s has UTR" % (protein_id))
         # chop off the final part:
         location_of_actual_translation_start = actual_translation.find(longest_translation)
         # we accidentally found some part of the protein in the untranslated region:
@@ -475,14 +612,12 @@ def translate_ensembl_exons(protein_list):
                 continue
             (cdna, locations) = exons.get_cDNA()
             translation_len = 0
-            longest_trans_frame = -1
             for frame in range(0,3): 
                 translated_protein = cdna[frame:].seq.translate()
                 common_translation = LongestCommonSubstring(translated_protein, species_protein_seq.seq)
                 if len(common_translation) > translation_len:
                     longest_common_translation = common_translation
                     translation_len = len(common_translation)
-                    longest_trans_frame = frame
                 
             if not str(longest_common_translation) == str(species_protein_seq.seq):
                 print "not OK"
@@ -490,12 +625,7 @@ def translate_ensembl_exons(protein_list):
                 print "Translated: " + longest_common_translation 
             
        
-
-                
-            
-    
-                
-                
+          
 
 #Kao command line argument mu se predaje path do SW outfilea
 
