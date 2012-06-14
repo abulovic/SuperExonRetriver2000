@@ -10,7 +10,7 @@ import os, re
 from Bio.Blast                                      import NCBIXML
 
 # utilities imports
-from utilities.FileUtilities                        import get_species_list, execute_command_and_log
+from utilities.FileUtilities                        import get_default_species_list, execute_command_and_log
 from utilities.DirectoryCrawler                     import DirectoryCrawler
 
 # pipeline utilities imports
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     fastacmd = acg.generate_fastacmd_protein_command(protein_id, "Homo_sapiens", "all", output_file_path)
     os.system(fastacmd)
     
-    for species in get_species_list():
+    for species in get_default_species_list():
         find_ortholog_by_RBH("Homo_sapiens", species, output_file_path, protein_id)
         
     descr_file.close()

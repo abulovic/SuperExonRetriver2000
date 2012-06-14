@@ -4,9 +4,6 @@ Created on Apr 13, 2012
 @author: marioot
 '''
 
-# Python imports
-import os
-
 # utilities imports
 from utilities.DescriptionParser    import DescriptionParser
 from utilities.DirectoryCrawler     import DirectoryCrawler

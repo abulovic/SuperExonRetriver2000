@@ -66,8 +66,17 @@ class DescriptionParser:
         
         species_list = proteins_known.keys()
         species_list.extend(proteins_abinitio.keys())
+        
+        for species in species_list:
+            species = species.strip()
             
         return sorted(species_list)
+    
+    def get_separated_species (self, protein_id):
+        (proteins_known, proteins_abinitio) = self.parse_descr_file(protein_id)
+        species_known = proteins_known.keys()
+        species_abinitio = proteins_abinitio.keys()
+        return (species_known, species_abinitio)
     
     def get_strand_information (self, protein_id):
         '''

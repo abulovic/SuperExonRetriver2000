@@ -8,6 +8,8 @@ from utilities.FileUtilities                        import get_protein_list, che
 from data_analysis.utilities.generate_structure     import fill_all_containers
 from data_analysis.containers.ExonContainer         import ExonContainer
 from data_analysis.analysis.TranscriptionMachinery  import translate_alignment_exons_for_protein
+from utilities.DirectoryCrawler import DirectoryCrawler
+from data_analysis.analysis.AlignmentStatistics import create_protein_statistics
 
 def translate_alignment_exons ():
     '''
@@ -40,6 +42,16 @@ def translate_alignment_exons ():
             update_entry_in_status_file(protein_id, 'EXON_TRANSLATION', 'PARTIAL')
         else:
             update_entry_in_status_file(protein_id, 'EXON_TRANSLATION', 'OK')
+            
+def create_statistics(protein_list):
+    dc = DirectoryCrawler()
+
+    for protein_id in protein_list:
+    
+        stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
+        if not check_status_file(protein_id):
+            continue
+        create_protein_statistics(protein_id, stat_file)
         
 def main ():
     fill_all_containers(True)

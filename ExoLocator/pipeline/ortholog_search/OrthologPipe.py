@@ -12,7 +12,7 @@ from subprocess                                     import Popen, PIPE, STDOUT
 from pipeline.ortholog_search.OrthologFinder        import find_ortholog_by_RBH
 
 # utilities import
-from utilities.FileUtilities                        import get_protein_list, get_species_list,\
+from utilities.FileUtilities                        import get_protein_list, get_default_species_list,\
                                                         read_status_file, update_entry_in_status_file
 from utilities.DescriptionParser                    import DescriptionParser
 from utilities.Logger                               import Logger
@@ -42,7 +42,7 @@ def main():
     mutual_best_logger = logger.get_logger('mutual_best')
     
     protein_list = get_protein_list()
-    species_list = get_species_list()
+    species_list = get_default_species_list()
     failed_proteins = []
     
     for (protein_id, num_of_exons) in protein_list:

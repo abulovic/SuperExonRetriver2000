@@ -22,6 +22,7 @@ from pipeline.alignment.AlignmentTargetGenerator  import AlignmentTargetGenerato
 
 # data analysis imports
 from data_analysis.containers.ExonContainer       import ExonContainer
+from data_analysis.utilities.generate_structure import fill_all_containers
 
 
 '''
@@ -319,7 +320,7 @@ def generate_referenced_species_database(protein_id, referenced_species):
     return True
     
 def main ():
-    generate_referenced_species_database("ENSP00000311134", "Homo_sapiens")
+    generate_referenced_species_database("ENSP00000215071", "Homo_sapiens")
     
 if __name__ == '__main__':
     main()
