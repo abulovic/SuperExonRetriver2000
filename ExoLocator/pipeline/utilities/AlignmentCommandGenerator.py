@@ -142,9 +142,11 @@ class AlignmentCommandGenerator(object):
         # get the template name (dependent on the assembly)
         tmp_file=""
         for f in os.listdir(file_name):
-            if (f != "README"):
-                tmp_file = f
-                break
+            # check if we've stumbled on the protein file
+            m = re.findall(".dna", f)
+            if not m:
+                continue
+            tmp_file = f
         m = re.findall ('(.*).dna', tmp_file)   
         if (masked != 0):
             file_name = "%s/%s.dna_rm." % (file_name, m[0])
