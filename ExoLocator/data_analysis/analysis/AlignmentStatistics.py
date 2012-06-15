@@ -29,6 +29,13 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
     (ref_protein_id, species) = exons_key
     print species
     
+    # if the alignment type is tblastn, we have to multiply
+    # the coverage by 3 because the length is expressed in AAs, not in NBs
+    if alignment_type == "tblastn":
+        coverage_constant = 3.
+    else:
+        coverage_constant = 1.
+    
     exon_container          = ExonContainer.Instance()
     reference_species_dict  = FileUtilities.get_reference_species_dictionary()
 
@@ -58,7 +65,8 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
             for al_exon in al_exons:
                 if al_exon.viability:
                     #print al_exon.alignment_info["sbjct_start"], al_exon.alignment_info["sbjct_end"]
-                    internal_stat += float(al_exon.alignment_info["identities"]) / len(ref_exon.sequence)
+                    
+                    internal_stat += coverage_constant * float(al_exon.alignment_info["identities"]) / len(ref_exon.sequence)
                     if internal_stat > 1:
                         print "Coverage cannot be larger than 1 (%s,%s,%s)" % (ref_protein_id, species, alignment_type)
                         print al_exon.alignment_info["sbjct_start"], len(ref_exon.sequence)
