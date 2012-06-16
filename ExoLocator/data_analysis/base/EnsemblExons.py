@@ -196,13 +196,13 @@ class EnsemblExons(object):
             if total_start >= cDNA_start and total_end <= cDNA_end:
                 coding_exon = copy.deepcopy(exon)
                 
-            if total_start < cDNA_start and total_end > cDNA_start and total_end < cDNA_end:
+            if total_start < cDNA_start and total_end > cDNA_start and total_end <= cDNA_end:
                 new_start = cDNA_start - total_start
                 coding_exon = copy.deepcopy(exon)
                 coding_exon.sequence = coding_exon.sequence[new_start:]
                 coding_exon.start += new_start
                 
-            if total_start < cDNA_end and total_end > cDNA_end and total_start > cDNA_start:
+            if total_start < cDNA_end and total_end > cDNA_end and total_start >= cDNA_start:
                 coding_exon = copy.deepcopy(exon)           
                 new_end = len(coding_exon.sequence) - (total_end - cDNA_end)
                 coding_exon.end = new_end
