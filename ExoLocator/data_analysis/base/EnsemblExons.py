@@ -188,9 +188,9 @@ class EnsemblExons(object):
             total_start = total_end 
             total_end += len(exon.sequence)
 
-            if total_end < cDNA_start:
+            if total_end <= cDNA_start:
                 continue
-            if total_start > cDNA_end:
+            if total_start >= cDNA_end:
                 continue
             
             if total_start >= cDNA_start and total_end <= cDNA_end:
