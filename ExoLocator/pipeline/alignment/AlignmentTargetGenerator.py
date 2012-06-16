@@ -24,7 +24,7 @@ class AlignmentTargetGenerator(object):
         @param protein_id: retrieves the list of species (RBS) not aligned with blastn for that protein
         '''       
         path = self.crawler.get_blastn_path(protein_id)
-        get_species_list(protein_id, path)
+        return get_species_list(protein_id, path)
     
     
     def set_failed_blastn_targets(self, protein_id, failed_species_list):
@@ -36,7 +36,7 @@ class AlignmentTargetGenerator(object):
         @param protein_id: retrieves the list of species not aligned with tblastn for that protein
         '''       
         path = self.crawler.get_tblastn_path(protein_id)
-        get_species_list(protein_id, path)
+        return get_species_list(protein_id, path)
         
     def set_failed_tblastn_targets(self, protein_id, failed_species_list):
         path = self.crawler.get_tblastn_path(protein_id)
@@ -47,7 +47,7 @@ class AlignmentTargetGenerator(object):
         @param protein_id: retrieves the list of species not aligned with SW_gene for that protein
         '''       
         path = self.crawler.get_SW_gene_path(protein_id)
-        get_species_list(protein_id, path)
+        return get_species_list(protein_id, path)
     
     def set_failed_SW_gene_targets(self, protein_id, failed_species_list):
         path = self.crawler.get_SW_gene_path(protein_id)
@@ -58,7 +58,7 @@ class AlignmentTargetGenerator(object):
         @param protein_id: retrieves the list of species not aligned with SW_exon for that protein
         '''       
         path = self.crawler.get_SW_exon_path(protein_id)
-        get_species_list(protein_id, path)
+        return get_species_list(protein_id, path)
     
     def set_failed_SW_exon_targets(self, protein_id, failed_species_list):
         path = self.crawler.get_SW_exon_path(protein_id)
