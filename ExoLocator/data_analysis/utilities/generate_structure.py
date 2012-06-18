@@ -45,7 +45,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         ref_species_dict    = FileUtilities.get_reference_species_dictionary()
     
     logger                  = Logger.Instance()
-    alignment_logger        = logger.get_logger('containers')
+    containers_logger       = logger.get_logger('containers')
     
     data_map_container      = DataMapContainer.Instance()
     protein_container       = ProteinContainer.Instance()
@@ -67,30 +67,49 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
          seq_end, 
          strand) = species_data
         ab_initio = False
+
+        # data map
+        data_map_key    = (protein_id, species_name)
+        data_map        = DataMap(spec_protein_id, spec_transcript_id, 
+                                  spec_gene_id, data_map_key, location_type, 
+                                  location_id, strand, seq_begin, seq_end, ab_initio)
         try:
-            # data map
-            data_map_key    = (protein_id, species_name)
-            data_map        = DataMap(spec_protein_id, spec_transcript_id, spec_gene_id, data_map_key, location_type, location_id, strand, seq_begin, seq_end, ab_initio)
             data_map_container.add(data_map_key, data_map)
-            
-            # everything else - protein, transcript, gene, ensembl exons
-            protein         = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
-            gene            = Gene(spec_gene_id, data_map_key, ref_species_dict[species_name])
-            transcript      = Transcript(spec_transcript_id, data_map_key, ref_species_dict[species_name])
-            ens_exons       = EnsemblExons(data_map_key, ref_species_dict[species_name])
-            ens_exons.load_exons()
-            
-            # add ensembl exons separately to the ensembl exon container
-            for exon in ens_exons.exons.values():
-                ens_exon_container.add (exon.exon_id, exon)
-                
-            # add everything to its container
-            protein_container.   add(protein.protein_id, protein)
-            gene_container.      add(gene.gene_id, gene)
-            transcript_container.add(transcript.transcript_id, transcript)
-            
         except (KeyError, TypeError), e:
-            alignment_logger.warning("{0}, {1}, {2}".format(protein_id, species_name, e.args[0]))
+            containers_logger.error("{0}, {1}, {2}, error adding to datamap".format(protein_id, species_name, e.args[0]))
+        
+        # everything else - protein, transcript, gene, ensembl exons
+        protein         = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
+        gene            = Gene(spec_gene_id, data_map_key, ref_species_dict[species_name])
+        transcript      = Transcript(spec_transcript_id, data_map_key, ref_species_dict[species_name])
+        ens_exons       = EnsemblExons(data_map_key, ref_species_dict[species_name])
+        try:
+            ens_exons.load_exons()
+        except (Exception), e:
+            containers_logger.error("{0}, {1}, {2}, error loading exons".format(protein_id, species_name, e.args[0]))
+        
+        # add ensembl exons separately to the ensembl exon container
+        for exon in ens_exons.exons.values():
+            try:
+                ens_exon_container.add (exon.exon_id, exon)
+            except (KeyError, TypeError), e:
+                containers_logger.error("{0}, {1}, {2}, error adding ensembl exon {3}".format(protein_id, species_name, e.args[0], exon.exon_id))
+            
+        # add everything to its container
+        try:
+            protein_container.   add(protein.protein_id, protein)
+        except (KeyError, TypeError), e:
+            containers_logger.error("{0}, {1}, {2}, error adding protein".format(protein_id, species_name, e.args[0]))
+        try:
+            gene_container.      add(gene.gene_id, gene)
+        except (KeyError, TypeError), e:
+            containers_logger.error("{0}, {1}, {2}, error adding gene".format(protein_id, species_name, e.args[0]))
+        try:
+            transcript_container.add(transcript.transcript_id, transcript)
+        except (KeyError, TypeError), e:
+            containers_logger.error("{0}, {1}, {2}, error adding transcript".format(protein_id, species_name, e.args[0]))
+            
+        
     
     for species_data in abinitio_proteins:
         #create objects for abinitio proteins
@@ -104,16 +123,21 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
          strand) = species_data
         ab_initio = True
         
+
+        data_map_key    = (protein_id, species_name)
+        data_map        = DataMap(spec_protein_id, "", "", data_map_key, location_type, location_id, strand, seq_begin, seq_end, ab_initio)
         try:
-            data_map_key    = (protein_id, species_name)
-            data_map        = DataMap(spec_protein_id, "", "", data_map_key, location_type, location_id, strand, seq_begin, seq_end, ab_initio)
             data_map_container.add(data_map_key, data_map)
-            
-            protein         = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
-            protein_container.add(protein.protein_id, protein)
-            
         except (KeyError, TypeError), e:
-            alignment_logger.warning("{0}, {1}, {2}".format(protein_id, species_name, e.args[0]))
+            containers_logger.error("{0}, {1}, {2}, error adding to datamap".format(protein_id, species_name, e.args[0]))
+        
+        
+        try:
+            protein_container.add(protein.protein_id, protein)
+        except (KeyError, TypeError), e:
+            containers_logger.error("{0}, {1}, {2}, error adding protein".format(protein_id, species_name, e.args[0]))
+        
+
     return True
   
 
@@ -124,14 +148,19 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, exon_type):
     @param exon_type: exon_type: ensembl, genewise, blatn, tblastn, sw_gene, sw_exon
     '''
     
-    dc              = DescriptionParser()
-    exon_container  = ExonContainer.Instance()
+    dc                  = DescriptionParser()
+    exon_container      = ExonContainer.Instance()
+    
+    logger              = Logger.Instance()
+    containers_logger   = logger.get_logger('containers')
     
     if exon_type == "ensembl" or exon_type == "genewise":
         if not check_status_file_no_alignment(ref_protein_id):
+            containers_logger.info ("{0},exon_type:{1},check status file -> failed".format(ref_protein_id, exon_type))
             return False
     else:
         if not check_status_file(ref_protein_id):
+            containers_logger.info ("{0},exon_type:{1},check status file -> failed".format(ref_protein_id, exon_type))
             return False
     
     if not ref_species_dict:
@@ -145,10 +174,18 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, exon_type):
         if exon_type != "genewise":
             if exon_type == "ensembl":
                 exons = EnsemblExons ((ref_protein_id, species), ref_species)
-                exon_dict = exons.load_exons()
+                try:
+                    exon_dict = exons.load_exons()
+                except Exception, e:
+                    containers_logger.error("{0},{1},{2},error loading exons".format(ref_protein_id, species, exon_type))
+                    continue
             else:
                 exons = Exons((ref_protein_id, species), ref_species, exon_type)
-            exon_dict = exons.load_exons()
+            try:
+                exon_dict = exons.load_exons()
+            except Exception, e:
+                    containers_logger.error("{0},{1},{2},error loading exons".format(ref_protein_id, species, exon_type))
+                    continue
             if not exon_dict:
                 continue
         
@@ -165,14 +202,21 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, exon_type):
                 exons = GenewiseExons ((ref_protein_id, species), ref_species)
             else:
                 exons = Exons((ref_protein_id, species), ref_species, exon_type)
-            exon_dict = exons.load_exons()
+            try:
+                exon_dict = exons.load_exons()
+            except Exception, e:
+                    containers_logger.error("{0},{1},{2},error loading exons".format(ref_protein_id, species, exon_type))
+                    continue
             if not exon_dict:
                 continue
             
             if exon_type != "genewise":
                 exons.set_exon_ordinals()
             data_map_key = [ref_protein_id, species]
-            exon_container.add(exon_type, data_map_key, exons)
+            try:
+                exon_container.add(exon_type, data_map_key, exons)
+            except Exception, e:
+                    containers_logger.error("{0},{1},{2},error adding exons".format(ref_protein_id, species, exon_type))
 
 
 
