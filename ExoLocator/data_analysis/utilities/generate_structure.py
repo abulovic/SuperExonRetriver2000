@@ -131,7 +131,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         except (KeyError, TypeError), e:
             containers_logger.error("{0}, {1}, {2}, error adding to datamap".format(protein_id, species_name, e.args[0]))
         
-        
+        protein         = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
         try:
             protein_container.add(protein.protein_id, protein)
         except (KeyError, TypeError), e:
