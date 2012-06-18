@@ -7,18 +7,20 @@ Created on Apr 20, 2012
 import sys
 
 # utilities imports
-from utilities                  import FileUtilities
+from utilities           import FileUtilities
 
 # pipeline imports
-from pipeline.alignment import Alignments
+from pipeline.alignment  import Alignments
 
 # data_analysis utilities imports
 from data_analysis.utilities.generate_structure import fill_all_containers
+from utilities.FileUtilities import check_status_file_no_alignment
 
 
 def populate_referenced_species_databases(protein_list, referenced_species):
     for protein_id in protein_list:
-        if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'FAILED':
+        if not check_status_file_no_alignment(protein_id):
+        #if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'FAILED':
             print "ABORTING {0} DATABASE FORMATTING: ENSEMBL_EXON_RETRIEVAL has a FAILED status!".format(protein_id)
             FileUtilities.update_entry_in_status_file(protein_id, 'REF_SP_DB_FORMATTING', 'FAILED')
             continue
