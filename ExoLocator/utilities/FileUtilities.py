@@ -230,6 +230,8 @@ def check_status_file(protein_id):
             if protein_status[key] == 'FAILED':
                 print "{0}: Loading protein data failed due to .status file!".format(protein_id)
                 return False
+        if "Homo_sapiens" not in get_species_list(protein_id, None):
+            return False
     except KeyError:
         print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
         return False
@@ -256,6 +258,9 @@ def check_status_file_no_alignment(protein_id):
             if protein_status[key] == 'FAILED':
                 print "{0}: Loading protein data failed due to .status file!".format(protein_id)
                 return False
+            
+        if "Homo_sapiens" not in get_species_list(protein_id, None):
+            return False
     except KeyError:
         print "{0}: Loading protein data failed due missing key in .status file!".format(protein_id)
         return False
