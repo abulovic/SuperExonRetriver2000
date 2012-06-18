@@ -90,9 +90,9 @@ def create_protein_statistics (protein_id, statistics_file):
     
     header_row = ["Species name", "Alignment"]
     
-    reference_exons_old = exon_container.get((protein_id, "Homo_sapiens", "ensembl"))
-    reference_exons = remove_UTR_ensembl_exons(protein_id, "Homo_sapiens", reference_exons_old.get_ordered_exons())
-    for ref_exon in reference_exons:
+    reference_exons = exon_container.get((protein_id, "Homo_sapiens", "ensembl"))
+    reference_coding_exons = reference_exons.get_coding_exons()
+    for ref_exon in reference_coding_exons:
         header_row.append(ref_exon.exon_id)
 
     csv_writer = csv.writer(open(statistics_file, 'wb'), delimiter=",")
@@ -102,7 +102,7 @@ def create_protein_statistics (protein_id, statistics_file):
     for species in species_list :
         for al in alignments:
             new_row = [species, al]
-            stats = produce_statistics_for_alignment((protein_id, species), al, reference_exons)
+            stats = produce_statistics_for_alignment((protein_id, species), al, reference_coding_exons)
             if stats:
                 new_row.extend (stats)
             else:
