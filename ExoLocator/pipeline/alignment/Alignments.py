@@ -247,7 +247,7 @@ def generate_SW_exon_alignments2 (protein_id, species_list = None, referenced_sp
             continue
             
         
-        cDNA = exons.get_coding_cDNA()
+        (cDNA, cdna_start, cdna_end) = exons.get_coding_cDNA()
         cDNA_record = SeqRecord(cDNA, id = species, description="coding cDNA, no UTR")
         
         
@@ -320,7 +320,8 @@ def generate_referenced_species_database(protein_id, referenced_species):
     return True
     
 def main ():
-    generate_referenced_species_database("ENSP00000215071", "Homo_sapiens")
+    fill_all_containers(False)
+    generate_SW_exon_alignments2("ENSP00000341765")
     
 if __name__ == '__main__':
     main()
