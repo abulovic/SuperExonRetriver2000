@@ -16,6 +16,7 @@ from data_analysis.base.GenewiseExon import GenewiseExon
 from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch
 from data_analysis.base.Exon import Exon
 from data_analysis.containers.GeneContainer import GeneContainer
+from pipeline.alignment import Runner
 
 @Singleton
 class DBManager(object):
@@ -99,8 +100,8 @@ class DBManager(object):
         #SQL: Inserts record into database. If the record exists, updates the target_ensembl_id.
         sql = """
                 INSERT INTO
-                  ortholog (ortholog.ref_ensembl_id, ortholog.species, ortholog.ensembl_id, ortholog.transcript_id, ortholog.gene_id)
-                VALUES (%s, %s, %s, %s, %s)
+                  ortholog (ortholog.ref_protein_id, ortholog.species, ortholog.protein_id, ortholog.transcript_id, ortholog.gene_id)
+                VALUES (%s, %s, %s, %s, %s)                  
                 """
         #from protein list derive data:
         data = []
@@ -125,15 +126,15 @@ class DBManager(object):
         #SQL: Inserts record into database. If the record exists, updates the target_ensembl_id.
         sql = """
                 INSERT INTO
-                  protein (protein.ensembl_id, protein.sequence, protein.info)
-                VALUES (%s, %s, %s)
+                  protein (protein.ensembl_id, protein.sequence, protein.assembled_sequence, protein.info)
+                VALUES (%s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
-                  protein.sequence = VALUES (protein.sequence), protein.info = VALUES (protein.info)
+                  protein.sequence = VALUES (protein.sequence), protein.assembled_sequence = VALUES(protein.assembled_sequence), protein.info = VALUES (protein.info)
                 """
         #from protein list derive data:
         data = []
         for protein in protein_list:
-            data.append((protein.protein_id, protein.get_sequence_record().seq, protein.species))
+            data.append((protein.protein_id, protein.get_sequence_record().seq, "",protein.species))
         print data
 
         try:
@@ -356,7 +357,7 @@ class DBManager(object):
         dmc = DataMapContainer.Instance()
         
         protein_id_list = FileUtilities.get_protein_list()
-        species_list = FileUtilities.get_species_list()
+        species_list = FileUtilities.get_default_species_list()
         data_map_list = []
         for ref_protein_id in protein_id_list:
             for species in species_list:
@@ -374,7 +375,7 @@ class DBManager(object):
         dmc = DataMapContainer.Instance()
         
         protein_id_list = FileUtilities.get_protein_list()
-        species_list = FileUtilities.get_species_list()
+        species_list = FileUtilities.get_default_species_list()
         exon_type_list = ["ensembl", "genewise", "blastn", "tblastn", "sw_gene"]
         
         exon_list = []
@@ -401,7 +402,7 @@ class DBManager(object):
         dmc = DataMapContainer.Instance()
         
         protein_id_list = FileUtilities.get_protein_list()
-        species_list = FileUtilities.get_species_list()
+        species_list = FileUtilities.get_default_species_list()
         protein_list = []
         for ref_protein_id in protein_id_list:
             for species in species_list:
@@ -418,7 +419,7 @@ class DBManager(object):
         dmc = DataMapContainer.Instance()
         
         protein_id_list = FileUtilities.get_protein_list()
-        species_list = FileUtilities.get_species_list()
+        species_list = FileUtilities.get_default_species_list()
         data_map_list = []
         for ref_protein_id in protein_id_list:
             for species in species_list:
@@ -432,12 +433,12 @@ class DBManager(object):
         
 def main():
     dbm = DBManager.Instance()
-    #generate_structure.fill_all_containers(True)
+    Runner.fill_all_containers(True)
     
-    #dbm.populate_gene_table()
-    #dbm.populate_protein_table()
-    #dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
-    #dbm.populate_ortholog_table()
+    dbm.populate_gene_table()
+    dbm.populate_protein_table()
+    dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
+    dbm.populate_ortholog_table()
     #print dbm.read_protein_table("ENSGGOP00000011584")
     #print dbm.read_exon_table("ENSCHOP00000012154")
     
