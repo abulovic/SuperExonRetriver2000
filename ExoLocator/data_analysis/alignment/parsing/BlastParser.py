@@ -84,7 +84,8 @@ def parse_blast_output (ref_protein_id, species, blast):
                                       hsp.query_start + len(hsp.sbjct) -1,
                                       len(hsp.sbjct),
                                       hsp.sbjct,
-                                      hsp.query)
+                                      hsp.query,
+                                      hsp.score)
             if not ref_exon_id in exon_dict:
                 exon_dict[ref_exon_id] = [exon]
             else:

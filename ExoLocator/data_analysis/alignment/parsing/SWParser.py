@@ -57,6 +57,8 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     similarity_pattern  = re.compile ("Similarity:\s+(\d+)/.*")
     #Gaps: 1/41 (2.4%)
     gaps_pattern        = re.compile ("Gaps:\s+(\d+)/\d+.*")
+    #Score: 2828.000
+    score_pattern       = re.compile ("Score:.*")
     # sequence pattern
     sequence_pattern    = re.compile ("\s*(\d+)\s+([ATCGN-]+)\s+(\d+).*")
     
@@ -65,6 +67,7 @@ def parse_SW_output (ref_protein_id, species, sw_type):
     identities      = 0
     positives       = 0
     gaps            = 0
+    score           = 0.
     sbjct_start     = 0
     sbjct_end       = 0
     query_start     = 0
@@ -90,7 +93,8 @@ def parse_SW_output (ref_protein_id, species, sw_type):
                                         int(query_end), 
                                         int(length), 
                                         sbjct_sequence,
-                                        query_sequence)
+                                        query_sequence,
+                                        float(score))
                 if ref_exon_id in exon_dict:
                     exon_dict[ref_exon_id].append(exon)
                 else:
@@ -123,6 +127,10 @@ def parse_SW_output (ref_protein_id, species, sw_type):
         if gaps_match:
             gaps = gaps_match.groups()[0]
             
+        score_match = re.match(score_pattern, line)
+        if score_match:
+            score = line.split()[-1]
+            
         # sequence
         sequence_match = re.match (sequence_pattern, line)
         if sequence_match:
@@ -143,7 +151,8 @@ def parse_SW_output (ref_protein_id, species, sw_type):
                             int(query_end), 
                             int(length), 
                             sbjct_sequence,
-                            query_sequence)
+                            query_sequence,
+                            float(score))
     if query_sequence:
         if ref_exon_id in exon_dict:
             exon_dict[ref_exon_id].append(exon)
@@ -165,5 +174,6 @@ if __name__ == '__main__':
             print "\tAlign_length: %d" % al_exon.alignment_info["length"]
             print "\tSbjct seq:    %s" % al_exon.alignment_info["sbjct_seq"]
             print "\tQuery seq:    %s" % al_exon.alignment_info["query_seq"]
+            print "\tScore    :    %s" % al_exon.alignment_info["score"]
             
             print

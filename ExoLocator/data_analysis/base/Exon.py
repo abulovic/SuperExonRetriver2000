@@ -20,7 +20,7 @@ class Exon(object):
         self.ref_protein_id = ref_protein_id
         self.species        = species
         
-    def set_alignment_info (self, identities, positives, gaps, sbjct_start, sbjct_end, query_start, query_end, length, sbjct_seq, query_seq):
+    def set_alignment_info (self, identities, positives, gaps, sbjct_start, sbjct_end, query_start, query_end, length, sbjct_seq, query_seq, score):
         self.alignment_info = {"identities"  : int(identities), 
                                "positives"   : int(positives), 
                                "gaps"        : int(gaps), 
@@ -30,7 +30,8 @@ class Exon(object):
                                "query_end"   : int(query_end),
                                "length"      : int(length),
                                "sbjct_seq"   : sbjct_seq,
-                               "query_seq"   : query_seq}
+                               "query_seq"   : query_seq,
+                               "score"       : score}
         
     def get_fitness (self):
         '''
