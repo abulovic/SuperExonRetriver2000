@@ -24,6 +24,7 @@ from data_analysis.utilities.ExonUtils          import LongestCommonSubstring
 from data_analysis.base.EnsemblExon             import EnsemblExon
 from data_analysis.containers.DataMapContainer  import DataMapContainer
 from data_analysis.containers.ProteinContainer  import ProteinContainer
+from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
 
 class EnsemblExons(object):
     '''
@@ -222,6 +223,10 @@ class EnsemblExons(object):
         return coding_exons
     
     def get_exon_ids_from_ccDNA_locations (self, start, stop):
+        '''
+        Retrieves the exons (with their relative locations set)
+        for certain locations on the coding cDNA.
+        '''
         coding_exons = self.get_coding_exons()
         #coding_exons = self.get_ordered_exons()
         start_loc_on_genome = coding_exons[0].start
@@ -267,6 +272,33 @@ class EnsemblExons(object):
                 present_exons.append(exon)
         
         return present_exons
+    
+    
+    def set_coding_exon_frames (self):
+        '''
+        Serves to set the frames for coding exons.
+        The frame of the first coding exon is always 0. The others
+        are determined based on the sum of the previous exons lengths. 
+        '''
+        
+        coding_exons = self.get_coding_exons()
+        ec = EnsemblExonContainer.Instance()
+        length = 0
+        
+        for exon in coding_exons:
+            ensembl_exon = ec.get(exon.exon_id)
+            if length % 3 == 0:
+                ensembl_exon.set_frame (0) 
+                self.exons[exon.exon_id].set_frame (0) 
+            elif length % 3 == 1:
+                ensembl_exon.set_frame (2)
+                self.exons[exon.exon_id].set_frame (2) 
+            else:
+                ensembl_exon.set_frame (1)
+                self.exons[exon.exon_id].set_frame (1) 
+                
+            length += len(exon.sequence)
+        
     
 
                 

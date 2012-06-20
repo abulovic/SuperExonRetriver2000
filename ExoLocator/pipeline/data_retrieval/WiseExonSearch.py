@@ -5,7 +5,7 @@ Created on Apr 19, 2012
 '''
 from subprocess                          import Popen, PIPE, STDOUT
 from utilities.DescriptionParser         import DescriptionParser
-from pipeline.utilities.DirectoryCrawler import DirectoryCrawler
+from utilities.DirectoryCrawler import DirectoryCrawler
 import re, os, time
 from utilities.Logger import Logger
 from pipeline.utilities.CommandGenerator import CommandGenerator
