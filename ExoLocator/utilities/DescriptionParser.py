@@ -123,14 +123,18 @@ class DescriptionParser:
         for line in descr_file.readlines():
             line = line.strip()
             
-            match = re.match(pattern_known, line)
-            if match:
-                (species_name, spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand) = match.groups()
+            species_data = line.split()
+            if len(species_data) == 5:
+                species_name = species_data[0]
+                spec_protein_id, gene_id, transcript_id = species_data[1:4]
+                (location_type, assembly, location_id, seq_begin, seq_end, strand) = species_data[-1].split(":")
                 proteins_known_data[species_name] = (spec_protein_id, gene_id, transcript_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
+
                 
-            match = re.match(pattern_abinitio, line)    
-            if match:
-                (species_name, spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand) = match.groups()
+            elif len(species_data) == 3:   
+                species_name = species_data[0]
+                (location_type, assembly, location_id, seq_begin, seq_end, strand) = species_data[-1].split(":")
+                spec_protein_id = species_data[1]
                 proteins_abinitio_data[species_name] = (spec_protein_id, location_type, assembly, location_id, seq_begin, seq_end, strand)
         
         descr_file.close()
