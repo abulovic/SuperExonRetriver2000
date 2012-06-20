@@ -227,6 +227,10 @@ class EnsemblExons(object):
         Retrieves the exons (with their relative locations set)
         for certain locations on the coding cDNA.
         '''
+        # minor correction due to the unnatural
+        # way of marking the beginning the alignment outputs
+        start -= 1
+        
         coding_exons = self.get_coding_exons()
         #coding_exons = self.get_ordered_exons()
         start_loc_on_genome = coding_exons[0].start
@@ -290,14 +294,19 @@ class EnsemblExons(object):
             if length % 3 == 0:
                 ensembl_exon.set_frame (0) 
                 self.exons[exon.exon_id].set_frame (0) 
+                exon.set_frame (0)
             elif length % 3 == 1:
                 ensembl_exon.set_frame (2)
                 self.exons[exon.exon_id].set_frame (2) 
+                exon.set_frame (2)
             else:
                 ensembl_exon.set_frame (1)
-                self.exons[exon.exon_id].set_frame (1) 
+                self.exons[exon.exon_id].set_frame (1)
+                exon.set_frame (1) 
                 
             length += len(exon.sequence)
+            
+        return coding_exons
         
     
 

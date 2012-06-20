@@ -11,7 +11,8 @@ from utilities                                      import FileUtilities
 from utilities.Logger                               import Logger
 from utilities.DescriptionParser                    import DescriptionParser
 from utilities.DirectoryCrawler                     import DirectoryCrawler
-from utilities.FileUtilities                        import check_status_file, check_status_file_no_alignment
+from utilities.FileUtilities                        import check_status_file, check_status_file_no_alignment,\
+    get_species_list
 
 # data analysis imports
 from data_analysis.containers.DataMapContainer      import DataMapContainer
@@ -82,6 +83,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         protein         = Protein(spec_protein_id, data_map_key, ref_species_dict[species_name])
         gene            = Gene(spec_gene_id, data_map_key, ref_species_dict[species_name])
         transcript      = Transcript(spec_transcript_id, data_map_key, ref_species_dict[species_name])
+        
         ens_exons       = EnsemblExons(data_map_key, ref_species_dict[species_name])
         try:
             ens_exons.load_exons()
@@ -150,6 +152,7 @@ def load_exon_configuration (ref_protein_id, ref_species_dict, exon_type):
     
     dc                  = DescriptionParser()
     exon_container      = ExonContainer.Instance()
+    ens_exon_container  = EnsemblExonContainer.Instance()
     
     logger              = Logger.Instance()
     containers_logger   = logger.get_logger('containers')
@@ -248,6 +251,19 @@ def load_exon_configuration_batch(protein_id_list, alignment_type):
     return folders_loaded_cnt
     
 
+def set_frames_to_coding_exons_batch(protein_list):
+    
+    exon_container = ExonContainer.Instance()
+    
+    for protein_id in protein_list:
+        for species in get_species_list(protein_id, None):
+            try:
+                exons = exon_container.get((protein_id, species, "ensembl"))
+                exons.set_coding_exon_frames()
+            except Exception:
+                pass 
+
+
 def fill_all_containers (load_alignments):
     '''
     Fills all the containers with correspondent data.
@@ -273,6 +289,7 @@ def fill_all_containers (load_alignments):
             load_exon_configuration_batch(protein_list, "tblastn")
             load_exon_configuration_batch(protein_list, "sw_gene")
             load_exon_configuration_batch(protein_list, "sw_exon") 
+            set_frames_to_coding_exons_batch (protein_list)
             remove_overlapping_alignments_batch(protein_list, ["blastn", "tblastn"])
             annotate_spurious_alignments_batch(protein_list, algorithms)
             
