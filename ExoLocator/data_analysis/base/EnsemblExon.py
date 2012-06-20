@@ -28,5 +28,11 @@ class EnsemblExon(object):
     def set_frame (self, frame):
         self.frame = frame
         
+    def set_relative_start(self, start):
+        self.relative_start = start
+        
+    def set_relative_stop (self, stop):
+        self.relative_stop = stop
+        
     
         

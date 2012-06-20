@@ -79,5 +79,5 @@ class GenewiseExons(object):
         cDNA = Seq("", IUPAC.ambiguous_dna)
         for exon in self.get_ordered_exons():
             cDNA += exon.sequence
-        return cDNA
+        return (cDNA, None, None)
         

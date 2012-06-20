@@ -20,11 +20,10 @@ from utilities.Logger           import Logger
 from utilities.FileUtilities    import get_reference_species_dictionary
 
 # data analysis imports
-from data_analysis.utilities.ExonUtils          import remove_UTR_ensembl_exons,\
-    LongestCommonSubstring
+from data_analysis.utilities.ExonUtils          import LongestCommonSubstring
 from data_analysis.base.EnsemblExon             import EnsemblExon
 from data_analysis.containers.DataMapContainer  import DataMapContainer
-from data_analysis.containers.ProteinContainer import ProteinContainer
+from data_analysis.containers.ProteinContainer  import ProteinContainer
 
 class EnsemblExons(object):
     '''
@@ -221,6 +220,59 @@ class EnsemblExons(object):
             coding_exons.append(coding_exon)
             
         return coding_exons
+    
+    def get_exon_ids_from_ccDNA_locations (self, start, stop):
+        coding_exons = self.get_coding_exons()
+        #coding_exons = self.get_ordered_exons()
+        start_loc_on_genome = coding_exons[0].start
+        present_exons = []
+        relative_start,relative_stop = 0,0
+        
+        for exon in coding_exons:
+            # refresh the start to previous stop
+            relative_start = relative_stop
+            relative_stop += len(exon.sequence)
+            #(relative_start,relative_stop) = (exon.start - start_loc_on_genome, exon.stop - start_loc_on_genome)
+            # ------|----------|--------
+            # --------------------------
+            if relative_stop <= start or relative_start >= stop:
+                continue
+            # ------|----------|--------
+            #---------|---|-------------
+            if relative_start >= start and relative_stop <= stop:
+                exon.set_relative_start (0)
+                exon.set_relative_stop (relative_stop - relative_start)
+                present_exons.append(exon)
+                continue
+            # ------|----------|--------
+            # ---|----------------|-----
+            if relative_start <= start and relative_stop >= stop:
+                exon.set_relative_start (start - relative_start)
+                exon.set_relative_stop (stop - relative_start)
+                present_exons.append(exon)
+                continue
+            
+            # ------|----------|--------
+            # ---|--------|-------------
+            if relative_start < start and relative_stop <= stop:
+                exon.set_relative_start (start - relative_start)
+                exon.set_relative_stop (relative_stop - relative_start)
+                present_exons.append(exon)
+                
+            # ------|----------|--------
+            # --------|-----------|-----
+            if relative_start >= start and relative_stop > stop:
+                exon.set_relative_start(0)
+                exon.set_relative_stop (stop - relative_start)
+                present_exons.append(exon)
+        
+        return present_exons
+    
+
+                
+            
+            
+            
                 
 
 
