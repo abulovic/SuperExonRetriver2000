@@ -77,7 +77,12 @@ class Exons(object):
     
         
             
+    def get_exon_by_ordinal (self, ordinal):
         
+        for al_exons in self.alignment_exons.values():
+            for al_exon in al_exons:
+                if (al_exon.ordinal, al_exon.alignment_ordinal) == ordinal:
+                    return al_exon
         
         
     

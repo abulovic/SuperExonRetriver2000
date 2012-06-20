@@ -15,6 +15,7 @@ from utilities.FileUtilities                        import check_status_file
 
 # data analysis imports
 from data_analysis.containers.ExonContainer         import ExonContainer
+from data_analysis.containers.DataMapContainer import DataMapContainer
 
 
 
@@ -32,14 +33,28 @@ def _calculate_total_score(valid_id_list, alignment_exons):
             score += exon.get_fitness()
     return score
 
-def _is_sorted(exon_ordinal_list):
+def _is_sorted(exon_ordinal_list, alignment_exons):
     '''
     Checks whether list of exon ordinals is sorted
     '''
-    sorted_list = sorted(exon_ordinal_list)
-    if list(exon_ordinal_list) == sorted_list:
-        return True
-    return False
+    dmc = DataMapContainer.Instance()
+    data_map = dmc.get((alignment_exons.ref_protein_id, alignment_exons.species))
+    strand = data_map.strand
+    first_exon = alignment_exons.get_exon_by_ordinal(exon_ordinal_list[0])
+    location = first_exon.alignment_info["query_start"]
+    
+    
+    for exon in alignment_exons.get_ordered_exons():
+        if (exon.ordinal, exon.alignment_ordinal) in exon_ordinal_list[1:]:
+            next_location = exon.alignment_info["query_start"]
+            if next_location < location:
+                return False
+            location = next_location
+            
+    return True
+    
+    
+
 
 
 def _find_best_orderred_subset(alignment_exons, reference_exons):
@@ -53,8 +68,10 @@ def _find_best_orderred_subset(alignment_exons, reference_exons):
     highest_score       = 0.
     best_combination    = []
     
+    ordered_alignment_exons = alignment_exons.get_ordered_exons()
+    
     # add all the exon ordinals to a list of all ordinals
-    for exon in alignment_exons:
+    for exon in ordered_alignment_exons:
         # if exon is already marked as not viable, just discard it
         if hasattr(exon, "viability"):
             if not exon.viability:
@@ -69,13 +86,13 @@ def _find_best_orderred_subset(alignment_exons, reference_exons):
         all_combinations = itertools.combinations(full_array, len(full_array)-i)
         
         for comb in all_combinations:
-            if _is_sorted (comb):
-                score = _calculate_total_score(comb, alignment_exons)
+            if _is_sorted (comb, alignment_exons):
+                score = _calculate_total_score(comb, ordered_alignment_exons)
                 if score > highest_score:
                     highest_score = score
                     best_combination = comb
-        if highest_score > 0.:
-            return best_combination
+    if highest_score > 0.:
+        return best_combination
     
     
             
@@ -90,7 +107,7 @@ def _set_viabilities(alignment_exons, correct_order_exons):
         if ordinal in correct_order_exons:
             viability = True
         else:
-            viability = True    
+            viability = False    
         # find the particular alignment exon and set the viability
         for al_exon in alignment_exons.alignment_exons[exon.ref_exon_id]:
                 if al_exon.alignment_info["query_start"] == exon.alignment_info["query_start"]:
@@ -137,7 +154,7 @@ def annotate_spurious_alignments(exons_key):
         containers_logger.error ("{0},{1},{2},No exons available for alignment".format(ref_protein_id, species, alignment_type))
         return None
 
-    correct_order_exons     = _find_best_orderred_subset (alignment_exons.get_ordered_exons(),
+    correct_order_exons     = _find_best_orderred_subset (alignment_exons,
                                                       reference_exons)
     updated_alignment_exons = _set_viabilities (alignment_exons, correct_order_exons)    
     # update the exon container to hold the new alignment exons 
