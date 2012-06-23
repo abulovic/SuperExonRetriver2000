@@ -15,6 +15,7 @@ from pipeline.alignment  import Alignments
 # data_analysis utilities imports
 from data_analysis.utilities.generate_structure import fill_all_containers
 from utilities.FileUtilities import check_status_file_no_alignment
+from utilities.Logger import Logger
 
 
 def populate_referenced_species_databases(protein_list, referenced_species):
@@ -91,11 +92,19 @@ def populate_SW_gene_alignments(protein_list):
             FileUtilities.update_entry_in_status_file(protein_id, 'SW_GENE_ALIGNMENT', 'PARTIAL') 
 
 def populate_SW_exon_alignments(protein_list):
+    
+    logger = Logger.Instance()
+    alignment_logger = logger.get_logger('alignment')
+    
     for protein_id in protein_list:
-        if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'FAILED' or FileUtilities.read_status_file(protein_id)['REF_SP_DB_FORMATTING'] == 'FAILED':
-            print "ABORTING {0} SW_EXON: some resources have FAILED stats!".format(protein_id)
+        try:
+            if FileUtilities.read_status_file(protein_id)['ENSEMBL_EXON_RETRIEVAL'] == 'FAILED' or FileUtilities.read_status_file(protein_id)['REF_SP_DB_FORMATTING'] == 'FAILED':
+                print "ABORTING {0} SW_EXON: some resources have FAILED stats!".format(protein_id)
+                FileUtilities.update_entry_in_status_file(protein_id, 'SW_EXON_ALIGNMENT', 'FAILED')
+                continue
+        except KeyError:
             FileUtilities.update_entry_in_status_file(protein_id, 'SW_EXON_ALIGNMENT', 'FAILED')
-            continue
+            alignment_logger.error ("{0},Keys missing in the .status file (ENSEMBL_EXON_RETRIEVAL / REF_SP_DB_FORMATTING)".format(protein_id))
         try:
             if FileUtilities.read_status_file(protein_id)['SW_EXON_ALIGNMENT'] == 'OK':
                 print "SKIPPING {0} SW_EXONs: .status file -> OK!".format(protein_id)
