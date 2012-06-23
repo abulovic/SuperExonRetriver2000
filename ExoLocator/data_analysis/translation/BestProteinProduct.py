@@ -6,11 +6,13 @@ Created on Jun 19, 2012
 from data_analysis.containers.ExonContainer import ExonContainer
 from data_analysis.utilities.generate_structure import fill_all_containers
 from data_analysis.translation.TranslationUtils import translate_ensembl_exons,\
-    translate_alignment_exons, split_exon_seq, BestExonAlignment,\
-    EnsemblAlignment, SWGeneAlignment
+    translate_alignment_exons, split_exon_seq
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from utilities.DirectoryCrawler import DirectoryCrawler
+from data_analysis.translation.EnsemblAlignment import EnsemblAlignment
+from data_analysis.translation.BestExonAlignment import BestExonAlignment
+from data_analysis.translation.SWGeneAlignment import SWGeneAlignment
 
 
 def print_al_exons(al_exons, output_file):
@@ -19,11 +21,11 @@ def print_al_exons(al_exons, output_file):
         if al_exon.type == "coding":
             s1 = Seq(al_exon.ref_seq, IUPAC.ambiguous_dna)
             s2 = Seq(al_exon.spec_seq, IUPAC.ambiguous_dna)
-            print "\tHUMAN:   ", s1[al_exon.frame:].translate()
-            
+
+            print "\tHUMAN:   ", al_exon.ref_protein_seq, al_exon.ref_protein_start, al_exon.ref_protein_stop
             output_file.write ("\tHUMAN:       %s\n\tSPECIES:     %s\n" % (s1[al_exon.frame:].translate(), s2[al_exon.frame:].translate()))
             
-            print "\tSPECIES: ", s2[al_exon.frame:].translate()
+            print "\tSPECIES: ", al_exon.spec_protein_seq
             
 
 
@@ -72,6 +74,7 @@ class BestProteinProduct (object):
             cdna_al_exon, gene_al_exon = None, None
             gene_ref_seq, cdna_ref_seq = "", ""
             ensembl_alignment = None
+            sw_gene_alignment = None
             
             ############## LOAD AVAILABLE DATA ############################################
             
@@ -82,6 +85,10 @@ class BestProteinProduct (object):
                     gene_score = gene_al_exon.alignment_info["score"]
                     gene_ref_seq = gene_al_exon.alignment_info["sbjct_seq"]
                     sw_gene_alignment = SWGeneAlignment(self.ref_protein_id, ce, gene_al_exon)
+                    for al_piece in sw_gene_alignment.alignment_pieces:
+                        if al_piece.type in ["coding", "insertion"]:
+                            print al_piece.ref_protein_start, al_piece.ref_protein_stop
+                        
             
             # check cdna only if there exist ensembl exons for this species        
             if ce.exon_id in self.cDNA_exons.alignment_exons and self.ensembl_exons:
@@ -101,7 +108,7 @@ class BestProteinProduct (object):
             if not cdna_score and not gene_score:
                 best_exon_alignment = None
             # if the alignments are of the same quality
-            elif cdna_score and gene_score and cdna_score == gene_score:             
+            elif cdna_score and gene_score and cdna_score == gene_score:         
                 best_exon_alignment = BestExonAlignment(ce.exon_id, gene_al_exon, cdna_exons, "both" , ensembl_alignment, sw_gene_alignment)
                        
             elif cdna_score > gene_score:
@@ -117,6 +124,8 @@ class BestProteinProduct (object):
                 best_exon_alignment.set_ref_sequences(gene_ref_seq, cdna_ref_seq)
                 
             self.best_exons[ce.exon_id] = best_exon_alignment
+            if gene_al_exon.viability:
+                print ce.exon_id, best_exon_alignment.sw_gene_alignment.ref_exon.exon_id
             
             
     def translate_best_exons_to_protein (self):
@@ -137,6 +146,7 @@ class BestProteinProduct (object):
             
             bea = self.best_exons[ref_coding_exon.exon_id]
             if bea:
+                print "-------------", bea.ref_exon_id
                 print bea.status
                 output_file.write ("SOLUTION: %s\n" % bea.status)
             else:
@@ -159,7 +169,8 @@ class BestProteinProduct (object):
                                                                      self.ref_species, 
                                                                      bea.sw_gene_exon)
                 al_exons = split_exon_seq(bea.sw_gene_exon, ref_coding_exon )
-                print_al_exons(bea.sw_gene_alignment.alignment_pieces, output_file)
+                if bea.sw_gene_exon.viability:
+                    print_al_exons(bea.sw_gene_alignment.alignment_pieces, output_file)
             print
             output_file.write ("\n")
             
@@ -169,9 +180,9 @@ class BestProteinProduct (object):
    
 
 if __name__ == '__main__':
-    print "#kurac!#!"
+
     fill_all_containers(True)
-    bpp = BestProteinProduct("ENSP00000275072", "Dipodomys_ordii", "Homo_sapiens")
+    bpp = BestProteinProduct("ENSP00000275072", "Felis_catus", "Homo_sapiens")
     bpp.load_alignments()
     bpp.decide_on_best_exons()
     

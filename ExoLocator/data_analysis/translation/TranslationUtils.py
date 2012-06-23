@@ -9,6 +9,7 @@ from Bio.Alphabet import IUPAC
 import re
 from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
 from data_analysis.containers.ProteinContainer import ProteinContainer
+from data_analysis.translation.AlignmentExonPiece import AlignmentExonPiece
 
 def translate_ensembl_exons (ensembl_exons):
     
@@ -35,7 +36,7 @@ def translate_ensembl_exons (ensembl_exons):
     return cdna[new_frame:].translate()
 
 
-def process_insertion_in_exon(human_seq, spec_seq, ordinal):
+def process_insertion_in_exon(human_seq, spec_seq, ordinal, frame):
     '''
     Annotate insertion. Insertion can be a 'real' insertion, or 
     marked as a frameshift (meaning that it is 1, 2, 4 or 5 
@@ -48,23 +49,38 @@ def process_insertion_in_exon(human_seq, spec_seq, ordinal):
         exon_type = "insertion"
         
     al_exon = AlignmentExonPiece(exon_type, ordinal, human_seq, spec_seq)
+    al_exon.set_frame(frame)
     return al_exon
         
-
+def replace_slash (matchobj):
+    (ch1, slash, ch2) = matchobj.groups()
+    if slash == "-":
+        return "%sN%s" % (ch1, ch2)
+    elif slash == "--":
+        return "%sNN%s" % (ch1, ch2)
 
 def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
     '''
     Process a region of an alignment without any insertions in the 
     reference species exon. There can exist deletions however. 
+    If the deletions are 1 or 2 bases long, they are replaced
+    by N (regarded as an assembly error)
     '''
     al_exons = []
     
+    spec_seq = re.sub("([ATGCN])(-{1,2})([ATGCN])", replace_slash, spec_seq)
+    
     # determine the number of coding sequences interspersed with gaps 
     number_of_ungapped_sequences = len(re.split("-+", str(spec_seq)))
+    if number_of_ungapped_sequences == 1:
+        al_piece = AlignmentExonPiece("coding", ordinal, human_seq, spec_seq)
+        al_piece.set_frame(frame)
+        return [al_piece]
+    
     # create a pattern to load the sequences
     pattern_string = "([ATGCN]+)"
     for i in range (0, number_of_ungapped_sequences-1):
-        pattern_string += "([-]+)([ATGCN]+)"
+        pattern_string += "(-+)([ATGCN]+)"
     pattern = re.compile (pattern_string)
     sequences = re.match (pattern, str(spec_seq))
     
@@ -78,7 +94,7 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
         stop += len(seq)
         
         species = seq
-        human   = human_seq[start:stop]
+        human   = human_seq[start:start + len(seq)]
         
         # if we're not in the coding region, there is nothing to process
         # non-coding here means deletion in the referent exon
@@ -168,11 +184,23 @@ def split_exon_seq (alignment_exon, coding_exon):
         human_seq = seq
         spec_seq  = genomic_dna[start:stop]
         
+        if coding_len == 0:
+            new_frame = frame
+        else:
+            frame_status = abs(coding_len - frame) % 3
+            if frame_status == 1:
+                new_frame = 2
+            elif frame_status == 2:
+                new_frame = 1
+            else:
+                new_frame = 0
+        
         ## if not coding, then we have an insertions ##
         if not in_coding:
-            exon = process_insertion_in_exon (human_seq, spec_seq, ordinal)
+            exon = process_insertion_in_exon (human_seq, spec_seq, ordinal, new_frame)
             alignment_pieces.append(exon)
 
+        '''
         # determine frame
         if in_coding:
             if coding_len == 0:
@@ -185,6 +213,7 @@ def split_exon_seq (alignment_exon, coding_exon):
                     new_frame = 1
                 else:
                     new_frame = 0
+                    '''
         
         # if we're in the coding region, process it further for deletions    
         if in_coding:
@@ -246,153 +275,77 @@ def translate_alignment_exons(ref_protein_id, reference_species, alignment_exon)
     
     return (genomic_cdna, exon_cdna)
     
-    
-class BestExonAlignment (object):
-    '''
-    Class containing all the alignments for one exon, with a status
-    describing which of the alignments is the best
-    '''
-    def __init2__ (self, ref_exon_id, gene_alignment_exon, cdna_alignment_exon, ensembl_exons):
-        pass
-    def __init__ (self, ref_exon_id, sw_gene_exon = None, ensembl_exons = None, status = None, ensembl_alignment = None, sw_gene_alignment = None):
-        self.sw_gene_exon   = sw_gene_exon
-        self.ensembl_exons  = ensembl_exons
-        self.status         = status
-        self.ensembl_alignment = ensembl_alignment
-        self.sw_gene_alignment = sw_gene_alignment
-        
-    def set_sw_gene_exons (self, sw_gene_exon):
-        self.sw_gene_exon   = sw_gene_exon
-        
-    def set_ensembl_exons (self, ensembl_exons):
-        self.ensembl_exons  = ensembl_exons
-        
-    def set_status (self, status):
-        if status not in ("ensembl", "sw_gene", "both"):
-            raise ValueError ("Status must be ensembl, sw_gene or both")
-        self.status = status
-        
-    def set_scores (self, sw_gene_score, ensembl_score):
-        self.sw_gene_score = sw_gene_score
-        self.ensembl_score = ensembl_score
-        
-    def set_ref_sequences (self, gene_ref_seq, cdna_ref_seq):
-        self.gene_ref_seq = gene_ref_seq
-        self.cdna_ref_seq = cdna_ref_seq
-        
 
-class EnsemblAlignment (object):
     
-    def __init__ (self, ref_protein_id, ref_exon, alignment_exon, ensembl_exons):
+
+def set_protein_sequences (alignment_pieces):
+    
+    for i in range (0, len(alignment_pieces)):
         
-        self.ref_protein_id = ref_protein_id
-        self.ref_exon = ref_exon
-        self.alignment_exon = alignment_exon
-        self.ensembl_exons = ensembl_exons
-        self.set_protein_sequences ()
-        
-    def set_protein_sequences (self):
-        
-        pc = ProteinContainer.Instance()
-        
-        ref_protein = pc.get(self.ref_protein_id)
-        ref_protein_seq = ref_protein.get_sequence_record().seq
-        
-        partial_ref_seq = Seq(self.alignment_exon.alignment_info["sbjct_seq"].replace("-",""), IUPAC.ambiguous_dna)
-        
-        
-        complete_protein_exon_seq = self.ref_exon.sequence [self.ref_exon.frame:].translate()
-        if str(complete_protein_exon_seq).endswith("*"):
-            complete_protein_exon_seq = complete_protein_exon_seq[0:len(complete_protein_exon_seq)-1]
-        print "whole exon:", self.ref_exon.exon_id, self.ref_exon.frame , complete_protein_exon_seq
-        exon_prot_start = str(ref_protein_seq).find(str(complete_protein_exon_seq))
-        exon_prot_stop = exon_prot_start + len(complete_protein_exon_seq)
-        
-        for frame in (0,1,2):
-            partial_protein_ref_seq = partial_ref_seq[frame:].translate()
-            if str(partial_protein_ref_seq).endswith("*"):
-                partial_protein_ref_seq = partial_protein_ref_seq[0:len(partial_protein_ref_seq)-1]
-            print partial_protein_ref_seq
-            found = False
-            if str(complete_protein_exon_seq).find (str(partial_protein_ref_seq)) != -1:
-                for a in list(re.finditer(str(partial_protein_ref_seq), str(ref_protein_seq))): 
-                    print a.start(), a.end()
-                    if a.start() >= exon_prot_start and a.end() <= exon_prot_stop:
-                        self.ref_protein_seq = partial_protein_ref_seq
-                        self.ref_protein_start = a.start()
-                        self.ref_protein_stop = a.end()
-                        found = True
-                        break
-            if found:
-                break
+        al_piece = alignment_pieces[i]
+
+        if al_piece.type == "insertion":
+            
+            add_beg_ref_seq, add_beg_spec_seq = "", ""
+            add_end_ref_seq, add_end_spec_seq = "", ""
+            if i-1 in range (0, len(alignment_pieces)):
+                prev_piece = alignment_pieces[i-1]
+                how_much_to_take = (3 - al_piece.frame) % 3
+                add_beg_spec_seq = prev_piece.spec_seq[len(prev_piece.spec_seq)-how_much_to_take:len(prev_piece.spec_seq)]
+                
+            if i+1 in range (0, len(alignment_pieces)):
+                next_piece = alignment_pieces[i+1]
+                how_much_to_take = (3 - (len(al_piece.ref_seq) - al_piece.frame)) % 3
+                add_end_spec_seq = next_piece.spec_seq[0:how_much_to_take]
+
+            spec_seq_to_translate = Seq (add_beg_spec_seq + al_piece.spec_seq + add_end_spec_seq, IUPAC.ambiguous_dna)
+            
+            if not add_beg_ref_seq:
+                spec_protein_seq = spec_seq_to_translate[al_piece.frame:].translate()
+            else:
+                spec_protein_seq = spec_seq_to_translate.translate()
+                
+            al_piece.set_translations (None, spec_protein_seq)
+            
                     
-        
-        self.spec_protein_seq = translate_ensembl_exons(self.ensembl_exons)
-        
-        
-   
-class SWGeneAlignment (object):
-    
-    def __init__ (self, ref_protein_id, ref_exon, alignment_exon):   
-        self.ref_protein_id = ref_protein_id
-        self.ref_exon = ref_exon
-        self.alignment_exon = alignment_exon
-        self.load_alignment_pieces()  
-        
-    def load_alignment_pieces (self):
-        self.alignment_pieces = split_exon_seq(self.alignment_exon, self.ref_exon)
+        if al_piece.type == "coding":
+            add_beg_ref_seq, add_beg_spec_seq = "", ""
+            add_end_ref_seq, add_end_spec_seq = "", ""
+            if i-1 in range (0, len(alignment_pieces)):
+                prev_piece = alignment_pieces[i-1]
+                if prev_piece.type in ["frameshift", "insertion"]:
+
+                    prev_piece = alignment_pieces[i-2]
+                    how_much_to_take = (3 - al_piece.frame) % 3
+                    add_beg_ref_seq  = prev_piece.ref_seq [len(prev_piece.ref_seq)-how_much_to_take:len(prev_piece.ref_seq)]
+                    add_beg_spec_seq = prev_piece.spec_seq[len(prev_piece.spec_seq)-how_much_to_take:len(prev_piece.spec_seq)]
+                    
+            if i+1 in range (0, len(alignment_pieces)):
+                next_piece = alignment_pieces[i+1]
+                if next_piece.type in ["frameshift", "insertion"]:
+                    next_piece = alignment_pieces[i+2]
+                    how_much_to_take = (3 - (len(al_piece.ref_seq) - al_piece.frame)) % 3
+                    add_end_ref_seq  = next_piece.ref_seq [0:how_much_to_take]
+                    add_end_spec_seq = next_piece.spec_seq[0:how_much_to_take]
+                    
+            ref_seq_to_translate = Seq (add_beg_ref_seq + al_piece.ref_seq + add_end_ref_seq, IUPAC.ambiguous_dna)
+            spec_seq_to_translate = Seq (add_beg_spec_seq + al_piece.spec_seq + add_end_spec_seq, IUPAC.ambiguous_dna)
+            
+            if not add_beg_ref_seq:
+                ref_protein_seq = ref_seq_to_translate[al_piece.frame:].translate()
+                spec_protein_seq = spec_seq_to_translate[al_piece.frame:].translate()
+            else:
+                ref_protein_seq = ref_seq_to_translate.translate()
+                spec_protein_seq = spec_seq_to_translate.translate()
+            
+            al_piece.set_translations (ref_protein_seq, spec_protein_seq)
+            
+    return alignment_pieces
+            
+            
         
 
-class AlignmentExonPiece (object):
-    '''
-    Class representing one alignment piece. It is a part 
-    of one exon alignment. It can be of various types:
-     - coding: means that it corresponds to the coding part of the reference species DNA
-     - insertion: meaning that it is an insertion in the coding ref species DNA
-     - frameshift: meaning that is an insertion, but of length 1,2,4 or 5 base pairs
-    '''
-    def __init__ (self, exon_type, ordinal, ref_seq, spec_seq):
-        '''
-        @param exon_type: coding / insertion / frameshift
-        @param ref_seq: nucleotide sequence in the reference species
-        @param spec_seq: nucleotide sequence in the species
-        @param ordinal: ordinal in the one exon alignment
-        '''
-        self.type       = exon_type
-        self.ordinal    = ordinal
-        self.ref_seq    = ref_seq
-        self.spec_seq   = spec_seq
-        
-    def set_location (self, start, stop):
-        '''
-        Set location relative to the alignment
-        '''
-        self.start = start
-        self.stop = stop
-        
-    def set_frame(self, frame):
-        '''
-        Set the translation frame (0,1,2)
-        '''
-        self.frame = frame
-        
-    def set_translations (self, ref_spec_protein_seq, spec_protein_seq):
-        '''
-        Set the protein translation of the alignment piece.
-        These alignments need not completely correspond to the DNA sequence, 
-        because some of them might be extended on both sides to account 
-        for the translation frame (so as not to lose AAs)
-        '''
-        self.ref_spec_protein_seq = ref_spec_protein_seq
-        self.spec_protein_seq = spec_protein_seq
-        
-    def set_protein_locations (self, ref_protein_start, ref_protein_stop):
-        '''
-        Set the locations of the translated piece on the 
-        referent species protein
-        '''
-        self.ref_protein_start = ref_protein_start
-        self.ref_protein_stop = ref_protein_stop
+
         
     
         
