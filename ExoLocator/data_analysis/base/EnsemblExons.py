@@ -4,6 +4,7 @@ Created on Apr 30, 2012
 @author: ana
 '''
 
+
 # Python imports
 import copy
 
@@ -308,17 +309,11 @@ class EnsemblExons(object):
             
         return coding_exons
         
-    
+# ana i luka zaljubljeni par
+# kad se budu zenili dobiceju dar    
 
                 
-            
-            
-            
-                
-
-
-
-    
+ 
 if __name__ == '__main__':
     pass
     
