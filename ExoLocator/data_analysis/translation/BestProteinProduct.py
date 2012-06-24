@@ -50,8 +50,16 @@ class BestProteinProduct (object):
         
         exon_container      = ExonContainer.Instance()
         self.ref_exons      = exon_container.get((self.ref_protein_id, self.ref_species, "ensembl"))
-        self.gene_exons     = exon_container.get((self.ref_protein_id, self.species, "sw_gene"))
-        self.cDNA_exons     = exon_container.get((self.ref_protein_id, self.species, "sw_exon"))
+        self.gene_exons     = None
+        try:
+            self.gene_exons     = exon_container.get((self.ref_protein_id, self.species, "sw_gene"))
+        except KeyError:
+            pass
+        self.cDNA_exons     = None
+        try:
+            self.cDNA_exons     = exon_container.get((self.ref_protein_id, self.species, "sw_exon"))
+        except KeyError:
+            pass
         self.ensembl_exons  = None
         try:
             self.ensembl_exons  = exon_container.get((self.ref_protein_id, self.species, "ensembl"))
@@ -71,32 +79,33 @@ class BestProteinProduct (object):
         for ce in coding_exons:
             
             # refresh the auxiliary variables
-            gene_score, cdna_score = 0,0
-            cdna_exons = None
-            cdna_al_exon, gene_al_exon = None, None
-            gene_ref_seq, cdna_ref_seq = "", ""
-            ensembl_alignment = None
-            sw_gene_alignment = None
+            gene_score, cdna_score      = 0,0
+            cdna_exons                  = None
+            cdna_al_exon, gene_al_exon  = None, None
+            gene_ref_seq, cdna_ref_seq  = "", ""
+            ensembl_alignment           = None
+            sw_gene_alignment           = None
+            best_exon_alignment         = None
             
             ############## LOAD AVAILABLE DATA ############################################
             
             # if there is sw gene alignment, load all the data
             if self.gene_exons and ce.exon_id in self.gene_exons.alignment_exons:
                 gene_al_exon = self.gene_exons.alignment_exons[ce.exon_id][0]
+                
                 if gene_al_exon.viability:
                     gene_score = gene_al_exon.alignment_info["score"]
                     gene_ref_seq = gene_al_exon.alignment_info["sbjct_seq"]
                     sw_gene_alignment = SWGeneAlignment(self.ref_protein_id, self.species, ce, gene_al_exon)
-                    for al_piece in sw_gene_alignment.alignment_pieces:
-                        if al_piece.type in ["coding", "insertion"]:
-                            print al_piece.ref_protein_start, al_piece.ref_protein_stop
+
                 else:
                     gene_al_exon = None
                         
             
             # check cdna only if there exist ensembl exons for this species        
-            if ce.exon_id in self.cDNA_exons.alignment_exons and self.ensembl_exons:
+            if self.ensembl_exons and ce.exon_id in self.cDNA_exons.alignment_exons:
                 cdna_al_exon = self.cDNA_exons.alignment_exons[ce.exon_id][0]
+                
                 if cdna_al_exon.viability:
                     cdna_score = cdna_al_exon.alignment_info["score"]
                     (start,stop) = (cdna_al_exon.alignment_info["query_start"],
@@ -104,6 +113,7 @@ class BestProteinProduct (object):
                     cdna_exons = self.ensembl_exons.get_exon_ids_from_ccDNA_locations(start, stop)
                     cdna_ref_seq = cdna_al_exon.alignment_info["sbjct_seq"]
                     ensembl_alignment = EnsemblAlignment(self.ref_protein_id, ce, cdna_al_exon, cdna_exons)
+                    
                 else:
                     cdna_al_exon = None
                     
@@ -130,8 +140,7 @@ class BestProteinProduct (object):
                 best_exon_alignment.set_ref_sequences(gene_ref_seq, cdna_ref_seq)
                 
             self.best_exons[ce.exon_id] = best_exon_alignment
-            if gene_al_exon:
-                print ce.exon_id, best_exon_alignment.sw_gene_alignment.ref_exon.exon_id
+
             
             
     def translate_best_exons_to_protein (self):
@@ -182,6 +191,9 @@ class BestProteinProduct (object):
             #human   += cdna_exon
             
     def patch_interexon_AAS (self):
+        
+        if not self.gene_exons:
+            return
         
         coding_exons = self.ref_exons.get_coding_exons()
         for i in range (0, len(coding_exons)):
@@ -281,7 +293,7 @@ class BestProteinProduct (object):
 if __name__ == '__main__':
 
     fill_all_containers(True)
-    bpp = BestProteinProduct("ENSP00000382758", "Nomascus_leucogenys", "Homo_sapiens")
+    bpp = BestProteinProduct("ENSP00000382758", "Ailuropoda_melanoleuca", "Homo_sapiens")
     bpp.load_alignments()
     bpp.decide_on_best_exons()
     bpp.patch_interexon_AAS()

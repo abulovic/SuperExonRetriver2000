@@ -129,6 +129,7 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal, alignment
         start = stop
         alignment_start = alignment_stop
         coding_len += len(seq)
+        ordinal += 1
             
     return al_exons
 
@@ -224,6 +225,7 @@ def split_exon_seq (alignment_exon, coding_exon):
         # if we're in the coding region, process it further for deletions    
         if in_coding:
             al_exons = process_insertion_free_region (human_seq, spec_seq, new_frame, ordinal, start)
+            ordinal += len(al_exons)
             alignment_pieces.extend(al_exons)
         
         
@@ -269,7 +271,7 @@ def set_protein_sequences (alignment_pieces):
             al_piece.set_translations (None, spec_protein_seq)
             
                     
-        if al_piece.type == "coding":
+        if al_piece.type in ["coding"]:
             add_beg_ref_seq, add_beg_spec_seq = "", ""
             add_end_ref_seq, add_end_spec_seq = "", ""
             if i-1 in range (0, len(alignment_pieces)):

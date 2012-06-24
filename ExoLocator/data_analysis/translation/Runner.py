@@ -1,0 +1,60 @@
+'''
+Created on Jun 24, 2012
+
+@author: intern
+'''
+from utilities.FileUtilities import get_protein_list, get_species_list
+from data_analysis.translation.BestProteinProduct import BestProteinProduct
+from data_analysis.containers.ExonContainer import ExonContainer
+from data_analysis.translation.BestExonAlignmentContainer import BestExonAlignmentContainer
+from data_analysis.utilities.generate_structure import fill_all_containers
+
+def main ():
+    
+    fill_all_containers(True)
+    
+    protein_tuples = get_protein_list()
+    ec = ExonContainer.Instance()
+    beac = BestExonAlignmentContainer.Instance()
+    
+    for (protein_id, exon_num) in protein_tuples:
+        
+        species_list = get_species_list(protein_id, None)
+        try:
+            ref_exons = ec.get((protein_id, "Homo_sapiens", "ensembl"))
+        except KeyError:
+            print "ERROR: No protein %s" % protein_id
+            continue
+        
+        for species in species_list:
+            
+            print "\nBest_exon_al: %s, %s" % (protein_id, species)
+            
+            bpp = BestProteinProduct (protein_id, species, "Homo_sapiens")
+            bpp.load_alignments()
+            bpp.decide_on_best_exons()
+            bpp.patch_interexon_AAS()
+            
+            for ref_exon in ref_exons.get_coding_exons():
+                
+                best_exon_alignment = bpp.best_exons[ref_exon.exon_id]
+                if best_exon_alignment:
+                    beac.add(ref_exon.exon_id, species, best_exon_alignment)
+                    print "%d. Exon status: %s (%s)" % (ref_exon.ordinal, best_exon_alignment.status, ref_exon.exon_id)
+                    if best_exon_alignment.sw_gene_alignment:
+                        print "\tAdded  %2d alignment pieces" % (len(best_exon_alignment.sw_gene_alignment.alignment_pieces))
+                        for al_piece in best_exon_alignment.sw_gene_alignment.alignment_pieces:
+                            print "\t\t%s:" % (al_piece.type),
+                            if al_piece.type in ["coding", "insertion"]:
+                                print "PROT: %d-%d, GENOME: %d-%d, %s" % (al_piece.ref_protein_start,
+                                                                        al_piece.ref_protein_stop,
+                                                                        al_piece.genomic_start, 
+                                                                        al_piece.genomic_stop, 
+                                                                        al_piece.sequence_id)
+                            else:
+                                print
+            
+
+
+if __name__ == '__main__':
+    main()

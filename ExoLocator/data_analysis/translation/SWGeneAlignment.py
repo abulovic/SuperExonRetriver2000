@@ -50,13 +50,12 @@ class SWGeneAlignment (object):
                         break
        
             if al_piece.type == "insertion":
-                al_piece.set_protein_locations(previous.ref_protein_stop + 1, previous.ref_protein_stop + 2)
+                al_piece.set_protein_locations(previous.ref_protein_stop, previous.ref_protein_stop + 1)
         
             previous = al_piece
             
         self.determine_absolute_coordinates ()
-        
-        print
+
                 
                 
     def determine_absolute_coordinates (self):
@@ -72,10 +71,12 @@ class SWGeneAlignment (object):
         
         for al_piece in self.alignment_pieces:
             
-            real_start = max (1, start - expansion) + alignment_start + al_piece.alignment_start
-            real_stop  = real_start + len(al_piece.ref_seq)
-            
-            al_piece.set_genomic_locations(real_start, real_stop, data_map.location_id)
+            if al_piece.type in ["coding", "insertion"]:
+                
+                real_start = max (1, start - expansion) + alignment_start + al_piece.alignment_start
+                real_stop  = real_start + len(al_piece.ref_seq)
+                
+                al_piece.set_genomic_locations(real_start, real_stop, data_map.location_id)
         
         
                         
