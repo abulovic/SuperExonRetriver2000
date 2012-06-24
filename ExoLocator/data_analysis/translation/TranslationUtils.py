@@ -59,7 +59,7 @@ def replace_slash (matchobj):
     elif slash == "--":
         return "%sNN%s" % (ch1, ch2)
 
-def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
+def process_insertion_free_region(human_seq, spec_seq, frame, ordinal, alignment_start):
     '''
     Process a region of an alignment without any insertions in the 
     reference species exon. There can exist deletions however. 
@@ -75,6 +75,7 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
     if number_of_ungapped_sequences == 1:
         al_piece = AlignmentExonPiece("coding", ordinal, human_seq, spec_seq)
         al_piece.set_frame(frame)
+        al_piece.set_alignment_locations(alignment_start, alignment_start + len(spec_seq))
         return [al_piece]
     
     # create a pattern to load the sequences
@@ -89,9 +90,11 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
     in_coding = True
     start, stop = 0,0
     coding_len = 0
+    alignment_stop = alignment_start
     
     for seq in sequences.groups():
         stop += len(seq)
+        alignment_stop += len(seq)
         
         species = seq
         human   = human_seq[start:start + len(seq)]
@@ -112,6 +115,7 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
                 
             exon = AlignmentExonPiece("coding", ordinal, human, species)
             exon.set_frame(new_frame)
+            exon.set_alignment_locations(alignment_start, alignment_stop)
             al_exons.append(exon)
             
         # there is a deletion. Remember this also - if the deletion is
@@ -123,6 +127,7 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal):
             
         in_coding = not in_coding
         start = stop
+        alignment_start = alignment_stop
         coding_len += len(seq)
             
     return al_exons
@@ -198,6 +203,7 @@ def split_exon_seq (alignment_exon, coding_exon):
         ## if not coding, then we have an insertions ##
         if not in_coding:
             exon = process_insertion_in_exon (human_seq, spec_seq, ordinal, new_frame)
+            exon.set_alignment_locations(start, stop)
             alignment_pieces.append(exon)
 
         '''
@@ -217,7 +223,7 @@ def split_exon_seq (alignment_exon, coding_exon):
         
         # if we're in the coding region, process it further for deletions    
         if in_coding:
-            al_exons = process_insertion_free_region (human_seq, spec_seq, new_frame, ordinal)
+            al_exons = process_insertion_free_region (human_seq, spec_seq, new_frame, ordinal, start)
             alignment_pieces.extend(al_exons)
         
         
@@ -229,52 +235,7 @@ def split_exon_seq (alignment_exon, coding_exon):
         ordinal += 1
         
     return alignment_pieces
-        
-    
-    
-def patch_sequences(alignment_exon, actual_exon_len):  
-    '''  
-    Pads the alignment sequences with leftovers from the previous    
-    exon, with the right amount of Ns in the beginning (for the initial gaps)
-    and the right amount of Ns in the end of the sequence   
-    '''     
-    genomic_cdna = Seq("", IUPAC.ambiguous_dna)  
-    exon_cdna    = Seq("", IUPAC.ambiguous_dna)      
-    # decide what to append to the cDNA   
-    (translation_start, translation_end) = (alignment_exon.alignment_info["sbjct_start"],   
-                                            alignment_exon.alignment_info["sbjct_end"])
-  
-    genomic_cdna +=  ( "N"* (translation_start - 1)) 
-    exon_cdna    +=  ("N" * (translation_start - 1)) 
- 
-    genomic_cdna += alignment_exon.alignment_info["query_seq"]  
-    exon_cdna    += alignment_exon.alignment_info["sbjct_seq"]
-    
-    genomic_cdna += "N" * (actual_exon_len - translation_end)   
-    exon_cdna    += "N" * (actual_exon_len - translation_end)    
- 
-    return (genomic_cdna, exon_cdna)   
-    
 
-
-
-def translate_alignment_exons(ref_protein_id, reference_species, alignment_exon):
-    
-    # load the reference exons
-    exon_container  = ExonContainer.Instance()
-    reference_exons = exon_container.get ((ref_protein_id, reference_species, "ensembl"))
-    
-    # get just the coding exons
-    for coding_exon in reference_exons.get_coding_exons():
-        if coding_exon.exon_id == alignment_exon.ref_exon_id:
-            break
-    coding_seq_len = len(coding_exon.sequence)
-    
-    
-    (genomic_cdna, exon_cdna) = patch_sequences (alignment_exon, coding_seq_len)
-    
-    return (genomic_cdna, exon_cdna)
-    
 
     
 

@@ -5,8 +5,7 @@ Created on Jun 19, 2012
 '''
 from data_analysis.containers.ExonContainer import ExonContainer
 from data_analysis.utilities.generate_structure import fill_all_containers
-from data_analysis.translation.TranslationUtils import translate_ensembl_exons,\
-    translate_alignment_exons, split_exon_seq
+from data_analysis.translation.TranslationUtils import translate_ensembl_exons, split_exon_seq
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from utilities.DirectoryCrawler import DirectoryCrawler
@@ -22,10 +21,13 @@ def print_al_exons(al_exons, output_file):
             s1 = Seq(al_exon.ref_seq, IUPAC.ambiguous_dna)
             s2 = Seq(al_exon.spec_seq, IUPAC.ambiguous_dna)
 
-            print "\tHUMAN:   ", al_exon.ref_protein_seq, al_exon.ref_protein_start, al_exon.ref_protein_stop
+            print "\tHUMAN:   ", al_exon.ref_protein_seq
+            print "\tprot: %d-%d, genome: %d-%d, %s" % (al_exon.ref_protein_start, al_exon.ref_protein_stop, al_exon.genomic_start, al_exon.genomic_stop, al_exon.sequence_id)
+            #print "\tH(old):  ", Seq(al_exon.ref_seq[al_exon.frame:], IUPAC.ambiguous_dna).translate()
             output_file.write ("\tHUMAN:       %s\n\tSPECIES:     %s\n" % (s1[al_exon.frame:].translate(), s2[al_exon.frame:].translate()))
             
             print "\tSPECIES: ", al_exon.spec_protein_seq
+            #print "\tS(old):  ", Seq(al_exon.spec_seq[al_exon.frame:], IUPAC.ambiguous_dna).translate()
             
 
 
@@ -84,10 +86,12 @@ class BestProteinProduct (object):
                 if gene_al_exon.viability:
                     gene_score = gene_al_exon.alignment_info["score"]
                     gene_ref_seq = gene_al_exon.alignment_info["sbjct_seq"]
-                    sw_gene_alignment = SWGeneAlignment(self.ref_protein_id, ce, gene_al_exon)
+                    sw_gene_alignment = SWGeneAlignment(self.ref_protein_id, self.species, ce, gene_al_exon)
                     for al_piece in sw_gene_alignment.alignment_pieces:
                         if al_piece.type in ["coding", "insertion"]:
                             print al_piece.ref_protein_start, al_piece.ref_protein_stop
+                else:
+                    gene_al_exon = None
                         
             
             # check cdna only if there exist ensembl exons for this species        
@@ -100,6 +104,8 @@ class BestProteinProduct (object):
                     cdna_exons = self.ensembl_exons.get_exon_ids_from_ccDNA_locations(start, stop)
                     cdna_ref_seq = cdna_al_exon.alignment_info["sbjct_seq"]
                     ensembl_alignment = EnsemblAlignment(self.ref_protein_id, ce, cdna_al_exon, cdna_exons)
+                else:
+                    cdna_al_exon = None
                     
             
             ############## DETERMINE STATUS (ENSEMBL / SW_GENE / BOTH) ####################
@@ -124,7 +130,7 @@ class BestProteinProduct (object):
                 best_exon_alignment.set_ref_sequences(gene_ref_seq, cdna_ref_seq)
                 
             self.best_exons[ce.exon_id] = best_exon_alignment
-            if gene_al_exon.viability:
+            if gene_al_exon:
                 print ce.exon_id, best_exon_alignment.sw_gene_alignment.ref_exon.exon_id
             
             
@@ -165,11 +171,8 @@ class BestProteinProduct (object):
                 print "\n\tHUMAN:       %s" % str(bea.ensembl_alignment.ref_protein_seq)
                 print "\tTRANSLATION2:%s\n" % str(bea.ensembl_alignment.spec_protein_seq), bea.ensembl_alignment.ref_protein_start, bea.ensembl_alignment.ref_protein_stop
             if bea and bea.sw_gene_exon:
-                (cdna_genomic, cdna_exon) = translate_alignment_exons(self.ref_protein_id, 
-                                                                     self.ref_species, 
-                                                                     bea.sw_gene_exon)
                 al_exons = split_exon_seq(bea.sw_gene_exon, ref_coding_exon )
-                if bea.sw_gene_exon.viability:
+                if bea.sw_gene_exon:
                     print_al_exons(bea.sw_gene_alignment.alignment_pieces, output_file)
             print
             output_file.write ("\n")
@@ -177,14 +180,111 @@ class BestProteinProduct (object):
         output_file.close()
             #species += cdna_genomic
             #human   += cdna_exon
-   
+            
+    def patch_interexon_AAS (self):
+        
+        coding_exons = self.ref_exons.get_coding_exons()
+        for i in range (0, len(coding_exons)):
+            
+            this_exon = coding_exons[i]
+            alignment_exon = self.gene_exons.alignment_exons[this_exon.exon_id][0]
+            
+            best_alignment = self.best_exons[this_exon.exon_id]
+            if not best_alignment or not best_alignment.sw_gene_alignment:
+                continue
+            
+            add_beg_ref, add_end_ref = "", ""
+            add_beg_spec, add_end_spec = "", ""
+            
+            if alignment_exon.alignment_info["sbjct_start"] == 1:
+                if i-1 in range (0, len(coding_exons)):
+                    previous_exon = coding_exons[i-1]
+                    previous_al_exon = self.gene_exons.alignment_exons[previous_exon.exon_id][0]
+                    if previous_al_exon and previous_al_exon.alignment_info["sbjct_end"] == len(this_exon.sequence):
+                        how_much_to_take = (3 - this_exon.frame) % 3
+                        add_beg_ref  = previous_al_exon.alignment_info["sbjct_seq"][len(previous_al_exon.alignment_info["sbjct_seq"])-how_much_to_take:]
+                        add_beg_spec = previous_al_exon.alignment_info["query_seq"][len(previous_al_exon.alignment_info["query_seq"])-how_much_to_take:]
+            
+            if alignment_exon.alignment_info["sbjct_end"] == len(this_exon.sequence):
+                if i+1 in range (0, len(coding_exons)):
+                    next_exon = coding_exons[i+1]
+                    next_al_exon = self.gene_exons.alignment_exons[next_exon.exon_id][0]
+                    if next_al_exon and next_al_exon.alignment_info["sbjct_start"] == 1:
+                        last_al_piece = best_alignment.sw_gene_alignment.alignment_pieces[-1]
+                        how_much_to_take = (3 - (len(last_al_piece.ref_seq) - last_al_piece.frame)) % 3
+                        add_end_ref  = next_al_exon.alignment_info["sbjct_seq"][0:how_much_to_take]
+                        add_end_spec = next_al_exon.alignment_info["query_seq"][0:how_much_to_take]
+                        
+            if add_beg_ref and add_end_ref:
+                if len(best_alignment.sw_gene_alignment.alignment_pieces) == 1:
+                    al_piece = best_alignment.sw_gene_alignment.alignment_pieces[0]
+                    
+                    new_ref_cdna = add_beg_ref + al_piece.ref_seq + add_end_ref
+                    new_prot = Seq(new_ref_cdna, IUPAC.ambiguous_dna).translate()
+                    al_piece.ref_protein_seq = new_prot
+                    al_piece.ref_protein_start -= 1
+                    al_piece.ref_protein_stop += 1
+                    
+                    new_spec_cdna = add_beg_spec + al_piece.spec_seq + add_end_spec
+                    new_prot = Seq(new_spec_cdna, IUPAC.ambiguous_dna).translate()
+                    al_piece.spec_protein_seq = new_prot
+                    
+                else:
+                    first_al_piece = best_alignment.sw_gene_alignment.alignment_pieces[0]
+                    last_al_piece = best_alignment.sw_gene_alignment.alignment_pieces[-1]
+                    
+                    new_ref_cdna = add_beg_ref + first_al_piece.ref_seq
+                    new_prot = Seq(new_ref_cdna, IUPAC.ambiguous_dna).translate()
+                    first_al_piece.ref_protein_seq = new_prot
+                    first_al_piece.ref_protein_start -= 1
+                    
+                    new_spec_cdna = add_beg_spec + first_al_piece.spec_seq
+                    new_prot = Seq(new_spec_cdna, IUPAC.ambiguous_dna).translate()
+                    first_al_piece.spec_protein_seq = new_prot
+                    
+                    new_ref_cdna = last_al_piece.ref_seq + add_end_ref
+                    new_prot = Seq(new_ref_cdna[last_al_piece.frame:], IUPAC).translate()
+                    last_al_piece.ref_protein_seq = new_prot
+                    last_al_piece.ref_protein_end += 1
+                    
+                    new_spec_cdna = last_al_piece.spec_seq + add_end_spec
+                    new_prot = Seq(new_spec_cdna[last_al_piece.frame:], IUPAC).translate()
+                    last_al_piece.spec_protein_seq = new_prot
+                    
+            elif add_beg_ref and not add_end_ref:
+                al_piece = best_alignment.sw_gene_alignment.alignment_pieces[0]
+                
+                new_ref_cdna = add_beg_ref + al_piece.ref_seq
+                new_prot = Seq(new_ref_cdna, IUPAC.ambiguous_dna).translate()
+                al_piece.ref_protein_seq = new_prot
+                al_piece.ref_protein_start -= 1
+                
+                new_spec_cdna = add_beg_spec + al_piece.spec_seq
+                new_prot = Seq(new_spec_cdna, IUPAC.ambiguous_dna).translate()
+                al_piece.spec_protein_seq = new_prot
+                
+            elif add_end_ref and not add_beg_ref:
+                al_piece = best_alignment.sw_gene_alignment.alignment_pieces[-1]
+                
+                new_ref_cdna = al_piece.ref_seq + add_end_ref
+                new_prot = Seq(new_ref_cdna[al_piece.frame:], IUPAC.ambiguous_dna).translate()
+                al_piece.ref_protein_seq = new_prot
+                al_piece.ref_protein_stop += 1
+                
+                new_spec_cdna = al_piece.spec_seq + add_end_spec
+                new_prot = Seq(new_spec_cdna[al_piece.frame:], IUPAC.ambiguous_dna).translate()
+                al_piece.spec_protein_seq = new_prot
+                    
+                    
+
 
 if __name__ == '__main__':
 
     fill_all_containers(True)
-    bpp = BestProteinProduct("ENSP00000275072", "Felis_catus", "Homo_sapiens")
+    bpp = BestProteinProduct("ENSP00000382758", "Nomascus_leucogenys", "Homo_sapiens")
     bpp.load_alignments()
     bpp.decide_on_best_exons()
+    bpp.patch_interexon_AAS()
     
     be = bpp.best_exons
     bpp.translate_best_exons_to_protein()

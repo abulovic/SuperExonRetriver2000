@@ -53,3 +53,12 @@ class AlignmentExonPiece (object):
         '''
         self.ref_protein_start = ref_protein_start
         self.ref_protein_stop = ref_protein_stop
+        
+    def set_alignment_locations (self, start, stop):
+        self.alignment_start = start
+        self.alignment_stop  = stop
+        
+    def set_genomic_locations (self, start, stop, sequence_id):
+        self.genomic_start = start
+        self.genomic_stop  = stop
+        self.sequence_id = sequence_id

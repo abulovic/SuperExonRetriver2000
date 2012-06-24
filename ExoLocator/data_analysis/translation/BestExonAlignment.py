@@ -37,4 +37,5 @@ class BestExonAlignment (object):
         self.gene_ref_seq = gene_ref_seq
         self.cdna_ref_seq = cdna_ref_seq
         
+        
 
