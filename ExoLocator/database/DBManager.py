@@ -16,7 +16,10 @@ from data_analysis.base.GenewiseExon import GenewiseExon
 from data_analysis.analysis.AlignmentPostprocessing import annotate_spurious_alignments_batch
 from data_analysis.base.Exon import Exon
 from data_analysis.containers.GeneContainer import GeneContainer
-from pipeline.alignment import Runner
+from data_analysis.translation import BestExonAlignment, Runner
+from data_analysis.translation.AlignmentExonPiece import AlignmentExonPiece
+from data_analysis.translation.BestExonAlignmentContainer import BestExonAlignmentContainer
+import data_analysis
 
 @Singleton
 class DBManager(object):
@@ -270,6 +273,64 @@ class DBManager(object):
         except:
             self.db.rollback()
             return False
+        
+    def update_exon_alignment_piece_table(self, exon_aln_piece_list):
+        print type(exon_aln_piece_list[0][2])
+        print exon_aln_piece_list
+        '''
+        Updates the exon_alignment_piece table.
+        Each row represents a single exon alignment piece.
+        Data format is: (unknown atm)
+        '''
+        #need real data argument
+        cursor = self.db.cursor()
+        #SQL: Inserts record into database. If the record exists, updates the target_ensembl_id.
+        sql = """
+                INSERT INTO
+                  exolocator_db.exon_alignment_piece (exon_alignment_piece.ref_exon_id, exon_alignment_piece.species, exon_alignment_piece.type, exon_alignment_piece.ref_protein_seq, exon_alignment_piece.spec_protein_seq, exon_alignment_piece.ref_dna_seq, exon_alignment_piece.spec_dna_seq, exon_alignment_piece.ref_prot_start, exon_alignment_piece.ref_prot_stop, exon_alignment_piece.genome_start, exon_alignment_piece.genome_stop, exon_alignment_piece.frame, exon_alignment_piece.location_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                  exon_alignment_piece.ref_exon_id = VALUES (exon_alignment_piece.ref_exon_id), \
+                  exon_alignment_piece.species = VALUES (exon_alignment_piece.species), \
+                  exon_alignment_piece.type = VALUES (exon_alignment_piece.type), \
+                  exon_alignment_piece.ref_protein_seq = VALUES (exon_alignment_piece.ref_protein_seq), \
+                  exon_alignment_piece.spec_protein_seq = VALUES (exon_alignment_piece.spec_protein_seq), \
+                  exon_alignment_piece.ref_dna_seq = VALUES (exon_alignment_piece.ref_dna_seq), \
+                  exon_alignment_piece.spec_dna_seq = VALUES (exon_alignment_piece.spec_dna_seq), \
+                  exon_alignment_piece.ref_prot_start = VALUES (exon_alignment_piece.ref_prot_start), \
+                  exon_alignment_piece.ref_prot_stop = VALUES (exon_alignment_piece.ref_prot_stop), \
+                  exon_alignment_piece.genome_start = VALUES (exon_alignment_piece.genome_start), \
+                  exon_alignment_piece.genome_stop = VALUES (exon_alignment_piece.genome_stop), \
+                  exon_alignment_piece.frame = VALUES (exon_alignment_piece.frame), \
+                  exon_alignment_piece.location_id = VALUES (exon_alignment_piece.location_id)
+                """
+                
+        data = []
+        for (ref_exon_id, species, exon_aln_piece) in exon_aln_piece_list:
+            if type(exon_aln_piece) is AlignmentExonPiece:
+                print "USAOOOOO!!!!!!"
+                data.append(( ref_exon_id, 
+                              species, 
+                              exon_aln_piece.type, 
+                              exon_aln_piece.ref_protein_seq, 
+                              exon_aln_piece.spec_protein_seq,
+                              exon_aln_piece.ref_seq,
+                              exon_aln_piece.spec_seq,
+                              exon_aln_piece.ref_protein_start, 
+                              exon_aln_piece.ref_protein_stop, 
+                              exon_aln_piece.genomic_start, 
+                              exon_aln_piece.genomic_stop, 
+                              exon_aln_piece.frame, 
+                              exon_aln_piece.sequence_id
+                              ))
+        print data
+        try:
+            cursor.executemany(sql, data)
+            self.db.commit()
+            return True
+        except:
+            self.db.rollback()
+            return False
 
     def update_dictionary_table(self, data=None):
         pass
@@ -396,6 +457,29 @@ class DBManager(object):
         dbm.update_exon_table(exon_list)
         dbm.update_alignment_table(exon_list)
                        
+    def populate_exon_alignment_piece_table(self):
+        dbm = DBManager.Instance()
+        ec = ExonContainer.Instance()
+        beac = BestExonAlignmentContainer.Instance()
+        
+        protein_id_list = FileUtilities.get_protein_list()
+        species_list = FileUtilities.get_default_species_list()
+        
+        exon_aln_list = []
+        for (ref_protein_id, exon_num) in protein_id_list:
+            for species in species_list:
+                    try:
+                        ref_exons = ec.get((ref_protein_id, 'Homo_sapiens', 'ensembl'))
+                        for ref_exon in ref_exons.get_coding_exons():
+                            best_exon_alignment = beac.get(ref_exon.exon_id, species)
+                            if best_exon_alignment and best_exon_alignment.sw_gene_alignment:
+                                for aln_piece in best_exon_alignment.sw_gene_alignment.alignment_pieces:
+                                    if aln_piece.type in ('coding', 'insertion'):
+                                        exon_aln_list.append([ref_exon.exon_id, species, aln_piece])
+                    except KeyError, e:
+                        print e
+        dbm.update_exon_alignment_piece_table(exon_aln_list)             
+
     def populate_protein_table(self):
         dbm = DBManager.Instance()
         pc = ProteinContainer.Instance()
@@ -433,12 +517,14 @@ class DBManager(object):
         
 def main():
     dbm = DBManager.Instance()
-    Runner.fill_all_containers(True)
+    #Runner.fill_all_containers(True)
+    Runner.main()
     
-    dbm.populate_gene_table()
-    dbm.populate_protein_table()
-    dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
-    dbm.populate_ortholog_table()
+    dbm.populate_exon_alignment_piece_table()
+    #dbm.populate_gene_table()
+    #dbm.populate_protein_table()
+    #dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
+    #dbm.populate_ortholog_table()
     #print dbm.read_protein_table("ENSGGOP00000011584")
     #print dbm.read_exon_table("ENSCHOP00000012154")
     
