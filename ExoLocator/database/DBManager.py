@@ -103,13 +103,20 @@ class DBManager(object):
         #SQL: Inserts record into database. If the record exists, updates the target_ensembl_id.
         sql = """
                 INSERT INTO
-                  ortholog (ortholog.ref_protein_id, ortholog.species, ortholog.protein_id, ortholog.transcript_id, ortholog.gene_id)
-                VALUES (%s, %s, %s, %s, %s)                  
+                  ortholog (ortholog.ref_protein_id, ortholog.species, ortholog.protein_id, ortholog.transcript_id, ortholog.gene_id, ortholog.location_id, ortholog.start, ortholog.stop)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)                  
                 """
         #from protein list derive data:
         data = []
         for data_map in data_map_list:
-            data.append((data_map.ref_protein_id, data_map.species, data_map.protein_id, data_map.transcript_id, data_map.gene_id))
+            data.append((data_map.ref_protein_id, 
+                         data_map.species, 
+                         data_map.protein_id, 
+                         data_map.transcript_id, 
+                         data_map.gene_id, 
+                         data_map.location_id, 
+                         data_map.start, 
+                         data_map.stop))
 
         try:
             cursor.executemany(sql, data)
@@ -172,8 +179,14 @@ class DBManager(object):
                   exon.stop = VALUES (exon.stop), \
                   exon.sequence = VALUES (exon.sequence)                  
                 """
+                
+        dmc = DataMapContainer.Instance()
+        config_reader = ConfigurationReader.Instance()
+        expansion = int(config_reader.get_value("gene_expansion", "expand"))
+        
         data = []
         for exon in exon_list:
+            
             if type(exon) is EnsemblExon:
                 source = "ensembl"
                 ordinal             = exon.ordinal
@@ -191,13 +204,15 @@ class DBManager(object):
                 stop                = exon.stop
                 sequence            = exon.sequence
             else:
+                data_map = dmc.get((exon.ref_protein_id, exon.species))
+                
                 source              = exon.exon_type
                 ordinal             = exon.ordinal
                 alignment_ordinal   = exon.alignment_ordinal
                 exon_id             = exon.ref_exon_id
-                start               = exon.alignment_info["query_start"]
-                stop               = exon.alignment_info["query_end"]
-                sequence               = exon.alignment_info["query_seq"]
+                start               = max (1, data_map.start - expansion) + exon.alignment_info["query_start"]
+                stop                = start + len (exon.alignment_info["query_seq"])
+                sequence            = exon.alignment_info["query_seq"]
 
             data.append(( exon.ref_protein_id, 
                           ordinal, 
@@ -275,8 +290,6 @@ class DBManager(object):
             return False
         
     def update_exon_alignment_piece_table(self, exon_aln_piece_list):
-        print type(exon_aln_piece_list[0][2])
-        print exon_aln_piece_list
         '''
         Updates the exon_alignment_piece table.
         Each row represents a single exon alignment piece.
@@ -308,7 +321,6 @@ class DBManager(object):
         data = []
         for (ref_exon_id, species, exon_aln_piece) in exon_aln_piece_list:
             if type(exon_aln_piece) is AlignmentExonPiece:
-                print "USAOOOOO!!!!!!"
                 data.append(( ref_exon_id, 
                               species, 
                               exon_aln_piece.type, 
@@ -323,7 +335,6 @@ class DBManager(object):
                               exon_aln_piece.frame, 
                               exon_aln_piece.sequence_id
                               ))
-        print data
         try:
             cursor.executemany(sql, data)
             self.db.commit()
@@ -510,7 +521,8 @@ class DBManager(object):
                 try:
                     data_map = dmc.get((ref_protein_id[0], species))
                     data_map_list.append(data_map)
-                except KeyError:
+                except KeyError, e:
+                    print e
                     print "PROTEIN_ID %s ERROR" % (ref_protein_id[0])
         print data_map_list
         dbm.update_ortholog_table(data_map_list)
@@ -521,10 +533,10 @@ def main():
     Runner.main()
     
     dbm.populate_exon_alignment_piece_table()
-    #dbm.populate_gene_table()
-    #dbm.populate_protein_table()
-    #dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
-    #dbm.populate_ortholog_table()
+    dbm.populate_gene_table()
+    dbm.populate_protein_table()
+    dbm.populate_exon_table()  #This populates ALIGNMENT table, also!
+    dbm.populate_ortholog_table()
     #print dbm.read_protein_table("ENSGGOP00000011584")
     #print dbm.read_exon_table("ENSCHOP00000012154")
     
