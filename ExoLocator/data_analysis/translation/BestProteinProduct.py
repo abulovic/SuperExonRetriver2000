@@ -33,11 +33,18 @@ def print_al_exons(al_exons, output_file):
 
 class BestProteinProduct (object):
     
+    '''
+    Class representing all the information necessary to reconstruct the
+    best possible protein product. The best result can be offered
+    either from Ensembl, from Exolocator or both (the same).
+    '''
+    
     def __init__ (self, ref_protein_id, species, reference_species):
         
         self.ref_protein_id = ref_protein_id
         self.species        = species
         self.ref_species    = reference_species
+        self.load_alignments()
         
     def load_alignments (self):
         '''
@@ -89,21 +96,20 @@ class BestProteinProduct (object):
             
             ############## LOAD AVAILABLE DATA ############################################
             
-            # if there is sw gene alignment, load all the data
+            ##############    SW GENE DATA     ##########################################
             if self.gene_exons and ce.exon_id in self.gene_exons.alignment_exons:
                 gene_al_exon = self.gene_exons.alignment_exons[ce.exon_id][0]
                 
                 if gene_al_exon.viability:
                     gene_score = gene_al_exon.alignment_info["score"]
-                    gene_ref_seq = gene_al_exon.alignment_info["sbjct_seq"]
                     sw_gene_alignment = SWGeneAlignment(self.ref_protein_id, self.species, ce, gene_al_exon)
 
                 else:
                     gene_al_exon = None
                         
             
-            # check cdna only if there exist ensembl exons for this species        
-            if self.ensembl_exons and ce.exon_id in self.cDNA_exons.alignment_exons:
+            ##############    ENSEMBL DATA     ##########################################
+            if self.ensembl_exons and self.cDNA_exons and ce.exon_id in self.cDNA_exons.alignment_exons:
                 cdna_al_exon = self.cDNA_exons.alignment_exons[ce.exon_id][0]
                 
                 if cdna_al_exon.viability:
@@ -111,7 +117,6 @@ class BestProteinProduct (object):
                     (start,stop) = (cdna_al_exon.alignment_info["query_start"],
                                     cdna_al_exon.alignment_info["query_end"])
                     cdna_exons = self.ensembl_exons.get_exon_ids_from_ccDNA_locations(start, stop)
-                    cdna_ref_seq = cdna_al_exon.alignment_info["sbjct_seq"]
                     ensembl_alignment = EnsemblAlignment(self.ref_protein_id, ce, cdna_al_exon, cdna_exons)
                     
                 else:
@@ -125,19 +130,18 @@ class BestProteinProduct (object):
                 best_exon_alignment = None
             # if the alignments are of the same quality
             elif cdna_score and gene_score and cdna_score == gene_score:         
-                best_exon_alignment = BestExonAlignment(ce.exon_id, gene_al_exon, cdna_exons, "both" , ensembl_alignment, sw_gene_alignment)
+                best_exon_alignment = BestExonAlignment(ce.exon_id, "both" , ensembl_alignment, sw_gene_alignment)
                        
             elif cdna_score > gene_score:
-                best_exon_alignment = BestExonAlignment(ce.exon_id, gene_al_exon, cdna_exons, "ensembl", ensembl_alignment, sw_gene_alignment )
+                best_exon_alignment = BestExonAlignment(ce.exon_id, "ensembl", ensembl_alignment, sw_gene_alignment )
                 
             else:
                 if not cdna_score:
-                    best_exon_alignment = BestExonAlignment(ce.exon_id, gene_al_exon, None, "sw_gene", None, sw_gene_alignment )
+                    best_exon_alignment = BestExonAlignment(ce.exon_id, "sw_gene", None, sw_gene_alignment )
                 else:
-                    best_exon_alignment = BestExonAlignment(ce.exon_id, gene_al_exon, cdna_exons, "sw_gene", ensembl_alignment, sw_gene_alignment )
+                    best_exon_alignment = BestExonAlignment(ce.exon_id, "sw_gene", ensembl_alignment, sw_gene_alignment )
             if best_exon_alignment: 
                 best_exon_alignment.set_scores(gene_score, cdna_score)   
-                best_exon_alignment.set_ref_sequences(gene_ref_seq, cdna_ref_seq)
                 
             self.best_exons[ce.exon_id] = best_exon_alignment
 
