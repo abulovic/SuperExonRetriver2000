@@ -1,7 +1,7 @@
 '''
 Created on Jun 21, 2012
 
-@author: intern
+@author: anana
 '''
 from data_analysis.containers.ExonContainer import ExonContainer
 from Bio.Seq import Seq
@@ -271,7 +271,7 @@ def set_protein_sequences (alignment_pieces):
             al_piece.set_translations (None, spec_protein_seq)
             
                     
-        if al_piece.type in ["coding"]:
+        if al_piece.type == "coding":
             add_beg_ref_seq, add_beg_spec_seq = "", ""
             add_end_ref_seq, add_end_spec_seq = "", ""
             if i-1 in range (0, len(alignment_pieces)):

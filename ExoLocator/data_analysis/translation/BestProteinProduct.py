@@ -245,26 +245,39 @@ class BestProteinProduct (object):
                 first_al_piece.spec_protein_seq     = new_spec_prot
                 
                 new_ref_cdna                        = last_al_piece.ref_seq + add_end_ref
-                new_ref_prot                        = Seq(new_ref_cdna[last_al_piece.frame:], IUPAC).translate()
+                new_ref_prot                        = Seq(new_ref_cdna[last_al_piece.frame:], IUPAC.ambiguous_dna).translate()
                 last_al_piece.ref_protein_seq       = new_ref_prot
-                last_al_piece.ref_protein_end      += end_update
+                last_al_piece.ref_protein_stop     += end_update
                 
                 new_spec_cdna                       = last_al_piece.spec_seq + add_end_spec
-                new_spec_prot                       = Seq(new_spec_cdna[last_al_piece.frame:], IUPAC).translate()
+                new_spec_prot                       = Seq(new_spec_cdna[last_al_piece.frame:], IUPAC.ambiguous_dna).translate()
                 last_al_piece.spec_protein_seq      = new_spec_prot
 
+    def get_spec_protein_translation (self):
+        
+        whole_protein_cdna = ""
+        for ref_exon in self.ref_exons.get_coding_exons():
+            bea = self.best_exons[ref_exon.exon_id]
+            if not bea or not bea.sw_gene_alignment:
+                whole_protein_cdna += "N" * len(ref_exon.sequence)
+            else:
+                whole_protein_cdna += bea.sw_gene_alignment.create_cDNA()
+            
+            
+        return Seq(whole_protein_cdna, IUPAC.ambiguous_dna).translate()
+        
+            
 
 
 if __name__ == '__main__':
 
     fill_all_containers(True)
-    bpp = BestProteinProduct("ENSP00000382758", "Ailuropoda_melanoleuca", "Homo_sapiens")
-    bpp.load_alignments()
+    bpp = BestProteinProduct("ENSP00000341765", "Ailuropoda_melanoleuca", "Homo_sapiens")
     bpp.decide_on_best_exons()
     bpp.patch_interexon_AAS()
+    print bpp.export_spec_protein_translation()
     
     be = bpp.best_exons
-    bpp.translate_best_exons_to_protein()
     print
     
         
