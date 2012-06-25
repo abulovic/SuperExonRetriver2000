@@ -10,7 +10,7 @@ class DataMap(object):
     Class that represents data for a particular (protein_id, species) value.
     '''
 
-    def __init__(self, protein_id, transcript_id, gene_id, data_map_key, location_type, location_id, strand, start, stop, ab_initio = False):
+    def __init__(self, protein_id, transcript_id, gene_id, data_map_key, location_type, assembly_id, location_id, strand, start, stop, ab_initio = False):
         '''
         Essentially, contents of the description file 
         All id-s related to the species they belong to!
@@ -23,6 +23,7 @@ class DataMap(object):
         self.ref_protein_id     = data_map_key[0]
         self.species            = data_map_key[1]
         
+        self.assembly_id        = assembly_id
         self.location_type      = location_type
         self.location_id        = location_id
         self.strand             = int(strand)

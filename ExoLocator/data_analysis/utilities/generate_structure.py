@@ -72,7 +72,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         # data map
         data_map_key    = (protein_id, species_name)
         data_map        = DataMap(spec_protein_id, spec_transcript_id, 
-                                  spec_gene_id, data_map_key, location_type, 
+                                  spec_gene_id, data_map_key, location_type, assembly,
                                   location_id, strand, seq_begin, seq_end, ab_initio)
         try:
             data_map_container.add(data_map_key, data_map)
@@ -127,7 +127,7 @@ def load_protein_configuration(protein_id, ref_species_dict = None):
         
 
         data_map_key    = (protein_id, species_name)
-        data_map        = DataMap(spec_protein_id, "", "", data_map_key, location_type, location_id, strand, seq_begin, seq_end, ab_initio)
+        data_map        = DataMap(spec_protein_id, "", "", data_map_key, location_type, assembly, location_id, strand, seq_begin, seq_end, ab_initio)
         try:
             data_map_container.add(data_map_key, data_map)
         except (KeyError, TypeError), e:
@@ -350,8 +350,8 @@ def main ():
     
     #translate_alignment_exons_for_protein(protein_list, exon_number)
     
-    exons = ec.get(("ENSP00000293201", "Homo_sapiens", "ensembl"))
-    coding_exons = exons.get_coding_exons()
+    #exons = ec.get(("ENSP00000293201", "Homo_sapiens", "ensembl"))
+    #coding_exons = exons.get_coding_exons()
     
     #for ce in coding_exons:
     #    print ce.start, ce.stop
