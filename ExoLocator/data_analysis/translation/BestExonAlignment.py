@@ -1,7 +1,7 @@
 '''
 Created on Jun 24, 2012
 
-@author: intern
+@author: anana
 '''
 class BestExonAlignment (object):
     '''
@@ -22,6 +22,9 @@ class BestExonAlignment (object):
         self.ensembl_exons  = ensembl_exons
         
     def set_status (self, status):
+        '''
+        @param status: ensembl / sw_gene / both
+        '''
         if status not in ("ensembl", "sw_gene", "both"):
             raise ValueError ("Status must be ensembl, sw_gene or both")
         self.status = status

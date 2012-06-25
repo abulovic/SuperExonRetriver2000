@@ -3,13 +3,20 @@ Created on Jun 24, 2012
 
 @author: anana
 '''
-from data_analysis.translation.BestExonAlignment import BestExonAlignment
-from utilities.Singleton import Singleton
+# utilities imports
+from utilities.Singleton                            import Singleton
+
+# data analysis imports
+from data_analysis.translation.BestExonAlignment    import BestExonAlignment
+
 
 
 @Singleton
 class BestExonAlignmentContainer (object):
-    
+    '''
+    Containter for best exon alignments
+    key: referent exon ID, species
+    '''
     def __init__ (self):
         self._container = {}
         

@@ -1,8 +1,9 @@
 '''
 Created on Jun 24, 2012
 
-@author: intern
+@author: anana
 '''
+
 class AlignmentExonPiece (object):
     '''
     Class representing one alignment piece. It is a part 
@@ -55,10 +56,17 @@ class AlignmentExonPiece (object):
         self.ref_protein_stop = ref_protein_stop
         
     def set_alignment_locations (self, start, stop):
+        '''
+        Set locations of the alignment on the species gene DNA.
+        '''
         self.alignment_start = start
         self.alignment_stop  = stop
         
     def set_genomic_locations (self, start, stop, sequence_id):
+        '''
+        Set the genomic location and the ID of the species DNA sequence.
+        '''
         self.genomic_start = start
         self.genomic_stop  = stop
         self.sequence_id = sequence_id
+        

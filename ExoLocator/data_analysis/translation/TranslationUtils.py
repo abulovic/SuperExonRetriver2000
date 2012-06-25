@@ -2,13 +2,17 @@
 Created on Jun 21, 2012
 
 @author: anana
+
+Auxiliary functions to utilize other classes in dna to protein translation.
 '''
-from data_analysis.containers.ExonContainer import ExonContainer
+# Python imports
+import re
+
+# BioPython imports
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
-import re
-from data_analysis.containers.EnsemblExonContainer import EnsemblExonContainer
-from data_analysis.containers.ProteinContainer import ProteinContainer
+
+# data analysis imports
 from data_analysis.translation.AlignmentExonPiece import AlignmentExonPiece
 
 def translate_ensembl_exons (ensembl_exons):
@@ -206,21 +210,6 @@ def split_exon_seq (alignment_exon, coding_exon):
             exon = process_insertion_in_exon (human_seq, spec_seq, ordinal, new_frame)
             exon.set_alignment_locations(start, stop)
             alignment_pieces.append(exon)
-
-        '''
-        # determine frame
-        if in_coding:
-            if coding_len == 0:
-                new_frame = frame
-            else:
-                frame_status = abs(coding_len - frame) % 3
-                if frame_status == 1:
-                    new_frame = 2
-                elif frame_status == 2:
-                    new_frame = 1
-                else:
-                    new_frame = 0
-                    '''
         
         # if we're in the coding region, process it further for deletions    
         if in_coding:
@@ -242,6 +231,13 @@ def split_exon_seq (alignment_exon, coding_exon):
     
 
 def set_protein_sequences (alignment_pieces):
+    '''
+    Set the protein sequences for alignment pieces.
+    For each of the coding alignment pieces, a check is performed:
+    if there are coding pieces to the left and the right, the protein
+    sequences are expanded to allow for the missing AAs due to 
+    'middle of the codon' alignment start or stop
+    '''
     
     for i in range (0, len(alignment_pieces)):
         
@@ -251,15 +247,18 @@ def set_protein_sequences (alignment_pieces):
             
             add_beg_ref_seq, add_beg_spec_seq = "", ""
             add_end_ref_seq, add_end_spec_seq = "", ""
+            
+            # if there exists a left alignment piece
             if i-1 in range (0, len(alignment_pieces)):
-                prev_piece = alignment_pieces[i-1]
-                how_much_to_take = (3 - al_piece.frame) % 3
-                add_beg_spec_seq = prev_piece.spec_seq[len(prev_piece.spec_seq)-how_much_to_take:len(prev_piece.spec_seq)]
+                prev_piece          = alignment_pieces[i-1]
+                how_much_to_take    = (3 - al_piece.frame) % 3
+                add_beg_spec_seq    = prev_piece.spec_seq[len(prev_piece.spec_seq)-how_much_to_take:len(prev_piece.spec_seq)]
                 
+            # if there exists a right alignment piece    
             if i+1 in range (0, len(alignment_pieces)):
-                next_piece = alignment_pieces[i+1]
-                how_much_to_take = (3 - (len(al_piece.ref_seq) - al_piece.frame)) % 3
-                add_end_spec_seq = next_piece.spec_seq[0:how_much_to_take]
+                next_piece          = alignment_pieces[i+1]
+                how_much_to_take    = (3 - (len(al_piece.ref_seq) - al_piece.frame)) % 3
+                add_end_spec_seq    = next_piece.spec_seq[0:how_much_to_take]
 
             spec_seq_to_translate = Seq (add_beg_spec_seq + al_piece.spec_seq + add_end_spec_seq, IUPAC.ambiguous_dna)
             
@@ -272,34 +271,39 @@ def set_protein_sequences (alignment_pieces):
             
                     
         if al_piece.type == "coding":
+            
             add_beg_ref_seq, add_beg_spec_seq = "", ""
             add_end_ref_seq, add_end_spec_seq = "", ""
+            
+            # if there is a left alignment piece
             if i-1 in range (0, len(alignment_pieces)):
-                prev_piece = alignment_pieces[i-1]
+                
+                prev_piece           = alignment_pieces[i-1]
                 if prev_piece.type in ["frameshift", "insertion"]:
-
-                    prev_piece = alignment_pieces[i-2]
+                    prev_piece       = alignment_pieces[i-2]
                     how_much_to_take = (3 - al_piece.frame) % 3
                     add_beg_ref_seq  = prev_piece.ref_seq [len(prev_piece.ref_seq)-how_much_to_take:len(prev_piece.ref_seq)]
                     add_beg_spec_seq = prev_piece.spec_seq[len(prev_piece.spec_seq)-how_much_to_take:len(prev_piece.spec_seq)]
                     
+            # if there is a right alignment piece
             if i+1 in range (0, len(alignment_pieces)):
-                next_piece = alignment_pieces[i+1]
+                
+                next_piece           = alignment_pieces[i+1]
                 if next_piece.type in ["frameshift", "insertion"]:
-                    next_piece = alignment_pieces[i+2]
+                    next_piece       = alignment_pieces[i+2]
                     how_much_to_take = (3 - (len(al_piece.ref_seq) - al_piece.frame)) % 3
                     add_end_ref_seq  = next_piece.ref_seq [0:how_much_to_take]
                     add_end_spec_seq = next_piece.spec_seq[0:how_much_to_take]
                     
-            ref_seq_to_translate = Seq (add_beg_ref_seq + al_piece.ref_seq + add_end_ref_seq, IUPAC.ambiguous_dna)
-            spec_seq_to_translate = Seq (add_beg_spec_seq + al_piece.spec_seq + add_end_spec_seq, IUPAC.ambiguous_dna)
+            ref_seq_to_translate     = Seq (add_beg_ref_seq + al_piece.ref_seq + add_end_ref_seq, IUPAC.ambiguous_dna)
+            spec_seq_to_translate    = Seq (add_beg_spec_seq + al_piece.spec_seq + add_end_spec_seq, IUPAC.ambiguous_dna)
             
             if not add_beg_ref_seq:
-                ref_protein_seq = ref_seq_to_translate[al_piece.frame:].translate()
-                spec_protein_seq = spec_seq_to_translate[al_piece.frame:].translate()
+                ref_protein_seq      = ref_seq_to_translate[al_piece.frame:].translate()
+                spec_protein_seq     = spec_seq_to_translate[al_piece.frame:].translate()
             else:
-                ref_protein_seq = ref_seq_to_translate.translate()
-                spec_protein_seq = spec_seq_to_translate.translate()
+                ref_protein_seq      = ref_seq_to_translate.translate()
+                spec_protein_seq     = spec_seq_to_translate.translate()
             
             al_piece.set_translations (ref_protein_seq, spec_protein_seq)
             

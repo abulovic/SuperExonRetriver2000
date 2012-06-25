@@ -50,7 +50,7 @@ class BestProteinProduct (object):
             pass
         self.cDNA_exons     = None
         try:
-            self.cDNA_exons     = exon_container.get((self.ref_protein_id, self.species, "sw_exon"))
+            self.cDNA_exons = exon_container.get((self.ref_protein_id, self.species, "sw_exon"))
         except KeyError:
             pass
         self.ensembl_exons  = None
@@ -88,8 +88,8 @@ class BestProteinProduct (object):
                 gene_al_exon = self.gene_exons.alignment_exons[ce.exon_id][0]
                 
                 if gene_al_exon.viability:
-                    gene_score = gene_al_exon.alignment_info["score"]
-                    sw_gene_alignment = SWGeneAlignment(self.ref_protein_id, self.species, ce, gene_al_exon)
+                    gene_score          = gene_al_exon.alignment_info["score"]
+                    sw_gene_alignment   = SWGeneAlignment(self.ref_protein_id, self.species, ce, gene_al_exon)
 
                 else:
                     gene_al_exon = None
@@ -100,11 +100,11 @@ class BestProteinProduct (object):
                 cdna_al_exon = self.cDNA_exons.alignment_exons[ce.exon_id][0]
                 
                 if cdna_al_exon.viability:
-                    cdna_score = cdna_al_exon.alignment_info["score"]
-                    (start,stop) = (cdna_al_exon.alignment_info["query_start"],
-                                    cdna_al_exon.alignment_info["query_end"])
-                    cdna_exons = self.ensembl_exons.get_exon_ids_from_ccDNA_locations(start, stop)
-                    ensembl_alignment = EnsemblAlignment(self.ref_protein_id, ce, cdna_al_exon, cdna_exons)
+                    cdna_score          = cdna_al_exon.alignment_info["score"]
+                    (start,stop)        = (cdna_al_exon.alignment_info["query_start"],
+                                           cdna_al_exon.alignment_info["query_end"])
+                    cdna_exons          = self.ensembl_exons.get_exon_ids_from_ccDNA_locations(start, stop)
+                    ensembl_alignment   = EnsemblAlignment(self.ref_protein_id, ce, cdna_al_exon, cdna_exons)
                     
                 else:
                     cdna_al_exon = None
@@ -253,8 +253,13 @@ class BestProteinProduct (object):
                 new_spec_prot                       = Seq(new_spec_cdna[last_al_piece.frame:], IUPAC.ambiguous_dna).translate()
                 last_al_piece.spec_protein_seq      = new_spec_prot
 
+
     def get_spec_protein_translation (self):
         
+        '''
+        Creates the protein translation. Where there exists no alignment, the cDNA 
+        is padded with Ns (those get translated to Xs).
+        '''
         whole_protein_cdna = ""
         for ref_exon in self.ref_exons.get_coding_exons():
             bea = self.best_exons[ref_exon.exon_id]

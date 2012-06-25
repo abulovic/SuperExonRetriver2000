@@ -1,7 +1,7 @@
 '''
 Created on Jun 24, 2012
 
-@author: intern
+@author: anana
 '''
 from data_analysis.containers.ProteinContainer import ProteinContainer
 from Bio.Seq import Seq

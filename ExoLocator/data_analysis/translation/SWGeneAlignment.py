@@ -3,14 +3,18 @@ Created on Jun 24, 2012
 
 @author: anana
 '''
-from data_analysis.translation.TranslationUtils import split_exon_seq,\
-    set_protein_sequences
+# Python imports
 import re
+
+# utilities imports
+from utilities.ConfigurationReader import ConfigurationReader
+
+# data analysis imports
+from data_analysis.translation.TranslationUtils import split_exon_seq, set_protein_sequences
+
 from data_analysis.containers.ProteinContainer import ProteinContainer
 from data_analysis.containers.DataMapContainer import DataMapContainer
-from utilities.ConfigurationReader import ConfigurationReader
-from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
+
 
 class SWGeneAlignment (object):
     
@@ -20,12 +24,12 @@ class SWGeneAlignment (object):
         self.species        = species
         self.ref_exon       = ref_exon
         self.alignment_exon = alignment_exon
-        
-        self.load_alignment_pieces()  
-        #self.determine_absolute_coordinates ()
-        
-        
-    def load_alignment_pieces (self):
+        self.alignment_pieces    = split_exon_seq(self.alignment_exon, self.ref_exon)
+        self.set_protein_sequences()
+        self.determine_absolute_coordinates ()
+    
+            
+    def set_protein_sequences (self):
         '''
         Loads the alignment pieces and sets their
         translations to protein.
@@ -42,8 +46,8 @@ class SWGeneAlignment (object):
             ref_exon_translation = ref_exon_translation[0:len(ref_exon_translation)-1]
         
         self.alignment_pieces    = split_exon_seq(self.alignment_exon, self.ref_exon)
-        '''
-        self.alignment_pieces   = set_protein_sequences (self.alignment_pieces)
+        
+        self.alignment_pieces    = set_protein_sequences (self.alignment_pieces)
         
         # find the locations of the exon translation in the protein
         exon_start = str(ref_protein_seq).find(str(ref_exon_translation))
@@ -69,9 +73,8 @@ class SWGeneAlignment (object):
                 al_piece.set_protein_locations(previous.ref_protein_stop, previous.ref_protein_stop + 1)
         
             previous = al_piece
-            '''
             
-      
+    
     def determine_absolute_coordinates (self):
         '''
         Sets the absolute genomic locations for alignment pieces
@@ -83,7 +86,7 @@ class SWGeneAlignment (object):
         expansion = int(conf_reader.get_value("local_ensembl", "expansion"))
         
         data_map = dmc.get((self.ref_protein_id, self.species))
-        start, stop = (data_map.start, data_map.stop)
+        start = data_map.start
         alignment_start = self.alignment_exon.alignment_info["query_start"]
         
         for al_piece in self.alignment_pieces:
@@ -98,6 +101,10 @@ class SWGeneAlignment (object):
                 
     def create_cDNA (self):
         
+        '''
+        Create the cDNA for an alignment exon.
+        Pad the gaps with Ns.
+        '''
         total_exon_len = len(self.ref_exon.sequence)
         
         alignment_start = self.alignment_exon.alignment_info["sbjct_start"]
