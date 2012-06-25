@@ -14,7 +14,7 @@ from Bio import SeqIO
 
 def main ():
     #ERROR FILE:::
-    err_f = open('/home/anab/err_status_monday.txt', 'w')
+    err_f = open('/home/intern/err_status_monday.txt', 'w')
 
     fill_all_containers(True)
     
@@ -40,7 +40,7 @@ def main ():
                 bpp.load_alignments()
                 bpp.decide_on_best_exons()
                 #bpp.patch_interexon_AAS()
-                '''
+                
                 for ref_exon in ref_exons.get_coding_exons():
                     
                     best_exon_alignment = bpp.best_exons[ref_exon.exon_id]
@@ -59,14 +59,17 @@ def main ():
                                                                             al_piece.genomic_start, 
                                                                             al_piece.genomic_stop, 
                                                                             al_piece.sequence_id)
+                                    print "\t\t\tHUMAN:", al_piece.ref_protein_seq
+                                    print "\t\t\tSPEC :", al_piece.spec_protein_seq
                                 else:
                                     print
-                                    '''
+                                    
                 whole_prot =  bpp.get_spec_protein_translation()
                 whole_prot_rec = SeqRecord(whole_prot, id = species, description = "assembled_protein")
                 file_name = "%s/%s.fa" % (dc.get_assembled_protein_path(protein_id), species)
                 SeqIO.write(whole_prot_rec, file_name, "fasta")
             except Exception, e:
+                print '{0} {1} \n'.format(protein_id, species)
                 err_f.write('{0} {1} \n'.format(protein_id, species))
             
 
