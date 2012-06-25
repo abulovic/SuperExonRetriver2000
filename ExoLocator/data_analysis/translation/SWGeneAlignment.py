@@ -22,7 +22,7 @@ class SWGeneAlignment (object):
         self.alignment_exon = alignment_exon
         
         self.load_alignment_pieces()  
-        self.determine_absolute_coordinates ()
+        #self.determine_absolute_coordinates ()
         
         
     def load_alignment_pieces (self):
@@ -42,7 +42,7 @@ class SWGeneAlignment (object):
             ref_exon_translation = ref_exon_translation[0:len(ref_exon_translation)-1]
         
         self.alignment_pieces    = split_exon_seq(self.alignment_exon, self.ref_exon)
-        
+        '''
         self.alignment_pieces   = set_protein_sequences (self.alignment_pieces)
         
         # find the locations of the exon translation in the protein
@@ -69,6 +69,7 @@ class SWGeneAlignment (object):
                 al_piece.set_protein_locations(previous.ref_protein_stop, previous.ref_protein_stop + 1)
         
             previous = al_piece
+            '''
             
       
     def determine_absolute_coordinates (self):
