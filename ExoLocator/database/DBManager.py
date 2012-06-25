@@ -522,8 +522,9 @@ class DBManager(object):
                     data_map = dmc.get((ref_protein_id[0], species))
                     data_map_list.append(data_map)
                 except KeyError, e:
-                    print e
-                    print "PROTEIN_ID %s ERROR" % (ref_protein_id[0])
+                    pass
+                    #print e
+                    #print "PROTEIN_ID %s ERROR" % (ref_protein_id[0])
         print data_map_list
         dbm.update_ortholog_table(data_map_list)
         
