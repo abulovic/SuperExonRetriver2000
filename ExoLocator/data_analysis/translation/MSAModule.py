@@ -5,13 +5,14 @@ Created on Jun 25, 2012
 '''
 from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities.FileUtilities import get_protein_list, get_species_list,\
-    check_status_file, write_seq_records_to_file
+    check_status_file, write_seq_records_to_file, load_fasta_single_record
 import os
 from Bio import SeqIO
 from data_analysis.containers.ProteinContainer import ProteinContainer
 from data_analysis.containers.DataMapContainer import DataMapContainer
 from pipeline.utilities.AlignmentCommandGenerator import AlignmentCommandGenerator
 from data_analysis.utilities.generate_structure import fill_all_containers
+from Bio.Alphabet import IUPAC
 
 def create_msa_alignments ():
     
@@ -42,7 +43,7 @@ def create_msa_alignments ():
             if fasta == "Homo_sapiens.fa":
                 continue
             abs_fasta = "%s/%s" % (assembled_dir, fasta)
-            prot_rec = SeqIO.read(abs_fasta, "fasta")
+            prot_rec = load_fasta_single_record(abs_fasta, IUPAC.protein)
             exoloc_proteins.append(prot_rec)
             
         species_list = get_species_list(prot_id, None)
@@ -101,7 +102,7 @@ def create_species_msa_alignments ():
             protein_recs.append(prot_rec)
             
             if "%s.fa" % species in os.listdir(assembled_dir):
-                exoloc_protein_rec = SeqIO.read("%s/%s.fa" % (assembled_dir, species), "fasta")
+                exoloc_protein_rec = load_fasta_single_record("%s/%s.fa" % (assembled_dir, species), IUPAC.protein)
                 protein_recs.append(exoloc_protein_rec)
 
             
