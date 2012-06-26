@@ -307,10 +307,9 @@ def read_seq_records_from_file (file_path, sequence_type):
     
     conf_reader = ConfigurationReader.Instance()
     machine = conf_reader.get_value ("machine", "computer")
-    if machine == "donkey":
-        file_handle = open(file_path, "r")
-        sequences = SeqIO.parse(file_handle, "fasta", sequence_type)
-        
+    file_handle = open(file_path, "r")
+    if machine == "donkey": 
+        sequences = SeqIO.parse(file_handle, "fasta", sequence_type)      
     elif machine == "anab":
         sequences = SeqIO.parse(file_path, "fasta", sequence_type)
         

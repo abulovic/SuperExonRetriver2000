@@ -30,7 +30,7 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
     # if the alignment type is tblastn, we have to multiply
     # the coverage by 3 because the length is expressed in AAs, not in NBs
     if alignment_type == "tblastn":
-        coverage_constant = 3.
+        coverage_constant = 1.
     else:
         coverage_constant = 1.
     
@@ -66,8 +66,8 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
                     internal_stat += coverage_constant * float(al_exon.alignment_info["identities"]) / len(ref_exon.sequence)
                     if internal_stat > 1:
                         print "Coverage cannot be larger than 1 (%s,%s,%s)" % (ref_protein_id, species, alignment_type)
-                        print al_exon.alignment_info["sbjct_start"], len(ref_exon.sequence)
-                        raise ValueError ("Coverage cannot be larger than 1 (%s,%s,%s,%s)" % (ref_protein_id, species, alignment_type,ref_exon_id))
+                        print len(al_exon.alignment_info["sbjct_seq"]), len(ref_exon.sequence)
+                        raise ValueError ("Coverage cannot be larger than 1 (%s,%s,%s,%s,%f)" % (ref_protein_id, species, alignment_type,ref_exon_id, internal_stat))
                 #print "\t%1.2f" % ( float(al_exon.alignment_info["length"] - al_exon.alignment_info["gaps"]) / len(ref_exon.sequence))
             perc_list.append(internal_stat)
     return perc_list
