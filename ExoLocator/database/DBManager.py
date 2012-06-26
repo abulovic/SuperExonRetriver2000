@@ -39,6 +39,7 @@ class DBManager(object):
         self.db  = MySQLdb.connect(hostname, username, password, database)
 
     def update_gene_table(self, data_map_list):
+        err_f = open('/home/marioot/err_status_monday.txt', 'w')
         '''
         Updates the protein table.
         Data format: (protein_id, sequence, protein_info)
@@ -74,17 +75,20 @@ class DBManager(object):
         #from protein list derive data:
         data = []
         for data_map in data_map_list:
-            data.append((data_map.gene_id, 
-                         data_map.ref_protein_id, 
-                         data_map.species, 
-                         data_map.location_type, 
-                         data_map.location_id, 
-                         data_map.strand, 
-                         data_map.start, 
-                         data_map.stop, 
-                         data_map.get_expanded_start(), 
-                         data_map.ab_initio))
-        print len(data)
+            try:
+                data.append((data_map.gene_id, 
+                             data_map.ref_protein_id, 
+                             data_map.species, 
+                             data_map.location_type, 
+                             data_map.location_id, 
+                             data_map.strand, 
+                             data_map.start, 
+                             data_map.stop, 
+                             data_map.get_expanded_start(), 
+                             data_map.ab_initio))
+            except Exception, e:
+                err_f.write('DB: update_gene_table: {0}\n'.format(e))
+
         try:
             cursor.executemany(sql, data)
             self.db.commit()
@@ -94,6 +98,7 @@ class DBManager(object):
             return False
 
     def update_ortholog_table(self, data_map_list):
+        err_f = open('/home/marioot/err_status_monday.txt', 'w')
         '''
         Updates the protein table.
         Data format: (protein_id, sequence, protein_info)
@@ -109,14 +114,17 @@ class DBManager(object):
         #from protein list derive data:
         data = []
         for data_map in data_map_list:
-            data.append((data_map.ref_protein_id, 
-                         data_map.species, 
-                         data_map.protein_id, 
-                         data_map.transcript_id, 
-                         data_map.gene_id, 
-                         data_map.location_id, 
-                         data_map.start, 
-                         data_map.stop))
+            try:
+                data.append((data_map.ref_protein_id, 
+                             data_map.species, 
+                             data_map.protein_id, 
+                             data_map.transcript_id, 
+                             data_map.gene_id, 
+                             data_map.location_id, 
+                             data_map.start, 
+                             data_map.stop))
+            except Exception, e:
+                err_f.write('DB: ortholog_table: {0} {1} \n'.format(e))
 
         try:
             cursor.executemany(sql, data)
@@ -127,6 +135,7 @@ class DBManager(object):
             return False
 
     def update_protein_table(self, protein_list):
+        err_f = open('/home/marioot/err_status_monday.txt', 'w')
         '''
         Updates the protein table.
         Data format: (protein_id, sequence, protein_info)
@@ -144,8 +153,10 @@ class DBManager(object):
         #from protein list derive data:
         data = []
         for protein in protein_list:
-            data.append((protein.protein_id, protein.get_sequence_record().seq, "",protein.species))
-        print data
+            try:
+                data.append((protein.protein_id, protein.get_sequence_record().seq, "",protein.species))
+            except Exception, e:
+                err_f.write('DB: protein_table: {0}\n'.format(e))
 
         try:
             cursor.executemany(sql, data)
@@ -156,6 +167,7 @@ class DBManager(object):
             return False
    
     def update_exon_table(self, exon_list):
+        err_f = open('/home/marioot/err_status_monday.txt', 'w')
         '''
         Updates the exon table.
         Each row represents a single exon found.
@@ -186,43 +198,45 @@ class DBManager(object):
         
         data = []
         for exon in exon_list:
+            try:
+                if type(exon) is EnsemblExon:
+                    source = "ensembl"
+                    ordinal             = exon.ordinal
+                    alignment_ordinal   = exon.ordinal
+                    exon_id             = exon.exon_id
+                    start               = exon.start
+                    stop                = exon.stop
+                    sequence            = exon.sequence
+                elif type(exon) is GenewiseExon:
+                    source = "genewise"
+                    ordinal             = exon.ordinal
+                    alignment_ordinal   = exon.ordinal
+                    exon_id             = ""
+                    start               = exon.start
+                    stop                = exon.stop
+                    sequence            = exon.sequence
+                else:
+                    data_map = dmc.get((exon.ref_protein_id, exon.species))
+                    
+                    source              = exon.exon_type
+                    ordinal             = exon.ordinal
+                    alignment_ordinal   = exon.alignment_ordinal
+                    exon_id             = exon.ref_exon_id
+                    start               = max (1, data_map.start - expansion) + exon.alignment_info["query_start"]
+                    stop                = start + len (exon.alignment_info["query_seq"])
+                    sequence            = exon.alignment_info["query_seq"]
             
-            if type(exon) is EnsemblExon:
-                source = "ensembl"
-                ordinal             = exon.ordinal
-                alignment_ordinal   = exon.ordinal
-                exon_id             = exon.exon_id
-                start               = exon.start
-                stop                = exon.stop
-                sequence            = exon.sequence
-            elif type(exon) is GenewiseExon:
-                source = "genewise"
-                ordinal             = exon.ordinal
-                alignment_ordinal   = exon.ordinal
-                exon_id             = ""
-                start               = exon.start
-                stop                = exon.stop
-                sequence            = exon.sequence
-            else:
-                data_map = dmc.get((exon.ref_protein_id, exon.species))
-                
-                source              = exon.exon_type
-                ordinal             = exon.ordinal
-                alignment_ordinal   = exon.alignment_ordinal
-                exon_id             = exon.ref_exon_id
-                start               = max (1, data_map.start - expansion) + exon.alignment_info["query_start"]
-                stop                = start + len (exon.alignment_info["query_seq"])
-                sequence            = exon.alignment_info["query_seq"]
-
-            data.append(( exon.ref_protein_id, 
-                          ordinal, 
-                          alignment_ordinal, 
-                          exon.species, 
-                          source, 
-                          exon_id,
-                          start,
-                          stop,
-                          sequence))
+                data.append(( exon.ref_protein_id, 
+                              ordinal, 
+                              alignment_ordinal, 
+                              exon.species, 
+                              source, 
+                              exon_id,
+                              start,
+                              stop,
+                              sequence))
+            except Exception, e:
+                err_f.write('DB: exon_table: {0} {1} \n'.format(e))
         
         try:
             cursor.executemany(sql, data)
@@ -233,6 +247,7 @@ class DBManager(object):
             return False
 
     def update_alignment_table(self, exon_list):
+        err_f = open('/home/marioot/err_status_monday.txt', 'w')
         '''
         Updates the exon table.
         Each row represents a single exon found.
@@ -264,23 +279,26 @@ class DBManager(object):
                 """
         data = []
         for exon in exon_list:
-            if type(exon) is Exon:
-                data.append(( exon.ref_protein_id, 
-                              exon.ordinal, 
-                              exon.alignment_ordinal, 
-                              exon.species, 
-                              exon.exon_type,
-                              exon.alignment_info["identities"],
-                              exon.alignment_info["positives"],
-                              exon.alignment_info["gaps"],
-                              exon.alignment_info["sbjct_start"],
-                              exon.alignment_info["sbjct_end"],
-                              exon.alignment_info["query_start"],
-                              exon.alignment_info["query_end"],
-                              exon.alignment_info["length"],
-                              exon.alignment_info["sbjct_seq"],
-                              exon.alignment_info["query_seq"]
-                              ))
+            try:
+                if type(exon) is Exon:
+                    data.append(( exon.ref_protein_id, 
+                                  exon.ordinal, 
+                                  exon.alignment_ordinal, 
+                                  exon.species, 
+                                  exon.exon_type,
+                                  exon.alignment_info["identities"],
+                                  exon.alignment_info["positives"],
+                                  exon.alignment_info["gaps"],
+                                  exon.alignment_info["sbjct_start"],
+                                  exon.alignment_info["sbjct_end"],
+                                  exon.alignment_info["query_start"],
+                                  exon.alignment_info["query_end"],
+                                  exon.alignment_info["length"],
+                                  exon.alignment_info["sbjct_seq"],
+                                  exon.alignment_info["query_seq"]
+                                  ))
+            except Exception, e:
+                err_f.write('DB: alignment_table: {0}\n'.format(e))
         try:
             cursor.executemany(sql, data)
             self.db.commit()
@@ -290,6 +308,7 @@ class DBManager(object):
             return False
         
     def update_exon_alignment_piece_table(self, exon_aln_piece_list):
+        err_f = open('/home/marioot/err_status_monday.txt', 'w')
         '''
         Updates the exon_alignment_piece table.
         Each row represents a single exon alignment piece.
@@ -320,21 +339,26 @@ class DBManager(object):
                 
         data = []
         for (ref_exon_id, species, exon_aln_piece) in exon_aln_piece_list:
-            if type(exon_aln_piece) is AlignmentExonPiece:
-                data.append(( ref_exon_id, 
-                              species, 
-                              exon_aln_piece.type, 
-                              exon_aln_piece.ref_protein_seq, 
-                              exon_aln_piece.spec_protein_seq,
-                              exon_aln_piece.ref_seq,
-                              exon_aln_piece.spec_seq,
-                              exon_aln_piece.ref_protein_start, 
-                              exon_aln_piece.ref_protein_stop, 
-                              exon_aln_piece.genomic_start, 
-                              exon_aln_piece.genomic_stop, 
-                              exon_aln_piece.frame, 
-                              exon_aln_piece.sequence_id
-                              ))
+            try:
+                if type(exon_aln_piece) is AlignmentExonPiece:
+                    
+                    data.append(( ref_exon_id, 
+                                  species, 
+                                  exon_aln_piece.type, 
+                                  exon_aln_piece.ref_protein_seq, 
+                                  exon_aln_piece.spec_protein_seq,
+                                  exon_aln_piece.ref_seq,
+                                  exon_aln_piece.spec_seq,
+                                  exon_aln_piece.ref_protein_start, 
+                                  exon_aln_piece.ref_protein_stop, 
+                                  exon_aln_piece.genomic_start, 
+                                  exon_aln_piece.genomic_stop, 
+                                  exon_aln_piece.frame, 
+                                  exon_aln_piece.sequence_id
+                                  ))
+            except Exception, e:
+                print '{0} {1} \n'.format(ref_exon_id, species)
+                err_f.write('DB: alignment_piece_table: {0} {1}\n'.format(ref_exon_id, species))
         try:
             cursor.executemany(sql, data)
             self.db.commit()
