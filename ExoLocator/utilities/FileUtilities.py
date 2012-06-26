@@ -290,6 +290,33 @@ def write_failed_species_to_status(failed_species_list, path):
         status.write("{0}\n".format(species))
     status.close()
         
+        
+def write_seq_records_to_file (file_path, sequences):
+    
+    conf_reader = ConfigurationReader.Instance()
+    machine = conf_reader.get_value ("machine", "computer")
+    
+    if machine == "donkey":
+        file_handle = open(file_path, "w")
+        SeqIO.write(sequences, file_handle, "fasta")
+        file_handle.close()
+    if machine == "anab":
+        SeqIO.write(sequences, file_path, "fasta")
+        
+def read_seq_records_from_file (file_path, sequence_type):
+    
+    conf_reader = ConfigurationReader.Instance()
+    machine = conf_reader.get_value ("machine", "computer")
+    if machine == "donkey":
+        file_handle = open(file_path, "r")
+        sequences = SeqIO.parse(file_handle, "fasta", sequence_type)
+        file_handle.close()
+    elif machine == "anab":
+        sequences = SeqIO.parse(file_path, "fasta", sequence_type)
+        
+    return sequences
+        
+        
 def main():
     reset_action_global('REF_SP_DB_FORMATTING')
     reset_action_global('BLASTN_ALIGNMENT')

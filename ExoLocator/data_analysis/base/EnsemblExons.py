@@ -18,7 +18,8 @@ from Bio.Alphabet.IUPAC import unambiguous_dna
 # utilities imports
 from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities.Logger           import Logger
-from utilities.FileUtilities    import get_reference_species_dictionary
+from utilities.FileUtilities    import get_reference_species_dictionary,\
+    read_seq_records_from_file
 
 # data analysis imports
 from data_analysis.utilities.ExonUtils          import LongestCommonSubstring
@@ -72,7 +73,9 @@ class EnsemblExons(object):
             return None
          
         exon_list = []
-        for seq_record in SeqIO.parse(fasta, "fasta", unambiguous_dna):
+        seq_records = read_seq_records_from_file(fasta, IUPAC.ambiguous_dna)
+        
+        for seq_record in seq_records:
             (start, stop, transcript_id, exon_id, strand) = seq_record.id.split('|')
             if (int(strand) == 1):
                 self.strand = 1

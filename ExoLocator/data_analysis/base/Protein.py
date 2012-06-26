@@ -3,8 +3,13 @@ Created on Apr 25, 2012
 
 @author: marioot
 '''
+# BioPython imports
+from Bio.Alphabet import IUPAC
+
+# utilities imports
 from utilities.DirectoryCrawler import DirectoryCrawler
-from utilities import FileUtilities
+from utilities.FileUtilities    import read_seq_records_from_file
+
 
 class Protein(object):
     '''
@@ -33,7 +38,7 @@ class Protein(object):
         try:
             return self.sequence
         except AttributeError:
-            self.sequence = FileUtilities.load_fasta_single_record(self.get_protein_file_path(), "protein")
+            self.sequence = read_seq_records_from_file(self.get_protein_file_path(), IUPAC.protein).next()
             
         return self.sequence
     

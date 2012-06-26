@@ -38,7 +38,7 @@ class Exon(object):
         Measure of quality of an exon
         Quality is proportional to alignment length and number of identities, scaled by exon length
         '''
-        return float(self.alignment_info["length"] * self.alignment_info["identities"]) / (self.alignment_info["query_end"]-self.alignment_info["query_start"])
+        return float(self.alignment_info["length"] * self.alignment_info["identities"]) / (self.alignment_info["query_end"]-self.alignment_info["query_start"]+1)
     
     def set_viability (self, viability):
         '''
