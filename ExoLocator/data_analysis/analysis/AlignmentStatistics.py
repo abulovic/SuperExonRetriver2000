@@ -25,9 +25,7 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
     @param alignment_type: blastn, tblastn, sw_gene, sw_exon
     @return: list of similarity percentages in correct order starting from first reference exon to thel last
     '''
-    print alignment_type, 
     (ref_protein_id, species) = exons_key
-    print species
     
     # if the alignment type is tblastn, we have to multiply
     # the coverage by 3 because the length is expressed in AAs, not in NBs
@@ -61,7 +59,6 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
         else:
             al_exons = alignment_exons.alignment_exons[ref_exon_id]
             internal_stat = 0.
-            print ref_exon_id, "length: %d" % len(ref_exon.sequence)
             for al_exon in al_exons:
                 if al_exon.viability:
                     #print al_exon.alignment_info["sbjct_start"], al_exon.alignment_info["sbjct_end"]

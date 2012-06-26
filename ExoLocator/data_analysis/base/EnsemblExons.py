@@ -147,12 +147,14 @@ class EnsemblExons(object):
         longest_translation = ""
         for frame in (0,1,2):
             translation = cDNA[frame:].translate()
+            if str(translation).endswith("*"):
+                translation = translation[0:len(translation)-1]
             longest_substring = LongestCommonSubstring (translation, protein_sequence)
             if len(longest_substring) > len(longest_translation):
                 longest_translation = longest_substring
                 actual_translation = translation
                 longest_frame = frame
-            
+  
         prot_start = actual_translation.find(longest_translation)
         cDNA_start = prot_start*3 + longest_frame
         cDNA_end = (prot_start + len(longest_translation) + 1) * 3 + longest_frame
