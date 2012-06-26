@@ -310,11 +310,18 @@ def read_seq_records_from_file (file_path, sequence_type):
     if machine == "donkey":
         file_handle = open(file_path, "r")
         sequences = SeqIO.parse(file_handle, "fasta", sequence_type)
-        file_handle.close()
+        
     elif machine == "anab":
         sequences = SeqIO.parse(file_path, "fasta", sequence_type)
         
-    return sequences
+    seqs = []
+    for seq in sequences:
+        seqs.append(seq)
+        
+    file_handle.close()
+    return seqs
+
+
         
         
 def main():
