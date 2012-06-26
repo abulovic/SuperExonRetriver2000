@@ -212,7 +212,7 @@ def load_fasta_single_record(file_path, sequence_type):
     try:
         fasta_file = open(file_path, 'r')
     except IOError:
-        data_loading_logger.error("")
+        data_loading_logger.error("Error loading ", file_path)
         return None
     
     seq_record = SeqIO.read(fasta_file, "fasta")  
