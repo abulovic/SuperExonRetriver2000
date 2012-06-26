@@ -298,64 +298,7 @@ def main ():
     
     # fill all the data containers
     fill_all_containers(True)
-    
-    ec = ExonContainer.Instance()
-    
-    
-    protein_list_raw = FileUtilities.get_protein_list()
-    exon_number = {}
-    for prot_id, exon_num in protein_list_raw:
-        exon_number[prot_id] = int(exon_num)
-    protein_list = list(chain.from_iterable(protein_list_raw))[0::2]
-    '''
-    # list of alignment algorithms    
-    algorithms = ["blastn", "tblastn", "sw_gene", "sw_exon"]
-    # POSTPROCESSING
-    
-    
-    algorithms.append("genewise")
-    
-    # translate the alignment produced exons and populate the TranslatedProteinContainer
-    #translate_alignment_exons_for_protein(protein_list, exon_number)
-    
-    ec = ExonContainer.Instance()
-    for prot_id in protein_list:
-        for spec in get_default_species_list():
-            for alg in algorithms:
-                try:
-                    print alg, spec
-                    exons = ec.get((prot_id, spec, alg))
-                    ordered = exons.get_ordered_exons()
-                    print alg
-                    for exon in ordered:
-                        print (exon.ordinal, exon.alignment_ordinal), exon.viability
-                    
-                except Exception:
-                    pass
-        
-    exons = ec.get(("ENSP00000304822", "Equus_caballus", "sw_gene"))
 
-    #new_exons = remove_UTR_ensembl_exons("ENSP00000253108", "Homo_sapiens", exons)
-    #rint len(new_exons)
-    #print exons.get_coding_cDNA()
-    
-    #create_statistics(protein_list)
-   
-    tp = TranslatedProteinContainer.Instance()
-    ec = ExonContainer.Instance()
-    #print tp.get("ENSP00000366061", "Ailuropoda_melanoleuca").get_sequence_record()
-
-    #translate_ensembl_exons(protein_list)
-    '''
-    
-    #translate_alignment_exons_for_protein(protein_list, exon_number)
-    
-    #exons = ec.get(("ENSP00000293201", "Homo_sapiens", "ensembl"))
-    #coding_exons = exons.get_coding_exons()
-    
-    #for ce in coding_exons:
-    #    print ce.start, ce.stop
-    #    print ce.sequence
     
 if __name__ == '__main__':
     main()

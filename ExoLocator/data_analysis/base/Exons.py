@@ -120,6 +120,6 @@ class Exons(object):
         spec_name = "%s%s" % (spec1[0:2], spec2[0:2])
         return "%s_%s_%s" % (self.species, self.ref_protein_id, self.exon_type)
      
-    
+
         
         
