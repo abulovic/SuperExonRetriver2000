@@ -14,7 +14,7 @@ from Bio import SeqIO
 
 def main ():
     #ERROR FILE:::
-    err_f = open('/home/intern/err_status_monday.txt', 'w')
+    err_f = open('/home/marioot/Eclipse/err_status_monday.txt', 'w')
 
     fill_all_containers(True)
     
