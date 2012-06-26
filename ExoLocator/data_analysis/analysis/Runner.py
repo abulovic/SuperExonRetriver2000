@@ -46,7 +46,7 @@ def translate_alignment_exons ():
 def create_statistics(protein_list):
     dc = DirectoryCrawler()
 
-    for protein_id in protein_list:
+    for (protein_id, exon_num) in protein_list:
     
         stat_file = "%s/stats.csv" % dc.get_root_path(protein_id)
         if not check_status_file(protein_id):
@@ -56,7 +56,10 @@ def create_statistics(protein_list):
 def main ():
     fill_all_containers(True)
     ec = ExonContainer.Instance()
-    translate_alignment_exons()
+    #translate_alignment_exons()
+    
+    create_statistics(get_protein_list())
+    
 
 if __name__ == '__main__':
     main()

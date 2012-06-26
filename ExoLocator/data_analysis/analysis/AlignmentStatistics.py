@@ -52,7 +52,7 @@ def produce_statistics_for_alignment (exons_key, alignment_type, reference_exons
     
     # TODO
     
-    remove_overlapping_alignments((ref_protein_id, species, alignment_type))
+    #remove_overlapping_alignments((ref_protein_id, species, alignment_type))
     for ref_exon in reference_exons:
         ref_exon_id = ref_exon.exon_id
         if ref_exon_id not in alignment_exons.alignment_exons:
