@@ -5,7 +5,7 @@ Created on Jun 25, 2012
 '''
 from utilities.DirectoryCrawler import DirectoryCrawler
 from utilities.FileUtilities import get_protein_list, get_species_list,\
-    check_status_file
+    check_status_file, write_seq_records_to_file
 import os
 from Bio import SeqIO
 from data_analysis.containers.ProteinContainer import ProteinContainer
@@ -57,8 +57,8 @@ def create_msa_alignments ():
         msa_exoloc_path = "%s/msa_exoloc.fa" % dc.get_mafft_path(prot_id)
         msa_ensembl_path = "%s/msa_ensembl.fa" % dc.get_mafft_path(prot_id)
         
-        SeqIO.write(exoloc_proteins, msa_exoloc_path, "fasta")
-        SeqIO.write(ensembl_proteins, msa_ensembl_path, "fasta")
+        write_seq_records_to_file(msa_exoloc_path, exoloc_proteins)
+        write_seq_records_to_file(msa_ensembl_path, ensembl_proteins)
         
         cmd = acg.generate_mafft_command(msa_exoloc_path, "%s/msa_exoloc.afa" % dc.get_mafft_path(prot_id))
         print cmd
@@ -109,7 +109,7 @@ def create_species_msa_alignments ():
             
             if len(protein_recs) == 1:
                 continue
-            SeqIO.write(protein_recs, msa_species_path, "fasta")
+            write_seq_records_to_file(msa_species_path, protein_recs)
             
             cmd = acg.generate_mafft_command(msa_species_path, "%s/%s.afa" % (dc.get_mafft_path(prot_id), species))
             print cmd
