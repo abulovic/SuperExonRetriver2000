@@ -71,9 +71,10 @@ class EnsemblExons(object):
         except IOError:
             containers_logger.error("%s,%s,%s" % (self.ref_protein_id, self.species, "Loading ensembl exons failed."))
             return None
+        fasta.close()
          
         exon_list = []
-        seq_records = read_seq_records_from_file(fasta, IUPAC.ambiguous_dna)
+        seq_records = read_seq_records_from_file(fasta_path, IUPAC.ambiguous_dna)
         
         for seq_record in seq_records:
             (start, stop, transcript_id, exon_id, strand) = seq_record.id.split('|')
