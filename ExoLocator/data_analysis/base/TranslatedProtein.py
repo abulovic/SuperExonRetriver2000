@@ -28,6 +28,6 @@ class TranslatedProtein (object):
         try:
             return self.sequence
         except AttributeError:
-            self.sequence = load_fasta_single_record(self.get_protein_file_path(), IUPAC.protein).next()
+            self.sequence = load_fasta_single_record(self.get_protein_file_path(), IUPAC.protein)
             
         return self.sequence
