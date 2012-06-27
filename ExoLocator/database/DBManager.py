@@ -39,7 +39,7 @@ class DBManager(object):
         self.db  = MySQLdb.connect(hostname, username, password, database)
 
     def update_gene_table(self, data_map_list):
-        err_f = open('/home/marioot/err_status_monday.txt', 'w')
+        err_f = open('/home/marioot/err_status_monday.txt', 'a')
         '''
         Updates the protein table.
         Data format: (protein_id, sequence, protein_info)
@@ -98,7 +98,7 @@ class DBManager(object):
             return False
 
     def update_ortholog_table(self, data_map_list):
-        err_f = open('/home/marioot/err_status_monday.txt', 'w')
+        err_f = open('/home/marioot/err_status_monday.txt', 'a')
         '''
         Updates the protein table.
         Data format: (protein_id, sequence, protein_info)
@@ -135,7 +135,7 @@ class DBManager(object):
             return False
 
     def update_protein_table(self, protein_list):
-        err_f = open('/home/marioot/err_status_monday.txt', 'w')
+        err_f = open('/home/marioot/err_status_monday.txt', 'a')
         '''
         Updates the protein table.
         Data format: (protein_id, sequence, protein_info)
@@ -167,7 +167,7 @@ class DBManager(object):
             return False
    
     def update_exon_table(self, exon_list):
-        err_f = open('/home/marioot/err_status_monday.txt', 'w')
+        err_f = open('/home/marioot/err_status_monday.txt', 'a')
         '''
         Updates the exon table.
         Each row represents a single exon found.
@@ -247,7 +247,7 @@ class DBManager(object):
             return False
 
     def update_alignment_table(self, exon_list):
-        err_f = open('/home/marioot/err_status_monday.txt', 'w')
+        err_f = open('/home/marioot/err_status_monday.txt', 'a')
         '''
         Updates the exon table.
         Each row represents a single exon found.
@@ -308,7 +308,7 @@ class DBManager(object):
             return False
         
     def update_exon_alignment_piece_table(self, exon_aln_piece_list):
-        err_f = open('/home/marioot/err_status_monday.txt', 'w')
+        err_f = open('/home/marioot/err_status_monday.txt', 'a')
         '''
         Updates the exon_alignment_piece table.
         Each row represents a single exon alignment piece.
