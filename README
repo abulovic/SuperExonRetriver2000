@@ -1,0 +1,119 @@
+# Installation Instructions
+
+Downloading the software is unfortunately not enough. There are some applications which you must have installed and even after that, you need to configure the application. Let's try and minimize the effort, shall we?
+
+## The required software
+In order for this application to work, you need to have the following software installed:
+ - standard Python distribution and BioPython module (working version was 1.59*)
+ - blastall tools
+ - SW# tool for Smith-Waterman alignment on graphic cards (https://github.com/mkorpar/swSharp)
+ - mafft alignment tool
+
+In order for the application to work, you need to have a local Ensembl mirror. You can download such a mirror from the Ensembl FTP website (http://www.ensembl.org/info/data/ftp/index.html). 
+
+
+## The required configuration files
+The configuration files are located in the Exolocator/cfg directory.
+
+The required files are:
+ - command_line_tools.cfg
+ - directory_tree.cfg
+ - logging.cfg
+ - referenced_species_mapping.txt
+ - status_file_keys.txt
+
+The last two files you can leave as they are. 
+
+
+### command line tools configuration file
+Example of the command line tools configuration file is:
+
+    [blast]
+    expectation = 1.e-2
+    blastp = blastall -p blastp -e %s -m 7
+    blastn = blastall -p blastn -e %s -m 7
+    tblastn = blastall -p tblastn -e %s -m 7
+    
+    [wise]
+    wise = genewise
+    flags = -genes -silent
+    
+    [sw#]
+    sw# = /home/john_doe/.../swSharp/sw#
+    
+    [mafft]
+    mafft = mafft --localpair --maxiterate 1000
+    
+    [local_ensembl]
+    ensembldb = /home/john_doe/mnt/release-67/fasta/	
+    expansion = 150000
+    masked = 0
+
+### directory tree configuration file
+
+Here is the example of what the directory_tree.cfg file should look like.
+
+    [root]
+    project_dir = /home/john_doe/SuperExonRetriever2000/ExoLocator
+    session_dir = /home/john_doe/results/
+    
+    [input]
+    protein_list = /home/john_doe/proteins.txt
+    failed_proteins = /home/john_doe/failed_proteins.txt
+    protein_description = /home/john_doe/protein_descr.txt
+    
+    [sequence]
+    root = sequence
+    gene = gene
+    exp_gene = expanded_gene
+    protein = protein
+    exon_ens = exon/ensembl
+    exon_wise = exon/genewise
+    assembled_protein = assembled_protein
+    
+    [statistics]
+    statistics = statistics
+    
+    [alignment]
+    root = alignment
+    blastn = blastn
+    tblastn = tblastn
+    SW_gene = SW/gene
+    SW_exon = SW/exon
+    mafft = mafft
+   
+    [annotation]
+    root = annotation
+    wise = genewise
+    
+    [log]
+    root = log
+    mutual_best = mutual_best_log
+    status_file = .status
+    
+    [database]
+    db = exon_database
+ 
+    [machine]
+    computer = donkey
+    
+    [data_retrieval]
+    biomart_perl_script = /home/john_doe/SuperExonRetriever2000/ExoLocator/pipeline/data_retrieval/BioMartRemoteAccess.pl
+
+In the directory tree configuration file you set 
+- the root directory of the application (`root / project dir`)
+- the directory for your results (`root / session_dir`)
+- list of proteins (there is an example list in the application, `input / protein_list`)
+- directory structure.
+
+There is really no need to change the directory structure, so the only three things you do need to change are:
+ - the directory that will contain your results, 
+ - the protein list file path and 
+ - the path to the BioMart script.
+
+Regarding the version of BioPython you have installed: the problem that arose was the reading / writing the fasta files. This is (very clumsily) configured by changing the `computer / machine` from donkey to anab. I do apologize for the lack of intuitivity regarding this option.
+If it doesn't work with the new versions even if you toggle this option, then the place to look is the `utilities / FileUtilities.py` script and methods for reading the fasta files. (load_fasta_single_record, write_seq_records_to_file, read_seq_records_from_file).
+
+### logging.cfg
+There is an example of this file in the cfg directory.
+You only need to change the paths to the output logging files.
