@@ -60,7 +60,7 @@ class BestProteinProduct (object):
             pass
         
         
-    def decide_on_best_exons (self):
+    def decide_on_best_exon_alignments (self):
         '''
         Map the best possible exon from the species to the 
         reference exon id. Best exons can come from the
@@ -254,7 +254,7 @@ class BestProteinProduct (object):
                 last_al_piece.spec_protein_seq      = new_spec_prot
 
 
-    def get_spec_protein_translation (self):
+    def get_SW_gene_protein_translation (self):
         
         '''
         Creates the protein translation. Where there exists no alignment, the cDNA 
@@ -270,6 +270,22 @@ class BestProteinProduct (object):
             
             
         return Seq(whole_protein_cdna, IUPAC.ambiguous_dna).translate()
+    
+    def get_best_protein_translation (self):
+        whole_protein_cdna = ""
+
+        for ref_exon in self.ref_exons.get_coding_exons():
+            bea = self.best_exons[ref_exon.exon_id]
+            if not bea:
+                whole_protein_cdna += "N" * len(ref_exon.sequence)
+            elif bea.status in ["both", "ensembl"]:
+                whole_protein_cdna += bea.ensembl_alignment.get_cDNA(len(whole_protein_cdna))
+            else:
+                whole_protein_cdna += bea.sw_gene_alignment.create_cDNA()     
+                
+        return whole_protein_cdna.translate()
+                
+                
         
             
 
@@ -278,7 +294,7 @@ if __name__ == '__main__':
 
     fill_all_containers(True)
     bpp = BestProteinProduct("ENSP00000341765", "Ailuropoda_melanoleuca", "Homo_sapiens")
-    bpp.decide_on_best_exons()
+    bpp.decide_on_best_exon_alignments()
     bpp.patch_interexon_AAS()
     print bpp.export_spec_protein_translation()
     

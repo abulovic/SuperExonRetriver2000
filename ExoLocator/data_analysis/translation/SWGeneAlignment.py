@@ -10,7 +10,7 @@ import re
 from utilities.ConfigurationReader import ConfigurationReader
 
 # data analysis imports
-from data_analysis.translation.TranslationUtils import split_exon_seq, set_protein_sequences
+from data_analysis.translation.TranslationUtils import process_exon_alignment, set_protein_sequences
 
 from data_analysis.containers.ProteinContainer import ProteinContainer
 from data_analysis.containers.DataMapContainer import DataMapContainer
@@ -24,7 +24,7 @@ class SWGeneAlignment (object):
         self.species        = species
         self.ref_exon       = ref_exon
         self.alignment_exon = alignment_exon
-        self.alignment_pieces    = split_exon_seq(self.alignment_exon, self.ref_exon)
+        self.alignment_pieces    = process_exon_alignment(self.alignment_exon, self.ref_exon)
         self.set_protein_sequences()
         self.determine_absolute_coordinates ()
     
@@ -45,7 +45,7 @@ class SWGeneAlignment (object):
         if str(ref_exon_translation).endswith("*"):
             ref_exon_translation = ref_exon_translation[0:len(ref_exon_translation)-1]
         
-        self.alignment_pieces    = split_exon_seq(self.alignment_exon, self.ref_exon)
+        self.alignment_pieces    = process_exon_alignment(self.alignment_exon, self.ref_exon)
         
         self.alignment_pieces    = set_protein_sequences (self.alignment_pieces)
         

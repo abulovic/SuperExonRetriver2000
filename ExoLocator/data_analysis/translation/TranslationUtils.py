@@ -138,7 +138,7 @@ def process_insertion_free_region(human_seq, spec_seq, frame, ordinal, alignment
     return al_exons
 
 
-def split_exon_seq (alignment_exon, coding_exon):
+def process_exon_alignment (alignment_exon, coding_exon):
     '''
     Splits  the exon alignment into pieces: the insertions in the
     referent exon and the parts without insertions (but with

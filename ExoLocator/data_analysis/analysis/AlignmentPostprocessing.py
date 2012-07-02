@@ -15,7 +15,7 @@ from utilities.FileUtilities                        import check_status_file
 
 # data analysis imports
 from data_analysis.containers.ExonContainer         import ExonContainer
-from data_analysis.containers.DataMapContainer import DataMapContainer
+from data_analysis.containers.DataMapContainer      import DataMapContainer
 
 
 

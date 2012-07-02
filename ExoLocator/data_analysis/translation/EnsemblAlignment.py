@@ -69,3 +69,37 @@ class EnsemblAlignment (object):
                 break
                     
         self.spec_protein_seq = translate_ensembl_exons(self.ensembl_exons)
+        
+        
+    def get_cDNA (self, len_so_far):
+        
+        rest = len_so_far % 3
+        
+        total_exon_len = len(self.ref_exon.sequence)  
+        alignment_start = self.alignment_exon.alignment_info["sbjct_start"]
+        padded_cdna = "N"* (alignment_start-1)
+        len_added = 0
+        
+        new_frame = (3-(self.ensembl_exons[0].relative_start - self.ensembl_exons[0].frame)%3)%3
+        if new_frame == 0:
+            if rest != 0:
+                padded_cdna += "N"* (3-rest)
+        elif new_frame == 1:
+            if rest != 2:
+                padded_cdna += "N" *(2-rest)
+        else:
+            if rest != 1:
+                if rest == 2:
+                    padded_cdna += "N"*2
+                else:
+                    padded_cdna += "N"
+        
+        for ens_exon in self.ensembl_exons:
+            coding_part = ens_exon.sequence[ens_exon.relative_start:ens_exon.relative_stop]
+            padded_cdna += coding_part
+            len_added += len(padded_cdna)
+            
+        padded_cdna += "N" * (total_exon_len-len_added)
+        return padded_cdna
+        
+        
